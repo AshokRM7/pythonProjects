@@ -1,9 +1,14 @@
 import pytest
 from selenium import webdriver
+from webdriver_manager.chrome import ChromeDriverManager
+from utils.config_reader import get_config
 
-@pytest.fixture
-def browser():
-    driver = webdriver.Chrome()  # or use ChromeDriverManager
+@pytest.fixture(scope="class")
+def setup(request):
+    config = get_config()
+    driver = webdriver.Chrome(ChromeDriverManager().install())
     driver.maximize_window()
-    yield driver
+    request.cls.driver = driver
+    request.cls.config = config
+    yield
     driver.quit()
