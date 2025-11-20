@@ -1,0 +1,15 @@
+fastapi
+uvicorn
+jinja2
+pydantic
+pandas
+requests
+langchain
+langchain-community
+langchain-core
+langchain-openai
+openai
+sentence-transformers
+faiss-cpu
+pymupdf
+pyyaml

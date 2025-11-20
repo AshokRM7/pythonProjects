@@ -1,0 +1,11 @@
+mock_server:
+  base_url: "http://127.0.0.1:9000"
+
+llm:
+  openai_model: "gpt-4.1-mini"
+  openai_api_key_env: "OPENAI_API_KEY"
+
+rag:
+  enabled: false
+  policies_path: "./data/policies"
+  index_path: "./data/vector_index"

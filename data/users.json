@@ -1,0 +1,12 @@
+{
+  "APP-44567": {
+    "application": "Payments Portal",
+    "business_owner": "bo_payments@example.com",
+    "support_owner": "so_payments@example.com"
+  },
+  "APP-77889": {
+    "application": "Risk Dashboard",
+    "business_owner": "bo_risk@example.com",
+    "support_owner": "so_risk@example.com"
+  }
+}

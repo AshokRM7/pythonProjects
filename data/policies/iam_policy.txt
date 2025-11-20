@@ -1,0 +1,4 @@
+Mock IAM Policy
+1. Quarterly access reviews must be done.
+2. Privileged access must be reviewed.
+3. Evidence must be stored.

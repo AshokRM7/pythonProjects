@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Agentic IAM Bot</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 24px; }
+        table { border-collapse: collapse; width: 100%; margin-top: 16px; }
+        th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
+        th { background: #f2f2f2; }
+        .pill { padding: 2px 8px; border-radius: 12px; font-size: 12px; }
+        .pill-high { background: #ffdddd; color: #a00; }
+        .pill-medium { background: #fff2cc; color: #a66; }
+        .pill-low { background: #ddffdd; color: #060; }
+    </style>
+</head>
+<body>
+    <h1>Agentic IAM Bot – Dashboard</h1>
+    <p>Mock backend: {{ base_url }}</p>
+    {% if tickets %}
+    <table>
+        <tr>
+            <th>ID</th>
+            <th>Application</th>
+            <th>Description</th>
+            <th>Priority</th>
+            <th>Status</th>
+        </tr>
+        {% for t in tickets %}
+        <tr>
+            <td>{{ t.id }}</td>
+            <td>{{ t.application }}</td>
+            <td>{{ t.description }}</td>
+            <td>
+                <span class="pill {% if t.priority=='High' %}pill-high{% elif t.priority=='Medium' %}pill-medium{% else %}pill-low{% endif %}">
+                    {{ t.priority }}
+                </span>
+            </td>
+            <td>{{ t.status }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+    {% else %}
+    <p>No tickets found or mock server not running.</p>
+    {% endif %}
+</body>
+</html>
