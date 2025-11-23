@@ -6,7 +6,18 @@ from pathlib import Path
 import json
 from datetime import datetime
 
+from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+
 app = FastAPI(title="Mock IAM Backend")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 DATA_DIR = Path(__file__).resolve().parent.parent / "data"
 EMAIL_LOG = DATA_DIR / "email_log.json"
@@ -177,3 +188,10 @@ def get_owners(ait_number: str):
 def send_email(email: Email):
     append_email_log(email)
     return {"status": "sent", "to": email.to}
+
+@app.get("/mail/logs")
+def get_email_logs():
+    if EMAIL_LOG.exists():
+        with open(EMAIL_LOG, "r") as f:
+            return json.load(f)
+    return []

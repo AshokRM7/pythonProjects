@@ -13,3 +13,4 @@ sentence-transformers
 faiss-cpu
 pymupdf
 pyyaml
+python-dotenv

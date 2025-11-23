@@ -34,5 +34,75 @@
     ],
     "subject": "IAM Action Required \u2013 Risk Dashboard (IAM-002)",
     "body": "Subject: Request for IAM Evidence \u2013 Privileged DB Access Review for Risk Dashboard (Ticket IAM-002)\n\nDear Business and Support Owners,\n\nAs part of the privileged access review for the Risk Dashboard (Ticket ID: IAM-002), please provide the necessary IAM evidence to confirm that only approved IDs have the DBA role. Specifically, we require:\n\n- Access review results  \n- Leaver confirmation (if applicable)  \n- ARM ticket evidence related to privileged access  \n\nYour timely assistance will help us meet the SLA requirements. Please let me know if you need any clarification.\n\nThank you,  \n[Your Name]  \nIAM Governance Analyst"
+  },
+  {
+    "timestamp": "2025-11-20T11:22:00.499712",
+    "to": [
+      "bo_payments@example.com",
+      "so_payments@example.com"
+    ],
+    "subject": "IAM Action Required \u2013 Payments Portal (IAM-001)",
+    "body": "Subject: Request for IAM Evidence \u2013 Quarterly Access Review for Payments Portal (Ticket IAM-001)\n\nDear Business and Support Owners,\n\nAs part of the quarterly access review for the Payments Portal (Ticket ID: IAM-001), please provide the necessary IAM evidence to validate all active users in the AD group APP_PAYMENTS_PROD. Specifically, we require:\n\n- Access review results  \n- Confirmation of deprovisioning for any leavers  \n- Relevant ARM tickets or supporting documentation\n\nYour timely response will help us meet the SLA deadline. Please let me know if you need any assistance.\n\nThank you for your cooperation.\n\nBest regards,  \n[Your Name]  \nIAM Governance Analyst"
+  },
+  {
+    "timestamp": "2025-11-20T11:22:03.885049",
+    "to": [
+      "bo_risk@example.com",
+      "so_risk@example.com"
+    ],
+    "subject": "IAM Action Required \u2013 Risk Dashboard (IAM-002)",
+    "body": "Subject: Request for IAM Evidence \u2013 Privileged DB Access Review for Risk Dashboard (Ticket IAM-002)\n\nDear Business and Support Owners,\n\nAs part of the privileged database access review for the Risk Dashboard (Ticket IAM-002), please provide the necessary IAM evidence to confirm that only approved IDs have the DBA role. Specifically, we require:\n\n- Access review results  \n- Leaver confirmations (if applicable)  \n- ARM ticket evidence related to access modifications  \n\nYour timely assistance will help us meet the SLA requirements. Please let me know if you need any clarification.\n\nThank you,  \n[Your Name]  \nIAM Governance Analyst"
+  },
+  {
+    "timestamp": "2025-11-23T08:44:21.280406",
+    "to": [
+      "bo_payments@example.com",
+      "so_payments@example.com"
+    ],
+    "subject": "IAM Action Required \u2013 Payments Portal (IAM-001)",
+    "body": "Subject: Request for IAM Evidence \u2013 Quarterly Access Review for Payments Portal (Ticket IAM-001)\n\nDear Business and Support Owners,\n\nAs part of the quarterly access review for the Payments Portal, please provide the necessary IAM evidence to validate all active users in the AD group APP_PAYMENTS_PROD. Specifically, we require:\n\n- Access review results  \n- Confirmation of leaver deprovisioning  \n- Relevant ARM tickets or related documentation  \n\nYour timely cooperation is appreciated to ensure compliance within the SLA timeframe.\n\nThank you,  \n[Your Name]  \nIAM Governance Analyst"
+  },
+  {
+    "timestamp": "2025-11-23T08:44:23.479009",
+    "to": [
+      "bo_risk@example.com",
+      "so_risk@example.com"
+    ],
+    "subject": "IAM Action Required \u2013 Risk Dashboard (IAM-002)",
+    "body": "Subject: Request for IAM Evidence \u2013 Privileged DB Access Review for Risk Dashboard (Ticket IAM-002)\n\nDear Business and Support Owners,\n\nAs part of the privileged database access review for the Risk Dashboard (Ticket ID: IAM-002), please provide the necessary IAM evidence to confirm that only approved IDs have the DBA role assigned. Specifically, we require:\n\n- Access review results  \n- Leaver confirmation (if applicable)  \n- ARM ticket evidence related to the DBA role assignments  \n\nYour timely assistance will help ensure compliance within the SLA timeframe. Please let me know if you need any clarification.\n\nThank you,  \n[Your Name]  \nIAM Governance Analyst"
+  },
+  {
+    "timestamp": "2025-11-23T09:19:33.763712",
+    "to": [
+      "bo_payments@example.com",
+      "so_payments@example.com"
+    ],
+    "subject": "IAM Action Required \u2013 Payments Portal (IAM-001)",
+    "body": "Subject: Request for IAM Evidence \u2013 Quarterly Access Review for Payments Portal (Ticket IAM-001)\n\nDear Business and Support Owners,\n\nAs part of the quarterly access review for the Payments Portal (Ticket ID: IAM-001), please provide the necessary IAM evidence to validate all active users in the AD group APP_PAYMENTS_PROD. Specifically, we require:\n\n- Access review results  \n- Confirmation of leaver deprovisioning  \n- Any related ARM tickets or documentation\n\nYour timely response will help us meet the high-priority SLA of 5 days.\n\nThank you for your cooperation.\n\nBest regards,  \n[Your Name]  \nIAM Governance Analyst"
+  },
+  {
+    "timestamp": "2025-11-23T09:19:36.805561",
+    "to": [
+      "bo_risk@example.com",
+      "so_risk@example.com"
+    ],
+    "subject": "IAM Action Required \u2013 Risk Dashboard (IAM-002)",
+    "body": "Subject: Request for IAM Evidence \u2013 Privileged DB Access Review for Risk Dashboard (Ticket IAM-002)\n\nDear Business and Support Owners,\n\nAs part of the privileged access review for the Risk Dashboard (Ticket ID: IAM-002), please provide the necessary IAM evidence to confirm that only approved IDs have the DBA role. Specifically, we require:\n\n- Access review results  \n- Leaver confirmations (if applicable)  \n- ARM ticket evidence related to privileged access  \n\nYour timely assistance will help us meet the SLA requirements. Please let me know if you need any clarification.\n\nThank you,  \n[Your Name]  \nIAM Governance Analyst"
+  },
+  {
+    "timestamp": "2025-11-23T14:43:57.670379",
+    "to": [
+      "bo_payments@example.com"
+    ],
+    "subject": "Action Required: IAM-001",
+    "body": "Subject: Action Required: Quarterly access review for Payments Portal \u2013 validate all active users in AD group APP_PAYMENTS_PROD and confirm deprovisioning of leavers.\n\nDear bo_payments@example.com,\n\nThis is a notification regarding ticket IAM-001 for application Payments Portal (AIT: APP-44567).\n\nDescription: Quarterly access review for Payments Portal \u2013 validate all active users in AD group APP_PAYMENTS_PROD and confirm deprovisioning of leavers.\n\nPlease review the access rights and provide necessary evidence.\n\nRegards,\nIAM Governance Team"
+  },
+  {
+    "timestamp": "2025-11-23T14:44:54.940328",
+    "to": [
+      "bo_risk@example.com"
+    ],
+    "subject": "Action Required: IAM-002",
+    "body": "Subject: Action Required: Review privileged DB access for Risk Dashboard \u2013 confirm only approved IDs have DBA role and attach ARM ticket evidence.\n\nDear bo_risk@example.com,\n\nThis is a notification regarding ticket IAM-002 for application Risk Dashboard (AIT: APP-77889).\n\nDescription: Review privileged DB access for Risk Dashboard \u2013 confirm only approved IDs have DBA role and attach ARM ticket evidence.\n\nPlease review the access rights and provide necessary evidence.\n\nRegards,\nIAM Governance Team"
   }
 ]
