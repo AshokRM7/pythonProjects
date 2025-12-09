@@ -1,16 +1,25 @@
+from fastapi import FastAPI, HTTPException, BackgroundTasks
+from dotenv import load_dotenv
 
-from fastapi import FastAPI, HTTPException
+load_dotenv()
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List, Optional, Dict
 from pathlib import Path
 import json
-from datetime import datetime
+import datetime
+import uvicorn
+import random
 
-from fastapi import FastAPI, HTTPException
-from fastapi.middleware.cors import CORSMiddleware
+# Import Agent Orchestrator
+from agentic_bot.agent_orchestrator import start_agent_run, get_agent_run, list_agent_runs
+from agentic_bot.rag.ingest import build_index
+# Try to build index on startup if not exists (optional, or just rely on manual run)
+# build_index() 
 
-app = FastAPI(title="Mock IAM Backend")
+app = FastAPI()
 
+# CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
@@ -19,6 +28,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# --- Data Models ---
 DATA_DIR = Path(__file__).resolve().parent.parent / "data"
 EMAIL_LOG = DATA_DIR / "email_log.json"
 
@@ -48,6 +58,27 @@ class Email(BaseModel):
     to: List[str]
     subject: str
     body: str
+
+# --- Agent Endpoints ---
+
+class AgentRunRequest(BaseModel):
+    ticket_id: str
+
+@app.post("/agent/run/{ticket_id}")
+async def run_agent(ticket_id: str):
+    job_id = start_agent_run(ticket_id)
+    return {"job_id": job_id, "ticket_id": ticket_id, "status": "pending"}
+
+@app.get("/agent/status/{job_id}")
+def get_agent_status(job_id: str):
+    run = get_agent_run(job_id)
+    if not run:
+        raise HTTPException(status_code=404, detail="Job not found")
+    return run
+
+@app.get("/agent/runs")
+def get_all_runs():
+    return list_agent_runs()
 
 TICKETS: Dict[str, Ticket] = {
     "IAM-001": Ticket(

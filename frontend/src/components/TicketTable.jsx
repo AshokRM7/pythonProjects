@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { ChevronRight } from 'lucide-react';
 import StatusBadge from './StatusBadge';
 
-const TicketTable = ({ tickets }) => {
+const TicketTable = ({ tickets, onRunAgent }) => {
     const navigate = useNavigate();
 
     return (
@@ -38,9 +38,20 @@ const TicketTable = ({ tickets }) => {
                                 <StatusBadge status={ticket.status} />
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                <button className="text-blue-600 hover:text-blue-900 flex items-center justify-end w-full">
-                                    View <ChevronRight className="w-4 h-4 ml-1" />
-                                </button>
+                                <div className="flex justify-end space-x-2">
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            onRunAgent(ticket.id);
+                                        }}
+                                        className="text-white bg-blue-600 hover:bg-blue-700 px-3 py-1 rounded text-xs font-medium transition-colors"
+                                    >
+                                        Run Agent
+                                    </button>
+                                    <button className="text-gray-400 hover:text-gray-600">
+                                        <ChevronRight className="w-4 h-4" />
+                                    </button>
+                                </div>
                             </td>
                         </tr>
                     ))}

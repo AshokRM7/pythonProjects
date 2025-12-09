@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_BASE_URL = 'http://127.0.0.1:9000';
+const API_BASE_URL = 'http://127.0.0.1:9001';
 
 const api = axios.create({
     baseURL: API_BASE_URL,
@@ -75,21 +75,12 @@ export const getEmailLogs = async () => {
     return response.data;
 };
 
-// Mock OpenAI Draft (Client-side for now, or could be a backend proxy if implemented)
+// Real OpenAI Draft via UI Server
 export const draftEmail = async (ticket, owners) => {
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 1000));
-
-    return `Subject: Action Required: ${ticket.description}
-
-Dear ${owners.business_owner || 'Business Owner'},
-
-This is a notification regarding ticket ${ticket.id} for application ${ticket.application} (AIT: ${ticket.ait_number}).
-
-Description: ${ticket.description}
-
-Please review the access rights and provide necessary evidence.
-
-Regards,
-IAM Governance Team`;
+    const UI_SERVER_URL = 'http://127.0.0.1:8000';
+    const response = await axios.post(`${UI_SERVER_URL}/api/draft_email`, {
+        ticket,
+        owners
+    });
+    return response.data.draft;
 };

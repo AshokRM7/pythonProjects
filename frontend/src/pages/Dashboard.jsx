@@ -2,10 +2,12 @@ import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { getTickets } from '../services/api';
 import TicketTable from '../components/TicketTable';
+import AgentRunPanel from '../components/AgentRunPanel';
 import { Loader2 } from 'lucide-react';
 
 const Dashboard = () => {
-    const { data: tickets, isLoading, error } = useQuery({
+    const [selectedTicketId, setSelectedTicketId] = React.useState(null);
+    const { data: tickets, isLoading, error, refetch } = useQuery({
         queryKey: ['tickets'],
         queryFn: () => getTickets(),
     });
@@ -55,7 +57,18 @@ const Dashboard = () => {
                 </div>
             </div>
 
-            <TicketTable tickets={tickets || []} />
+            <TicketTable
+                tickets={tickets || []}
+                onRunAgent={(id) => setSelectedTicketId(id)}
+            />
+
+            {selectedTicketId && (
+                <AgentRunPanel
+                    ticketId={selectedTicketId}
+                    onClose={() => setSelectedTicketId(null)}
+                    onTicketUpdate={refetch}
+                />
+            )}
         </div>
     );
 };
