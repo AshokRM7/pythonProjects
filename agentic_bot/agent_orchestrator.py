@@ -61,7 +61,7 @@ async def run_iam_agent_for_ticket(job_id: str, ticket_id: str):
         # Let's use a helper to fetch data.
         
         import requests
-        API_BASE = "http://127.0.0.1:9001"
+        API_BASE = "http://127.0.0.1:9002"
         
         async def async_get(url):
             loop = asyncio.get_running_loop()
@@ -163,6 +163,21 @@ async def run_iam_agent_for_ticket(job_id: str, ticket_id: str):
         except:
             pass
         log_step(job_id, "Email sent", "Email delivered successfully.")
+        
+        # 5.5 Evidence Collection
+        await asyncio.sleep(2)
+        log_step(job_id, "Waiting for Evidence", "Collection from PO in progress...")
+        
+        # Simulate waiting for external input/file
+        await asyncio.sleep(2)
+        evidence_file = "audit_log_v2.csv"
+        
+        try:
+             await async_post(f"{API_BASE}/rise/tickets/{ticket_id}/evidence?evidence={evidence_file}", {})
+        except:
+            pass
+            
+        log_step(job_id, "Evidence Collected", f"Received and attached: {evidence_file}")
         
         # 6. Update JIRA
         await asyncio.sleep(0.5)
