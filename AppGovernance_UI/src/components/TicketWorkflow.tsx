@@ -136,8 +136,8 @@ export function TicketWorkflow({ ticket, onBack, user, onLogout }: TicketWorkflo
 
     if (isAgentMode) {
       return (
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 h-full">
-          <div className="flex items-center justify-between mb-6">
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 h-full flex flex-col max-h-[800px]">
+          <div className="flex items-center justify-between mb-6 flex-shrink-0">
             <h3 className="text-gray-900 font-medium flex items-center gap-2">
               {polling ? <Loader2 className="w-5 h-5 animate-spin text-blue-600" /> : <CheckCircle className="w-5 h-5 text-green-600" />}
               AI Agent Orchestrator
@@ -151,46 +151,67 @@ export function TicketWorkflow({ ticket, onBack, user, onLogout }: TicketWorkflo
             </span>
           </div>
 
-          <div className="space-y-4 mb-6 max-h-[400px] overflow-y-auto">
-            {agentJob?.steps.map((step, i) => (
-              <div key={i} className="flex gap-3 text-sm">
-                <div className="w-20 text-gray-400 text-xs text-right pt-0.5">
-                  {new Date(step.ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+          <div className="flex-1 overflow-y-auto pr-2 space-y-6">
+            {/* Steps Timeline */}
+            <div className="space-y-0 relative">
+              {/* Vertical Line */}
+              <div className="absolute left-[5.5rem] top-2 bottom-2 w-0.5 bg-gray-100" />
+
+              {agentJob?.steps.map((step, i) => (
+                <div key={i} className="flex gap-4 group relative">
+                  <div className="w-20 text-gray-400 text-[10px] text-right pt-1 font-mono flex-shrink-0">
+                    {new Date(step.ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                  </div>
+                  <div className="w-2.5 h-2.5 mt-1.5 rounded-full bg-blue-500 border-2 border-white ring-1 ring-blue-100 z-10 flex-shrink-0" />
+                  <div className="flex-1 pb-4 min-w-0">
+                    <p className="text-gray-900 text-sm font-medium leading-none mb-1">{step.label}</p>
+                    <p className="text-gray-500 text-xs leading-relaxed break-words">{step.detail}</p>
+                  </div>
                 </div>
-                <div className="flex-1">
-                  <p className="text-gray-900 font-medium">{step.label}</p>
-                  <p className="text-gray-500">{step.detail}</p>
+              ))}
+              {agentJob?.steps.length === 0 && (
+                <p className="text-gray-400 italic text-center py-4 text-sm">Initializing agent components...</p>
+              )}
+            </div>
+
+            {/* Email Draft Section */}
+            {agentJob?.email_body && (
+              <div className="border border-gray-200 rounded-lg overflow-hidden bg-gray-50/50">
+                <div className="bg-gray-100/50 px-4 py-2 border-b border-gray-200">
+                  <h4 className="text-xs font-semibold text-gray-500 uppercase flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-indigo-400"></span>
+                    Generated Email Draft
+                  </h4>
+                </div>
+                <div className="p-4 overflow-x-auto">
+                  <pre className="text-sm text-gray-700 whitespace-pre-wrap font-sans break-words leading-relaxed max-w-full">
+                    {agentJob.email_body}
+                  </pre>
                 </div>
               </div>
-            ))}
-            {agentJob?.steps.length === 0 && (
-              <p className="text-gray-400 italic text-center py-4">Initializing agent...</p>
+            )}
+
+            {/* Result Status */}
+            {agentJob?.status === 'completed' && (
+              <div className="bg-green-50 border border-green-200 rounded-lg p-4 animate-in fade-in slide-in-from-bottom-2">
+                <h4 className="text-sm font-semibold text-green-900 mb-1 flex items-center gap-2">
+                  <CheckCircle className="w-4 h-4" />
+                  Execution Complete
+                </h4>
+                <p className="text-sm text-green-800 leading-relaxed">{agentJob.final_summary}</p>
+              </div>
+            )}
+
+            {agentJob?.status === 'failed' && (
+              <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                <div className="flex items-center gap-2 mb-1">
+                  <AlertTriangle className="w-4 h-4 text-red-600" />
+                  <h4 className="text-sm font-semibold text-red-900">Execution Failed</h4>
+                </div>
+                <p className="text-sm text-red-800 break-words">{agentJob.error}</p>
+              </div>
             )}
           </div>
-
-          {agentJob?.email_body && (
-            <div className="border rounded-lg p-4 bg-gray-50 mb-6">
-              <h4 className="text-xs font-semibold text-gray-500 uppercase mb-2">Generated Email Draft</h4>
-              <pre className="text-sm text-gray-800 whitespace-pre-wrap font-sans">{agentJob.email_body}</pre>
-            </div>
-          )}
-
-          {agentJob?.status === 'completed' && (
-            <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-              <h4 className="text-sm font-semibold text-green-900 mb-1">Execution Complete</h4>
-              <p className="text-sm text-green-800">{agentJob.final_summary}</p>
-            </div>
-          )}
-
-          {agentJob?.status === 'failed' && (
-            <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-              <div className="flex items-center gap-2 mb-1">
-                <AlertTriangle className="w-4 h-4 text-red-600" />
-                <h4 className="text-sm font-semibold text-red-900">Execution Failed</h4>
-              </div>
-              <p className="text-sm text-red-800">{agentJob.error}</p>
-            </div>
-          )}
         </div>
       );
     }
