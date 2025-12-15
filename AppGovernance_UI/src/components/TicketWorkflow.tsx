@@ -95,22 +95,17 @@ export function TicketWorkflow({ ticket, onBack, user, onLogout }: TicketWorkflo
   };
 
   const updateStepsFromAgent = (job: AgentJob) => {
-    // Simple heuristic mapping based on step counts or labels
-    // 8 defined steps in Agent vs 7 UI steps. We can map loosely.
-    // Agent steps: Fetch(0), Validate(1), Owners(2), RAG(3), Draft(4), Send(5), JIRA(6), RISE(7)
-
-    // We'll mark UI steps completed based on how many agent steps are done.
-    const stepsCount = job.steps.length;
+    const labels = new Set(job.steps.map(s => s.label));
     const newSteps = [...steps];
 
-    // Mapping logic
-    if (stepsCount >= 2) newSteps[0].completed = true; // Category
-    if (stepsCount >= 2) newSteps[1].completed = true; // SLA (implicit in auto run)
-    if (stepsCount >= 3) newSteps[2].completed = true; // AppHQ
-    if (stepsCount >= 4) newSteps[3].completed = true; // Review (RAG)
-    if (stepsCount >= 6) newSteps[4].completed = true; // Email (Draft+Send)
-    if (stepsCount >= 7) newSteps[5].completed = true; // Evidence (JIRA update has evidence)
-    if (stepsCount >= 8) newSteps[6].completed = true; // Close
+    // Mapping logic based on exact backend agent labels
+    if (labels.has("IAM Validation Successful")) newSteps[0].completed = true; // Category
+    if (labels.has("IAM Validation Successful")) newSteps[1].completed = true; // SLA (implicit)
+    if (labels.has("Owners Found")) newSteps[2].completed = true; // AppHQ
+    if (labels.has("Policy Context Retrieved")) newSteps[3].completed = true; // Review (RAG)
+    if (labels.has("Email Sent")) newSteps[4].completed = true; // Email
+    if (labels.has("JIRA Updated")) newSteps[5].completed = true; // Evidence
+    if (labels.has("RISE Ticket Closed") || labels.has("Process Complete")) newSteps[6].completed = true; // Close
 
     // Current active step logic
     let activeIdx = 0;

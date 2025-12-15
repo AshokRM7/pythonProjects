@@ -14,6 +14,7 @@
     "evidence": [
       "Automated IAM Agent Check Completed. Policy requirements met.",
       "Automated IAM Agent Check Completed. Policy requirements met.",
+      "Automated IAM Agent Check Completed. Policy requirements met.",
       "Automated IAM Agent Check Completed. Policy requirements met."
     ]
   },
@@ -24,12 +25,14 @@
     "appId": "AIT-78901",
     "slaDeadline": "2025-12-20",
     "priority": "Medium",
-    "status": "New",
+    "status": "Closed",
     "description": "Certify all privileged accounts in the HR System. Verify that current access levels are appropriate for job roles.",
     "createdBy": "GIS Team",
     "createdDate": "2025-12-09",
     "jiraStory": "JIRA-IAM-1235",
-    "evidence": []
+    "evidence": [
+      "Automated IAM Agent Check Completed. Policy requirements met."
+    ]
   },
   {
     "id": "RISE-2025-003",
