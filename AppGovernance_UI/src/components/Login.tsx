@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Lock, User } from 'lucide-react';
 import { User as UserType } from '../App';
+import boaLogo from '../assets/boa-logo.png';
 
 interface LoginProps {
   onLogin: (user: UserType) => void;
@@ -44,10 +45,7 @@ export function Login({ onLogin }: LoginProps) {
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <div className="mb-6">
-            <svg viewBox="0 0 200 50" className="h-12 mx-auto">
-              <rect x="0" y="0" width="200" height="50" fill="#012169"/>
-              <text x="15" y="32" fill="#E31837" fontSize="24" fontWeight="bold">Bank of America</text>
-            </svg>
+            <img src={boaLogo} alt="Bank of America" className="h-12 mx-auto" />
           </div>
           <h1 className="text-gray-900 mb-2">App Governance Portal</h1>
           <p className="text-gray-600">IAM Deliverable Management System</p>

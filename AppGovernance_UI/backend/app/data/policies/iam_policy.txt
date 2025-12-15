@@ -1,0 +1,31 @@
+IAM Policy Standard 101: Access Reviews and Certification
+
+1. Purpose
+The purpose of this standard is to define the requirements for periodic access reviews and certification of user access rights to ensure that access is restricted to authorized users and is appropriate for their job function.
+
+2. Scope
+This policy applies to all applications and systems within the organization, with specific emphasis on those hosting critical or sensitive data.
+
+3. Requirements
+3.1 Quarterly Access Reviews
+All application owners must conduct a quarterly review of user access rights. This includes verifying that:
+- All active accounts belong to current employees or authorized contractors.
+- Access levels (roles/permissions) are appropriate for the user's current job function.
+- No users differ from the approved access matrix without documented exception support.
+
+3.2 Privileged Access
+Privileged access (e.g., administrator, root) must be reviewed on a monthly basis. Evidence of this review must be retained for audit purposes.
+
+3.3 Leaver Process
+Upon termination of employment or contract, all access rights must be revoked within 24 hours. The application owner is responsible for confirming revocation.
+
+3.4 Evidence Collection
+For every access review, the following evidence must be collected and attached to the compliance ticket:
+- A list of users and their permissions at the time of review.
+- Confirmation from the business owner approving the continued access.
+- Logs showing the removal of any inappropriate access.
+
+4. Roles and Responsibilities
+- Application Owner: Responsible for executing the review and maintaining evidence.
+- IAM Team: Responsible for oversight and conducting spot checks on compliance.
+- Internal Audit: Responsible for verifying compliance with this policy during annual audits.

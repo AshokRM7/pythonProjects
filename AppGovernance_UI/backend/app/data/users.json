@@ -1,0 +1,29 @@
+{
+    "AIT-45678": {
+        "appOwner": "David Miller",
+        "appOwnerEmail": "david.miller@example.com",
+        "aitOwner": "Sarah Connor",
+        "aitOwnerEmail": "sarah.connor@example.com",
+        "lobOwner": "James Cameron",
+        "lobOwnerEmail": "james.cameron@example.com",
+        "businessUnit": "Finance Operations"
+    },
+    "AIT-78901": {
+        "appOwner": "Emily Blunt",
+        "appOwnerEmail": "emily.blunt@example.com",
+        "aitOwner": "John Krasinski",
+        "aitOwnerEmail": "john.krasinski@example.com",
+        "lobOwner": "Stanley Tucci",
+        "lobOwnerEmail": "stanley.tucci@example.com",
+        "businessUnit": "Human Resources"
+    },
+    "AIT-34567": {
+        "appOwner": "Robert Downey Jr",
+        "appOwnerEmail": "rdj@example.com",
+        "aitOwner": "Gwyneth Paltrow",
+        "aitOwnerEmail": "gwyneth.paltrow@example.com",
+        "lobOwner": "Jon Favreau",
+        "lobOwnerEmail": "jon.favreau@example.com",
+        "businessUnit": "Sales & Marketing"
+    }
+}

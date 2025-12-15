@@ -1,0 +1,14 @@
+app:
+  title: "IAM Agentic Demo"
+  version: "1.0.0"
+  host: "127.0.0.1"
+  port: 9000
+
+llm:
+  model_name: "gpt-4-turbo-preview"
+  temperature: 0.0
+
+rag:
+  chunk_size: 500
+  chunk_overlap: 50
+  index_path: "app/data/faiss_index"

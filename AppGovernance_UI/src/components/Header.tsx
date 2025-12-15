@@ -1,5 +1,6 @@
 import { LogOut, User, Bell, Menu } from 'lucide-react';
 import { User as UserType } from '../App';
+import boaLogo from '../assets/boa-logo.png';
 
 interface HeaderProps {
   user: UserType;
@@ -12,10 +13,7 @@ export function Header({ user, onLogout }: HeaderProps) {
       <div className="bg-blue-900" style={{ backgroundColor: '#012169' }}>
         <div className="max-w-7xl mx-auto px-6 py-2 flex items-center justify-between">
           <div className="flex items-center gap-8">
-            <svg viewBox="0 0 200 50" className="h-8">
-              <rect x="0" y="0" width="200" height="50" fill="#012169"/>
-              <text x="15" y="32" fill="#E31837" fontSize="24" fontWeight="bold">Bank of America</text>
-            </svg>
+            <img src={boaLogo} alt="Bank of America" className="h-8" />
             <nav className="hidden md:flex items-center gap-6 text-sm text-white">
               <a href="#" className="hover:text-red-500 transition-colors">Home</a>
               <a href="#" className="hover:text-red-500 transition-colors">Deliverables</a>

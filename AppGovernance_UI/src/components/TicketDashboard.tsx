@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { RefreshCw, Search, AlertCircle } from 'lucide-react';
 import { Ticket } from '../App';
 import { User as UserType } from '../App';
 import { Header } from './Header';
 import { Footer } from './Footer';
+import { fetchTickets } from '../api/iam';
 
 interface TicketDashboardProps {
   onTicketSelect: (ticket: Ticket) => void;
@@ -11,72 +12,33 @@ interface TicketDashboardProps {
   onLogout: () => void;
 }
 
-const mockTickets: Ticket[] = [
-  {
-    id: 'RISE-2024-001',
-    title: 'Privileged Access Review - Finance App',
-    category: 'IAM',
-    appId: 'AIT-45678',
-    slaDeadline: '2024-12-15',
-    priority: 'High',
-    status: 'New',
-    description: 'Review and validate privileged access controls for Finance Application',
-    createdBy: 'GIS Team',
-    createdDate: '2024-12-08',
-    jiraStory: 'JIRA-IAM-1234'
-  },
-  {
-    id: 'RISE-2024-002',
-    title: 'Auto-Provisioning Verification - HR Portal',
-    category: 'IAM',
-    appId: 'AIT-78901',
-    slaDeadline: '2024-12-20',
-    priority: 'Medium',
-    status: 'New',
-    description: 'Verify auto-provisioning setup for HR Portal access management',
-    createdBy: 'GIS Team',
-    createdDate: '2024-12-09',
-    jiraStory: 'JIRA-IAM-1235'
-  },
-  {
-    id: 'RISE-2024-003',
-    title: 'Access Control Audit - CRM System',
-    category: 'IAM',
-    appId: 'AIT-34567',
-    slaDeadline: '2024-12-12',
-    priority: 'High',
-    status: 'In Progress',
-    description: 'Complete access control audit for CRM System identity management',
-    createdBy: 'GIS Team',
-    createdDate: '2024-12-05',
-    jiraStory: 'JIRA-IAM-1236'
-  },
-  {
-    id: 'RISE-2024-004',
-    title: 'Role-Based Access Implementation',
-    category: 'IAM',
-    appId: 'AIT-56789',
-    slaDeadline: '2024-12-25',
-    priority: 'Low',
-    status: 'New',
-    description: 'Implement role-based access controls for new application',
-    createdBy: 'GIS Team',
-    createdDate: '2024-12-10',
-    jiraStory: 'JIRA-IAM-1237'
-  }
-];
-
 export function TicketDashboard({ onTicketSelect, user, onLogout }: TicketDashboardProps) {
-  const [tickets, setTickets] = useState<Ticket[]>(mockTickets);
+  const [tickets, setTickets] = useState<Ticket[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const loadTickets = async () => {
+    setIsRefreshing(true);
+    setError(null);
+    try {
+      const data = await fetchTickets();
+      setTickets(data);
+    } catch (err) {
+      console.error('Failed to load tickets', err);
+      setError('Failed to load tickets. Is the backend running?');
+      // Fallback to empty or could show error UI
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
+  useEffect(() => {
+    loadTickets();
+  }, []);
 
   const handleRefresh = () => {
-    setIsRefreshing(true);
-    setTimeout(() => {
-      setTickets(mockTickets);
-      setIsRefreshing(false);
-    }, 1000);
+    loadTickets();
   };
 
   const filteredTickets = tickets.filter(ticket =>
@@ -138,6 +100,12 @@ export function TicketDashboard({ onTicketSelect, user, onLogout }: TicketDashbo
               Fetch Tickets
             </button>
           </div>
+          {error && (
+            <div className="mt-4 p-3 bg-red-100 border border-red-200 text-red-700 rounded-lg flex items-center gap-2">
+              <AlertCircle className="w-5 h-5" />
+              {error}
+            </div>
+          )}
         </div>
 
         <div className="grid gap-4">

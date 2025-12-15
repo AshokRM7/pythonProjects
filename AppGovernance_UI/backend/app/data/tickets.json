@@ -1,0 +1,47 @@
+[
+  {
+    "id": "RISE-2024-001",
+    "title": "Quarterly Access Review - Finance App",
+    "category": "IAM",
+    "appId": "AIT-45678",
+    "slaDeadline": "2024-12-15",
+    "priority": "High",
+    "status": "Closed",
+    "description": "Perform quarterly review of privileged access for the Finance Application to ensure compliance with SOX requirements.",
+    "createdBy": "GIS Team",
+    "createdDate": "2024-12-08",
+    "jiraStory": "JIRA-IAM-1234",
+    "evidence": [
+      "Automated IAM Agent Check Completed. Policy requirements met.",
+      "Automated IAM Agent Check Completed. Policy requirements met."
+    ]
+  },
+  {
+    "id": "RISE-2024-002",
+    "title": "Privileged Access Certification - HR System",
+    "category": "IAM",
+    "appId": "AIT-78901",
+    "slaDeadline": "2024-12-20",
+    "priority": "Medium",
+    "status": "New",
+    "description": "Certify all privileged accounts in the HR System. Verify that current access levels are appropriate for job roles.",
+    "createdBy": "GIS Team",
+    "createdDate": "2024-12-09",
+    "jiraStory": "JIRA-IAM-1235",
+    "evidence": []
+  },
+  {
+    "id": "RISE-2024-003",
+    "title": "Leaver Access Revocation - CRM Platform",
+    "category": "IAM",
+    "appId": "AIT-34567",
+    "slaDeadline": "2024-12-12",
+    "priority": "High",
+    "status": "In Progress",
+    "description": "Process access revocation for leavers in the CRM Platform. Ensure all accounts are disabled within 24 hours.",
+    "createdBy": "GIS Team",
+    "createdDate": "2024-12-05",
+    "jiraStory": "JIRA-IAM-1236",
+    "evidence": []
+  }
+]

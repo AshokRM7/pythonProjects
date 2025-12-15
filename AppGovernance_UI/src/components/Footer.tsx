@@ -1,4 +1,5 @@
 import { Shield, FileText, Phone, Mail, Globe } from 'lucide-react';
+import boaLogo from '../assets/boa-logo.png';
 
 export function Footer() {
   return (
@@ -14,7 +15,7 @@ export function Footer() {
               <li><a href="#" className="hover:text-blue-900 transition-colors">JIRA Integration</a></li>
             </ul>
           </div>
-          
+
           <div>
             <h3 className="text-sm text-gray-900 mb-4">Resources</h3>
             <ul className="space-y-2 text-sm text-gray-600">
@@ -24,7 +25,7 @@ export function Footer() {
               <li><a href="#" className="hover:text-blue-900 transition-colors">FAQs</a></li>
             </ul>
           </div>
-          
+
           <div>
             <h3 className="text-sm text-gray-900 mb-4">Support</h3>
             <ul className="space-y-2 text-sm text-gray-600">
@@ -42,7 +43,7 @@ export function Footer() {
               </li>
             </ul>
           </div>
-          
+
           <div>
             <h3 className="text-sm text-gray-900 mb-4">Security & Compliance</h3>
             <ul className="space-y-2 text-sm text-gray-600">
@@ -59,16 +60,13 @@ export function Footer() {
             </ul>
           </div>
         </div>
-        
+
         <div className="border-t border-gray-200 mt-8 pt-6">
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-2">
-              <svg viewBox="0 0 200 50" className="h-6">
-                <rect x="0" y="0" width="200" height="50" fill="#012169"/>
-                <text x="15" y="32" fill="#E31837" fontSize="24" fontWeight="bold">Bank of America</text>
-              </svg>
+              <img src={boaLogo} alt="Bank of America" className="h-6" />
             </div>
-            
+
             <div className="flex items-center gap-6 text-xs text-gray-500">
               <a href="#" className="hover:text-blue-900 transition-colors">Terms of Use</a>
               <span>|</span>
@@ -79,7 +77,7 @@ export function Footer() {
               <a href="#" className="hover:text-blue-900 transition-colors">Accessibility</a>
             </div>
           </div>
-          
+
           <div className="mt-4 text-center md:text-left">
             <p className="text-xs text-gray-500">
               © 2024 Bank of America Corporation. All rights reserved.
@@ -90,7 +88,7 @@ export function Footer() {
           </div>
         </div>
       </div>
-      
+
       <div className="bg-blue-900 py-1" style={{ backgroundColor: '#012169' }}>
         <div className="max-w-7xl mx-auto px-6">
           <p className="text-xs text-white text-center">
