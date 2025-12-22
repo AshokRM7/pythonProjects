@@ -1,0 +1,16 @@
+{
+    
+"llm": {
+    "model": "gpt-3.5-turbo",
+    "temperature": 0,
+    "base_url": "https://openrouter.ai/api/v1"
+  },
+  "human_review": ["SLA", "Ownership", "EvidenceCollector", "Closer"],
+  "smtp": {
+    "server": "smtp.office365.com",
+    "port": 587,
+    "user": "iam-bot@example.com",
+    "password": "securepassword",
+    "use_tls": true
+  }
+}
