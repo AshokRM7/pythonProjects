@@ -57,9 +57,9 @@ orchestrator: Optional[IAMOrchestrator] = None
 def get_orchestrator():
     global orchestrator
     if orchestrator is None:
-        api_key = os.getenv("OPEN_ROUTER_KEY_ORIGINAL")
+        api_key = os.getenv("OPEN_ROUTER_KEY_ORIGINAL") or os.getenv("OPENAI_API_KEY")
         if not api_key:
-            print("⚠️ WARNING: OPEN_ROUTER_KEY_ORIGINAL not found in environment variables")
+            print("⚠️ WARNING: Neither OPEN_ROUTER_KEY_ORIGINAL nor OPENAI_API_KEY found in environment variables")
         # Config file is now at root level
         # import os removed
         from pathlib import Path
@@ -90,6 +90,11 @@ def convert_ticket_to_frontend(ticket: Ticket) -> dict:
         "armId": ticket.arm_id,
         "contacts": ticket.contacts,
         "stages": [s.model_dump() for s in ticket.stages] if ticket.stages else [],
+        # New Optional Fields
+        "employeeId": ticket.employee_id,
+        "userEmail": ticket.user_email,
+        "targetSystem": ticket.target_system,
+        "requestedAction": ticket.requested_action,
     }
 
 
@@ -114,7 +119,11 @@ def convert_frontend_to_ticket(data: dict) -> Ticket:
         status=data.get("status", "Open"),
         owner=data.get("owner", "Unassigned"),
         currentStage=data.get("currentStage", 0),
-        stages=[Stage(**s) for s in data.get("stages", [])]
+        stages=[Stage(**s) for s in data.get("stages", [])],
+        employee_id=data.get("employeeId"),
+        user_email=data.get("userEmail"),
+        target_system=data.get("targetSystem"),
+        requested_action=data.get("requestedAction")
     )
 
 async def update_stage_progress(ticket_id: str, stage_index: int, status: str, message: str):
@@ -300,6 +309,10 @@ async def load_initial_tickets():
 
 @app.on_event("startup")
 async def startup_event():
+    # Seed mock IAM DB
+    from backend.iam_system.seed import ensure_seeded
+    ensure_seeded()
+    
     await load_initial_tickets()
 
 @app.get("/")
@@ -321,6 +334,19 @@ async def get_iam_tickets():
         "tickets": iam_tickets,
         "count": len(iam_tickets)
     })
+
+@app.get("/api/iam/access/{employee_id}")
+async def get_iam_access(employee_id: str):
+    """Get mock IAM access for a user"""
+    from backend.iam_system import service
+    return service.get_access(employee_id)
+
+@app.get("/api/iam/audit/{ticket_id}")
+async def get_iam_audit(ticket_id: str):
+    """Get mock IAM audit logs for a ticket"""
+    from backend.iam_system import service
+    logs = service.get_audit_logs(ticket_id)
+    return {"ticket_id": ticket_id, "logs": logs}
 
 @app.get("/api/tickets/{ticket_id}")
 async def get_ticket(ticket_id: str):

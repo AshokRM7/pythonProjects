@@ -1,5 +1,31 @@
 [
   {
+    "ticket_id": "REQ9999",
+    "jira_story": "JIRA-LEAVER-001",
+    "ait_number": "AIT-9999",
+    "deliverableType": "Leaver Access Revocation",
+    "category": "IAM",
+    "risk_level": "High",
+    "sla_deadline": "2025-12-30",
+    "created_on": "2025-12-23",
+    "description": "User E1023 (leaver.crm@example.com) has resigned. Revoke all CRM_DB access and disable account.",
+    "arm_id": "ARM-9999",
+    "application_name": "CRM_DB",
+    "application_owner": "admin@example.com",
+    "lob_owner": "SALES",
+    "ait_owner": "IAM Team",
+    "contacts": [
+      "admin@example.com"
+    ],
+    "status": "Open",
+    "priority": "High",
+    "owner": "Unassigned",
+    "employee_id": "E1023",
+    "user_email": "leaver.crm@example.com",
+    "target_system": "CRM_DB",
+    "requested_action": "REVOKE_DB_ACCESS"
+  },
+  {
     "ticket_id": "REQ1000",
     "jira_story": "JIRA-65587",
     "ait_number": "AIT-1257",
@@ -475,7 +501,7 @@
       "kate@example.com",
       "leo@example.com"
     ],
-    "status": "Closed",
+    "status": "Open",
     "priority": "Medium",
     "owner": "jack@example.com"
   },

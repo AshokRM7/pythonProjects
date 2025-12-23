@@ -26,6 +26,11 @@ class Ticket(BaseModel):
     owner: str = "Unassigned"
     currentStage: int = 0
     stages: List[Stage] = []
+    # New Optional Fields
+    employee_id: Optional[str] = None
+    user_email: Optional[str] = None
+    target_system: Optional[str] = None
+    requested_action: Optional[str] = None
 
 class TicketResponse(BaseModel):
     tickets: List[Ticket]
