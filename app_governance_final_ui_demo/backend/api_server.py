@@ -17,6 +17,11 @@ from pydantic import BaseModel
 class PriorityUpdate(BaseModel):
     priority: str
 
+class EmailRequest(BaseModel):
+    to: List[str]
+    subject: str
+    body: str
+
 app = FastAPI(title="Ticket Portal API", version="1.0.0")
 
 # CORS middleware for React frontend
@@ -458,6 +463,49 @@ async def approve_review(ticket_id: str):
             "message": f"Review approved for ticket {ticket_id}"
         })
     except Exception as e:
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
+@app.post("/api/tickets/{ticket_id}/send-email")
+async def send_ticket_email(ticket_id: str, email_req: EmailRequest):
+    """Send real or simulated email and update ticket stage"""
+    try:
+        if ticket_id not in current_tickets:
+            raise HTTPException(status_code=404, detail=f"Ticket {ticket_id} not found")
+
+        from backend.services.email_service import send_email
+        result = send_email(email_req.to, email_req.subject, email_req.body)
+
+        status = "completed" if (result.get("sent") or result.get("mode") == "simulated") else "failed"
+        
+        timestamp = result.get("timestamp", datetime.now().isoformat())
+        recipients = ", ".join(result.get("recipients", email_req.to))
+        mode = result.get("mode", "smtp")
+        
+        if status == "completed":
+            msg = f"✅ Email sent successfully ({mode})\nRecipients: {recipients}\nTimestamp: {timestamp}"
+        else:
+            msg = f"❌ Email failed: {result.get('error', 'Unknown error')}"
+
+        # Update stage 6: Evidence Collection (index 6)
+        await update_stage_progress(ticket_id, 6, status, msg)
+        
+        # If successful, also handle the "approve-review" logic to move pipeline forward
+        if status == "completed":
+            current_tickets[ticket_id]["waitingForReview"] = False
+            # The update_stage_progress already broadcasts the update
+            # We trigger the next stage
+            asyncio.create_task(process_individual_ticket(ticket_id))
+
+        return JSONResponse(content={
+            "status": "success" if status == "completed" else "error",
+            "sent": result.get("sent", False),
+            "mode": mode,
+            "message": msg,
+            "ticket": current_tickets[ticket_id]
+        })
+
+    except Exception as e:
+        print(f"Error in send-email: {e}")
         return JSONResponse(status_code=500, content={"error": str(e)})
 
 @app.websocket("/ws")

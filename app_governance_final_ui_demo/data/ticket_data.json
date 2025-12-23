@@ -253,17 +253,17 @@
     "description": "Automated ticket generation for IAM issue in Sales CRM.",
     "arm_id": "ARM-8899",
     "application_name": "Sales CRM",
-    "application_owner": "ben@example.com",
+    "application_owner": "ashns200@gmail.com",
     "lob_owner": "IT LOB",
     "ait_owner": "Manager Name",
     "contacts": [
-      "ben@example.com",
-      "clara@example.com",
-      "dan@example.com"
+      "ashns200@gmail.com",
+      "ashns200@gmail.com",
+      "ashns200@gmail.com"
     ],
     "status": "Open",
     "priority": "Medium",
-    "owner": "ben@example.com"
+    "owner": "ashns200@gmail.com"
   },
   {
     "ticket_id": "REQ1010",

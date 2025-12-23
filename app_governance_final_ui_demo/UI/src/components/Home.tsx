@@ -408,23 +408,48 @@ export default function Home({ currentUser, onSignOut }: HomeProps) {
 
   const handleApproveReview = async (ticketId: string) => {
     try {
-      setStatusMessage(`Approving review for ticket ${ticketId}...`);
-      setShowEmailModal(false);
+      setStatusMessage(`Approving and sending email for ticket ${ticketId}...`);
 
-      const response = await fetch(`http://localhost:8000/api/tickets/${ticketId}/approve-review`, {
+      // Get the email details from the template state
+      if (!emailTemplate) {
+        throw new Error('Email template not found');
+      }
+
+      // Convert comma-separated string back to array and trim
+      const toArray = emailTemplate.to.split(',').map(e => e.trim()).filter(e => e !== '');
+
+      const response = await fetch(`http://localhost:8000/api/tickets/${ticketId}/send-email`, {
         method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          to: toArray,
+          subject: emailTemplate.subject,
+          body: emailTemplate.body
+        }),
       });
 
       if (!response.ok) {
-        throw new Error('Failed to approve review');
+        throw new Error('Failed to send email');
       }
 
       const data = await response.json();
-      console.log('Review approved:', data);
+      console.log('Email sent/simulated:', data);
+
+      setShowEmailModal(false);
       setStatusMessage(data.message);
+
+      // Notify user via alert/toast
+      if (data.status === 'success') {
+        alert('Email sent successfully!');
+      } else {
+        alert('Error: ' + data.message);
+      }
+
     } catch (error) {
-      console.error('Error approving review:', error);
-      setStatusMessage('Failed to approve review');
+      console.error('Error in handleApproveReview:', error);
+      setStatusMessage('Failed to approve and send email');
       alert('Error: ' + (error as Error).message);
     }
   };

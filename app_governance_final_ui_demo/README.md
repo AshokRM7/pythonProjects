@@ -206,6 +206,32 @@ ws.onmessage = (event) => console.log(JSON.parse(event.data));
 - User authentication is stored in browser localStorage (for demo purposes)
 - WebSocket connection provides live updates during ticket processing
 
+## 📧 SMTP Email Configuration
+
+The application supports sending real emails for evidence collection. By default, it runs in **simulation mode**.
+
+### 1. Enable Real Sending
+In your `.env` file, set:
+```env
+EMAIL_SENDING_ENABLED=true
+```
+
+### 2. Configure SMTP Credentials
+Add your SMTP server details to `.env`:
+```env
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USERNAME=your-email@gmail.com
+SMTP_PASSWORD=your-app-password
+SMTP_FROM=your-email@gmail.com
+```
+
+> [!TIP]
+> **For Gmail**: You must use an **App Password**. Regular passwords will not work due to security restrictions.
+> 1. Enable 2-Factor Authentication on your Google Account.
+> 2. Search for "App Passwords" in Google Account settings.
+> 3. Create a new app password for "Other (Custom Name)" named "IAM Governance Demo".
+
 ## 🐛 Troubleshooting
 
 **Backend won't start:**
