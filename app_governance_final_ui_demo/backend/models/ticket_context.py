@@ -31,6 +31,10 @@ class Ticket(BaseModel):
     user_email: Optional[str] = None
     target_system: Optional[str] = None
     requested_action: Optional[str] = None
+    # PCAT Fields
+    ticket_type: Optional[str] = "IAM" # Default to IAM
+    pcat_csv_path: Optional[str] = None
+    pcat_summary: Optional[dict] = None
 
 class TicketResponse(BaseModel):
     tickets: List[Ticket]

@@ -1,0 +1,96 @@
+[
+    {
+        "rule_id": "R1",
+        "severity": "ERROR",
+        "description": "If platform_category is WAN, managed_by must contain Active Directory or AD",
+        "predicate": {
+            "platform_category": "WAN",
+            "managed_by_contains": [
+                "Active Directory",
+                "AD"
+            ]
+        }
+    },
+    {
+        "rule_id": "R2",
+        "severity": "ERROR",
+        "description": "If capability contains admin, account_type cannot be Human Temporary or Shared",
+        "predicate": {
+            "capability_contains": [
+                "admin"
+            ],
+            "account_type_not_in": [
+                "Human Temporary or Shared"
+            ]
+        }
+    },
+    {
+        "rule_id": "R3",
+        "severity": "WARNING",
+        "description": "If permission_name contains read, capability should be Read Only",
+        "predicate": {
+            "permission_name_contains": [
+                "read"
+            ],
+            "capability": "Read Only"
+        }
+    },
+    {
+        "rule_id": "R4",
+        "severity": "WARNING",
+        "description": "Business function with Confidential-NPI/NTPI classification",
+        "predicate": {
+            "data_classification_in": [
+                "Confidential-NPI",
+                "Confidential-NPI-Agent",
+                "Confidential-NTPI"
+            ],
+            "function": "Business"
+        }
+    },
+    {
+        "rule_id": "R5",
+        "severity": "ERROR",
+        "description": "provided_by cannot be AIT NOT SPECIFIED for WAN/APP/DB",
+        "predicate": {
+            "platform_category_in": [
+                "WAN",
+                "APPLICATION",
+                "DATABASE"
+            ],
+            "provided_by_not": "AIT NOT SPECIFIED"
+        }
+    },
+    {
+        "rule_id": "R6",
+        "severity": "WARNING",
+        "description": "Write/Delete/Modify permission should have Modify or Admin capability",
+        "predicate": {
+            "permission_name_regex": "delete|modify|write",
+            "capability_in": [
+                "Modify",
+                "Admin"
+            ]
+        }
+    },
+    {
+        "rule_id": "R7",
+        "severity": "ERROR",
+        "description": "Platform type missing or not specified",
+        "predicate": {
+            "platform_type_not_in": [
+                "Not Specified",
+                "",
+                null
+            ]
+        }
+    },
+    {
+        "rule_id": "R8",
+        "severity": "WARNING",
+        "description": "Permission description and additional info both empty",
+        "predicate": {
+            "description_and_info_not_empty": true
+        }
+    }
+]

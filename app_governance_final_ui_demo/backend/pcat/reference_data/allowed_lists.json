@@ -1,0 +1,58 @@
+{
+    "platform_category": [
+        "WAN",
+        "APPLICATION",
+        "DATABASE",
+        "CLOUD_SERVICE",
+        "NETWORK"
+    ],
+    "platform_type": [
+        "CLOUD",
+        "ON-PREM",
+        "SAAS",
+        "HYBRID"
+    ],
+    "capability": [
+        "Read Only",
+        "Modify",
+        "Admin",
+        "Delete",
+        "Execute"
+    ],
+    "function": [
+        "Business",
+        "IT",
+        "Security",
+        "Operations"
+    ],
+    "data_classification": [
+        "Public",
+        "Internal",
+        "Confidential-NPI",
+        "Confidential-NPI-Agent",
+        "Confidential-NTPI",
+        "Proprietary"
+    ],
+    "account_type": [
+        "Human",
+        "Service Account",
+        "Human Temporary or Shared",
+        "System Account"
+    ],
+    "managed_by": [
+        "AD",
+        "Active Directory",
+        "Local",
+        "Azure AD",
+        "LDAP"
+    ],
+    "provided_by": [
+        "IAM_TEAM",
+        "HR_ADMIN",
+        "NET_TEAM",
+        "DATA_OWNER",
+        "SEC_TEAM",
+        "LEGACY_TEAM",
+        "IT_OPS"
+    ]
+}

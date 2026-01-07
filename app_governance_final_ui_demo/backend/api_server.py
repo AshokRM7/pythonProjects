@@ -9,6 +9,7 @@ from dotenv import load_dotenv
 from backend.core.orchestrator import IAMOrchestrator
 from backend.models.ticket_context import Ticket, TicketResponse, Stage
 from datetime import datetime
+from backend.pcat.api import router as pcat_router, init_pcat_api
 
 load_dotenv()
 
@@ -32,6 +33,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# PCAT Implementation
+app.include_router(pcat_router)
 
 # WebSocket connection manager
 class ConnectionManager:
@@ -319,6 +323,74 @@ async def startup_event():
     ensure_seeded()
     
     await load_initial_tickets()
+    
+    # Initialize PCAT API
+    init_pcat_api(current_tickets, manager.broadcast)
+    
+    # Seed PCAT Demo Ticket
+    if os.getenv("ENABLE_PCAT", "true").lower() == "true":
+        seed_pcat_demo_ticket()
+
+def seed_pcat_demo_ticket():
+    ticket_id = "PCAT-7001"
+    if ticket_id not in current_tickets:
+        pcat_stages = [
+            {"id": 0, "name": "PCAT Intake", "status": "pending", "message": ""},
+            {"id": 1, "name": "Schema & Required Fields", "status": "pending", "message": ""},
+            {"id": 2, "name": "Validation Lists Check", "status": "pending", "message": ""},
+            {"id": 3, "name": "Rules Engine", "status": "pending", "message": ""},
+            {"id": 4, "name": "Conflict Detection", "status": "pending", "message": ""},
+            {"id": 5, "name": "Recommendations", "status": "pending", "message": ""},
+            {"id": 6, "name": "Evidence Pack Generation", "status": "pending", "message": ""},
+            {"id": 7, "name": "Ticket Update", "status": "pending", "message": ""},
+        ]
+        
+        current_tickets[ticket_id] = {
+            "id": ticket_id,
+            "title": "Quarterly Metadata Validation - ERP & CRM",
+            "description": "Validation of classification metadata for legacy ERP and CRM permission structures.",
+            "customer": "compliance.owner@company.com",
+            "priority": "high",
+            "status": "Open",
+            "owner": "Compliance Team",
+            "createdAt": datetime.now().strftime("%Y-%m-%d"),
+            "currentStage": 0,
+            "category": "PCAT",
+            "ticket_type": "PCAT",
+            "aitNumber": "AIT-7001",
+            "deliverableType": "PCAT Validation",
+            "applicationName": "Mixed (ERP/CRM)",
+            "pcat_csv_path": "backend/data/pcat/pcat_ticket_PCAT-7001.csv",
+            "stages": pcat_stages
+        }
+        print(f"Seeded PCAT Demo Ticket: {ticket_id}")
+
+@app.get("/api/pcat/demo/reset")
+async def reset_pcat_demo():
+    """Reset PCAT-7001 ticket to initial state for demo"""
+    seed_pcat_demo_ticket()
+    ticket_id = "PCAT-7001"
+    if ticket_id in current_tickets:
+        ticket = current_tickets[ticket_id]
+        ticket["status"] = "Open"
+        ticket["currentStage"] = 0
+        for stage in ticket["stages"]:
+            stage["status"] = "pending"
+            stage["message"] = ""
+        ticket["pcat_summary"] = None
+        
+        # Optionally clean up reports
+        import shutil
+        report_dir = f"backend/data/pcat/runs/{ticket_id}"
+        if os.path.exists(report_dir):
+            shutil.rmtree(report_dir)
+            os.makedirs(report_dir, exist_ok=True)
+            
+        await manager.broadcast({
+            "type": "ticket_update",
+            "ticket": ticket
+        })
+    return {"status": "success", "message": "PCAT Demo Reset"}
 
 @app.get("/")
 async def root():

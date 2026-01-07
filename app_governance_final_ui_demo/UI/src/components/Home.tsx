@@ -1,10 +1,13 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { createPortal } from 'react-dom';
+import { Play, Activity, Clock, User, Calendar, Tag, FileText, CheckCircle2, ShieldCheck, AlertCircle, X, CheckCheck, Loader2, CheckCircle, Search, Filter, ChevronLeft, ChevronRight, Menu, Bell, Settings, Download, MoreVertical, Heart, Share2, Clipboard, Layers, RotateCcw, PlayCircle } from 'lucide-react';
+import { PCATTicketPanel } from './pcat/PCATTicketPanel';
+import { PCATMetricsCards } from './pcat/PCATMetricsCards';
+import { PCATSummary } from './pcat/types';
+import { pcatApi } from './pcat/pcatApi';
 import Header from './Header';
 import Footer from './Footer';
-import { AlertCircle, Clock, CheckCircle2, PlayCircle, User, Calendar, Loader2, CheckCheck, Play, CheckCircle, Activity, FileText, Tag, X, ShieldCheck } from 'lucide-react';
-
 
 interface HomeProps {
   currentUser: string;
@@ -23,7 +26,7 @@ interface Ticket {
   title: string;
   description: string;
   priority: 'low' | 'medium' | 'high' | 'urgent';
-  status: 'not-started' | 'in-progress' | 'completed' | 'open' | 'closed';
+  status: 'not-started' | 'in-progress' | 'completed' | 'open' | 'closed' | 'PCAT Validation Completed';
   customer: string;
   createdAt: string;
   currentStage: number;
@@ -41,6 +44,13 @@ interface Ticket {
   aitOwner?: string;
   owner?: string;
   contacts?: string[];
+  ticket_type?: string;
+  pcat_summary?: {
+    errors: number;
+    warnings: number;
+    last_run_at: string;
+    report_path?: string;
+  };
 }
 
 // Helper to map API ticket status to Dashboard status
@@ -61,6 +71,7 @@ export default function Home({ currentUser, onSignOut }: HomeProps) {
   const navigate = useNavigate();
   const { ticketId } = useParams();
   const wsRef = useRef<WebSocket | null>(null);
+  const selectedTicketRef = useRef<Ticket | null>(null); // Ref to hold the latest selectedTicket
 
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
@@ -81,6 +92,11 @@ export default function Home({ currentUser, onSignOut }: HomeProps) {
   const [categoryFilter, setCategoryFilter] = useState<string | string[]>('all');
   const [ownerFilter, setOwnerFilter] = useState<string | string[]>('all');
   const [searchQuery, setSearchQuery] = useState('');
+
+  // Update selectedTicketRef whenever selectedTicket state changes
+  useEffect(() => {
+    selectedTicketRef.current = selectedTicket;
+  }, [selectedTicket]);
 
   useEffect(() => {
     // 1. Process location state if coming from Dashboard
@@ -209,6 +225,15 @@ export default function Home({ currentUser, onSignOut }: HomeProps) {
             setStatusMessage(`${data.stage}: ${data.message}`);
             break;
 
+          case 'pcat_stage_update':
+            // Update individual ticket for PCAT real-time progress
+            setTickets(prev => prev.map(t =>
+              t.id === data.ticket_id ? { ...t, ...data.ticket } : t
+            ));
+            if (selectedTicketRef.current?.id === data.ticket_id) {
+              setSelectedTicket(prev => prev ? { ...prev, ...data.ticket } : null);
+            }
+            break;
           case 'processing_complete':
             setStatusMessage(data.message);
             if (data.ticket) {
@@ -498,6 +523,7 @@ export default function Home({ currentUser, onSignOut }: HomeProps) {
         return <PlayCircle className="w-4 h-4" />;
       case 'completed':
       case 'closed':
+      case 'pcat validation completed':
         return <CheckCircle2 className="w-4 h-4" />;
       default:
         return <Clock className="w-4 h-4" />;
@@ -513,6 +539,7 @@ export default function Home({ currentUser, onSignOut }: HomeProps) {
         return 'bg-blue-100 text-blue-700';
       case 'completed':
       case 'closed':
+      case 'pcat validation completed':
         return 'bg-green-100 text-green-700 border-green-200';
       default:
         return 'bg-gray-100 text-gray-700 border-gray-200';
@@ -591,9 +618,72 @@ export default function Home({ currentUser, onSignOut }: HomeProps) {
             </div>
           </div>
 
+          {/* PCAT Global Dashboard Widget - Conditionally shown if tickets exist */}
+          {tickets.some(t => t.ticket_type === 'PCAT') && (
+            <div className="mb-8">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
+                  <Layers className="w-6 h-6 text-[#012169]" />
+                  PCAT Automation Dashboard
+                </h2>
+                <button
+                  onClick={() => pcatApi.resetDemo()}
+                  className="text-sm font-medium text-blue-600 hover:text-blue-800 flex items-center gap-1"
+                >
+                  <RotateCcw className="w-4 h-4" /> Reset Demo
+                </button>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex items-center gap-4">
+                  <div className="p-3 bg-blue-100 text-blue-600 rounded-lg font-bold">
+                    {tickets.filter(t => t.ticket_type === 'PCAT').length}
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500 font-medium uppercase tracking-wider">PCAT Tickets</p>
+                    <p className="text-lg font-bold text-gray-900 leading-none">Total Identified</p>
+                  </div>
+                </div>
+                <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex items-center gap-4">
+                  <div className="p-3 bg-green-100 text-green-600 rounded-lg">
+                    <CheckCircle className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500 font-medium uppercase tracking-wider">Validated</p>
+                    <p className="text-lg font-bold text-gray-900 leading-none">
+                      {tickets.filter(t => t.ticket_type === 'PCAT' && t.status === 'PCAT Validation Completed').length}
+                    </p>
+                  </div>
+                </div>
+                <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex items-center gap-4">
+                  <div className="p-3 bg-red-100 text-red-600 rounded-lg">
+                    <AlertCircle className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500 font-medium uppercase tracking-wider">Total Findings</p>
+                    <p className="text-lg font-bold text-gray-900 leading-none">
+                      {tickets.reduce((acc, t) => acc + (t.pcat_summary?.errors || 0) + (t.pcat_summary?.warnings || 0), 0)}
+                    </p>
+                  </div>
+                </div>
+                <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex items-center gap-4">
+                  <div className="p-3 bg-orange-100 text-orange-600 rounded-lg">
+                    <Download className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500 font-medium uppercase tracking-wider">Action Items</p>
+                    <p className="text-lg font-bold text-gray-900 leading-none">
+                      {tickets.reduce((acc, t) => acc + (t.pcat_summary?.errors || 0), 0)} High Risk
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Status Message */}
           {statusMessage && (
-            <div className="bg-blue-50 border border-blue-200 text-blue-700 px-4 py-3 rounded-lg">
+            <div className="bg-blue-50 border border-blue-200 text-blue-700 px-4 py-3 rounded-lg mb-6 shadow-sm flex items-center gap-2">
+              <Activity className="w-4 h-4 animate-pulse" />
               {statusMessage}
             </div>
           )}
@@ -709,250 +799,274 @@ export default function Home({ currentUser, onSignOut }: HomeProps) {
           {/* Ticket Detail Panel */}
           {selectedTicket && (
             <div className="md:sticky md:top-24 h-[calc(100vh-8rem)] bg-white rounded-xl shadow-sm border border-gray-200 flex flex-col overflow-hidden">
-
-              {/* FIXED HEADER SECTION */}
-              <div className="p-6 pb-2 border-b border-gray-100 bg-white z-20">
-                <div className="flex items-start justify-between mb-4">
-                  <h2 className="text-gray-900 font-bold">{selectedTicket.id}</h2>
-                  <button
-                    onClick={handleCloseTicket}
-                    className="text-gray-400 hover:text-gray-600 text-2xl leading-none"
-                  >
-                    ×
-                  </button>
+              {(selectedTicket.ticket_type === 'PCAT' || selectedTicket.category === 'PCAT') ? (
+                <div className="flex flex-col h-full bg-white">
+                  <div className="p-6 pb-2 border-b border-gray-100 bg-white z-20">
+                    <div className="flex items-start justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <h2 className="text-gray-900 font-bold">{selectedTicket.id}</h2>
+                        <span className="px-2 py-0.5 bg-blue-100 text-blue-700 rounded text-xs font-bold uppercase">PCAT Module</span>
+                      </div>
+                      <button
+                        onClick={handleCloseTicket}
+                        className="text-gray-400 hover:text-gray-600 text-2xl leading-none"
+                      >
+                        ×
+                      </button>
+                    </div>
+                    <p className="text-sm text-gray-600 font-medium mb-2">{selectedTicket.title}</p>
+                  </div>
+                  <PCATTicketPanel
+                    ticket={selectedTicket}
+                    onRefresh={() => fetchTickets()}
+                  />
                 </div>
+              ) : (
+                <>
+                  {/* FIXED HEADER SECTION */}
+                  <div className="p-6 pb-2 border-b border-gray-100 bg-white z-20">
+                    <div className="flex items-start justify-between mb-4">
+                      <h2 className="text-gray-900 font-bold">{selectedTicket.id}</h2>
+                      <button
+                        onClick={handleCloseTicket}
+                        className="text-gray-400 hover:text-gray-600 text-2xl leading-none"
+                      >
+                        ×
+                      </button>
+                    </div>
 
-                {/* ACTION BUTTONS Container - Always Visible */}
-                <div className="mb-2">
-                  {(() => {
-                    // 1. Priority Confirmation with Editable Dropdown
-                    if (selectedTicket.waitingForPriorityConfirmation ||
-                      (selectedTicket.stages[2].status === 'completed' &&
-                        selectedTicket.stages[3].status !== 'in-progress' &&
-                        selectedTicket.stages[3].status !== 'completed')) {
-                      return (
-                        <div className="space-y-3 p-1">
-                          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                            <p className="text-sm text-blue-800 font-medium">
-                              ⚡ Priority calculated as <span className="font-bold uppercase">{selectedTicket.priority}</span>. Confirm to proceed.
-                            </p>
+                    {/* ACTION BUTTONS Container - Always Visible */}
+                    <div className="mb-2">
+                      {(() => {
+                        // 1. Priority Confirmation with Editable Dropdown
+                        if (selectedTicket.waitingForPriorityConfirmation ||
+                          (selectedTicket.stages[2].status === 'completed' &&
+                            selectedTicket.stages[3].status !== 'in-progress' &&
+                            selectedTicket.stages[3].status !== 'completed')) {
+                          return (
+                            <div className="space-y-3 p-1">
+                              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                                <p className="text-sm text-blue-800 font-medium">
+                                  ⚡ Priority calculated as <span className="font-bold uppercase">{selectedTicket.priority}</span>. Confirm to proceed.
+                                </p>
+                              </div>
+                              <button
+                                onClick={() => handleConfirmPriority(selectedTicket.id)}
+                                className="w-full bg-blue-600 text-white border border-blue-700 py-3 rounded-lg hover:bg-blue-700 transition flex items-center justify-center gap-2 shadow-lg font-bold"
+                              >
+                                <CheckCheck className="w-5 h-5" />
+                                Confirm Priority & Continue
+                              </button>
+                            </div>
+                          );
+                        }
+
+                        // 2. Review Approval
+                        if (selectedTicket.stages[5].status === 'in-progress' || selectedTicket.waitingForReview) {
+                          return (
+                            <button
+                              onClick={() => handleShowEmailPreview(selectedTicket.id)}
+                              className="w-full bg-[#012169] text-white border border-[#012169] py-3 rounded-lg hover:bg-[#00174F] transition flex items-center justify-center gap-2 shadow-lg font-bold"
+                            >
+                              <CheckCheck className="w-5 h-5" />
+                              Review Email & Approve
+                            </button>
+                          );
+                        }
+
+                        // 3. Closure Confirmation
+                        if (selectedTicket.stages[6].status === 'in-progress' || selectedTicket.waitingForClosureConfirmation) {
+                          return (
+                            <button
+                              onClick={() => setShowClosureModal(true)}
+                              className="w-full bg-[#012169] text-white border border-[#012169] py-3 rounded-lg hover:bg-[#00174F] transition flex items-center justify-center gap-2 shadow-lg font-bold"
+                            >
+                              <CheckCheck className="w-5 h-5" />
+                              Confirm Closure
+                            </button>
+                          );
+                        }
+
+                        // 4. Start Processing
+                        if (selectedTicket.status === 'not-started' || selectedTicket.status.toLowerCase() === 'open') {
+                          return (
+                            <button
+                              onClick={() => handleProcessTicket(selectedTicket.id)}
+                              className="w-full bg-[#012169] text-white border border-[#012169] py-3 rounded-lg hover:bg-[#00174F] transition flex items-center justify-center gap-2 shadow-sm font-bold"
+                            >
+                              <Play className="w-5 h-5" />
+                              Start Processing
+                            </button>
+                          );
+                        }
+
+                        // 5. Processing State
+                        if (selectedTicket.status === 'in-progress') {
+                          return (
+                            <div className="w-full bg-blue-50 text-blue-700 py-3 rounded-lg flex items-center justify-center gap-2 border border-blue-100 font-medium">
+                              <Loader2 className="w-5 h-5 animate-spin" />
+                              Processing...
+                            </div>
+                          );
+                        }
+
+                        // 6. Completed State
+                        if (selectedTicket.status === 'completed' || selectedTicket.status === 'closed') {
+                          return (
+                            <div className="w-full bg-green-50 text-green-700 py-3 rounded-lg flex items-center justify-center gap-2 border border-green-100 font-medium">
+                              <CheckCircle className="w-5 h-5" />
+                              Completed
+                            </div>
+                          );
+                        }
+
+                        // Fallback for other states
+                        return (
+                          <div className="w-full bg-gray-50 text-gray-600 py-3 rounded-lg flex items-center justify-center gap-2 border border-gray-200 font-medium">
+                            <Activity className="w-5 h-5" />
+                            {(selectedTicket.status as string).toUpperCase()}
                           </div>
-                          <button
-                            onClick={() => handleConfirmPriority(selectedTicket.id)}
-                            className="w-full bg-blue-600 text-white border border-blue-700 py-3 rounded-lg hover:bg-blue-700 transition flex items-center justify-center gap-2 shadow-lg font-bold"
-                          >
-                            <CheckCheck className="w-5 h-5" />
-                            Confirm Priority & Continue
-                          </button>
+                        );
+                      })()}
+                    </div>
+                  </div>
+
+                  {/* SCROLLABLE CONTENT AREA */}
+                  <div className="flex-1 overflow-y-auto p-6 pt-0">
+                    <h3 className="text-gray-900 mb-4 font-semibold mt-4">{selectedTicket.title}</h3>
+
+                    <div className="space-y-3 mb-6 text-sm">
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <span className="text-gray-500 text-xs uppercase tracking-wider font-semibold flex items-center gap-1 mb-1">
+                            <User className="w-3 h-3" /> Customer
+                          </span>
+                          <p className="text-gray-900 font-medium">{selectedTicket.customer}</p>
                         </div>
-                      );
-                    }
-
-                    // 2. Review Approval
-                    if (selectedTicket.stages[5].status === 'in-progress' || selectedTicket.waitingForReview) {
-                      return (
-                        <button
-                          onClick={() => handleShowEmailPreview(selectedTicket.id)}
-                          className="w-full bg-[#012169] text-white border border-[#012169] py-3 rounded-lg hover:bg-[#00174F] transition flex items-center justify-center gap-2 shadow-lg font-bold"
-                        >
-                          <CheckCheck className="w-5 h-5" />
-                          Review Email & Approve
-                        </button>
-                      );
-                    }
-
-                    // 3. Closure Confirmation
-                    if (selectedTicket.stages[6].status === 'in-progress' || selectedTicket.waitingForClosureConfirmation) {
-                      return (
-                        <button
-                          onClick={() => setShowClosureModal(true)}
-                          className="w-full bg-[#012169] text-white border border-[#012169] py-3 rounded-lg hover:bg-[#00174F] transition flex items-center justify-center gap-2 shadow-lg font-bold"
-                        >
-                          <CheckCheck className="w-5 h-5" />
-                          Confirm Closure
-                        </button>
-                      );
-                    }
-
-                    // 4. Start Processing
-                    if (selectedTicket.status === 'not-started' || selectedTicket.status.toLowerCase() === 'open') {
-                      return (
-                        <button
-                          onClick={() => handleProcessTicket(selectedTicket.id)}
-                          className="w-full bg-[#012169] text-white border border-[#012169] py-3 rounded-lg hover:bg-[#00174F] transition flex items-center justify-center gap-2 shadow-sm font-bold"
-                        >
-                          <Play className="w-5 h-5" />
-                          Start Processing
-                        </button>
-                      );
-                    }
-
-                    // 5. Processing State
-                    if (selectedTicket.status === 'in-progress') {
-                      return (
-                        <div className="w-full bg-blue-50 text-blue-700 py-3 rounded-lg flex items-center justify-center gap-2 border border-blue-100 font-medium">
-                          <Loader2 className="w-5 h-5 animate-spin" />
-                          Processing...
+                        <div>
+                          <span className="text-gray-500 text-xs uppercase tracking-wider font-semibold flex items-center gap-1 mb-1">
+                            <AlertCircle className="w-3 h-3" /> Priority
+                          </span>
+                          <p className={`font-medium ${getPriorityColor(selectedTicket.priority).replace('bg-', 'text-').replace('100', '700').replace('border-', '')}`}>
+                            {selectedTicket.priority.toUpperCase()}
+                          </p>
                         </div>
-                      );
-                    }
-
-                    // 6. Completed State
-                    if (selectedTicket.status === 'completed' || selectedTicket.status === 'closed') {
-                      return (
-                        <div className="w-full bg-green-50 text-green-700 py-3 rounded-lg flex items-center justify-center gap-2 border border-green-100 font-medium">
-                          <CheckCircle className="w-5 h-5" />
-                          Completed
+                        <div>
+                          <span className="text-gray-500 text-xs uppercase tracking-wider font-semibold flex items-center gap-1 mb-1">
+                            <Activity className="w-3 h-3" /> Status
+                          </span>
+                          <p className="text-gray-900 font-medium capitalize">{selectedTicket.status.replace('-', ' ')}</p>
                         </div>
-                      );
-                    }
-
-                    // Fallback for other states
-                    return (
-                      <div className="w-full bg-gray-50 text-gray-600 py-3 rounded-lg flex items-center justify-center gap-2 border border-gray-200 font-medium">
-                        <Activity className="w-5 h-5" />
-                        {(selectedTicket.status as string).toUpperCase()}
+                        <div>
+                          <span className="text-gray-500 text-xs uppercase tracking-wider font-semibold flex items-center gap-1 mb-1">
+                            <Calendar className="w-3 h-3" /> Created
+                          </span>
+                          <p className="text-gray-900 font-medium">{selectedTicket.createdAt}</p>
+                        </div>
                       </div>
-                    );
-                  })()}
-                </div>
-              </div>
 
-              {/* SCROLLABLE CONTENT AREA */}
-              <div className="flex-1 overflow-y-auto p-6 pt-0">
-                <h3 className="text-gray-900 mb-4 font-semibold mt-4">{selectedTicket.title}</h3>
-
-                <div className="space-y-3 mb-6 text-sm">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <span className="text-gray-500 text-xs uppercase tracking-wider font-semibold flex items-center gap-1 mb-1">
-                        <User className="w-3 h-3" /> Customer
-                      </span>
-                      <p className="text-gray-900 font-medium">{selectedTicket.customer}</p>
-                    </div>
-                    <div>
-                      <span className="text-gray-500 text-xs uppercase tracking-wider font-semibold flex items-center gap-1 mb-1">
-                        <AlertCircle className="w-3 h-3" /> Priority
-                      </span>
-                      <p className={`font-medium ${getPriorityColor(selectedTicket.priority).replace('bg-', 'text-').replace('100', '700').replace('border-', '')}`}>
-                        {selectedTicket.priority.toUpperCase()}
-                      </p>
-                    </div>
-                    <div>
-                      <span className="text-gray-500 text-xs uppercase tracking-wider font-semibold flex items-center gap-1 mb-1">
-                        <Activity className="w-3 h-3" /> Status
-                      </span>
-                      <p className="text-gray-900 font-medium capitalize">{selectedTicket.status.replace('-', ' ')}</p>
-                    </div>
-                    <div>
-                      <span className="text-gray-500 text-xs uppercase tracking-wider font-semibold flex items-center gap-1 mb-1">
-                        <Calendar className="w-3 h-3" /> Created
-                      </span>
-                      <p className="text-gray-900 font-medium">{selectedTicket.createdAt}</p>
-                    </div>
-                  </div>
-
-                  <div className="mt-4">
-                    <span className="text-gray-500 text-xs uppercase tracking-wider font-semibold flex items-center gap-1 mb-1">
-                      <FileText className="w-3 h-3" /> Description
-                    </span>
-                    <p className="text-gray-900 text-sm leading-relaxed bg-gray-50 p-3 rounded-lg border border-gray-100">
-                      {selectedTicket.description}
-                    </p>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4 mt-4">
-                    {selectedTicket.category && (
-                      <div>
+                      <div className="mt-4">
                         <span className="text-gray-500 text-xs uppercase tracking-wider font-semibold flex items-center gap-1 mb-1">
-                          <Tag className="w-3 h-3" /> Category
+                          <FileText className="w-3 h-3" /> Description
                         </span>
-                        <span className={`px-2 py-1 rounded text-xs font-bold ${selectedTicket.category.toUpperCase() === 'IAM'
-                          ? 'bg-blue-100 text-blue-700'
-                          : 'bg-gray-100 text-gray-700'
-                          }`}>
-                          {selectedTicket.category}
-                        </span>
+                        <p className="text-gray-900 text-sm leading-relaxed bg-gray-50 p-3 rounded-lg border border-gray-100">
+                          {selectedTicket.description}
+                        </p>
                       </div>
-                    )}
-                    {selectedTicket.slaDeadline && (
-                      <div>
-                        <span className="text-gray-500 text-xs uppercase tracking-wider font-semibold flex items-center gap-1 mb-1">
-                          <Clock className="w-3 h-3" /> SLA Deadline
-                        </span>
-                        <p className="text-gray-900 font-medium">{selectedTicket.slaDeadline}</p>
-                      </div>
-                    )}
-                  </div>
-                </div>
 
-
-
-                <div className="pt-6 border-t border-gray-200">
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-gray-900 font-semibold">Agent Pipeline Progress</h3>
-                    <button
-                      onClick={() => setShowStepsModal(true)}
-                      className="px-2.5 py-1 bg-purple-600 text-white text-xs rounded-md hover:bg-purple-700 transition flex items-center gap-1 shadow-sm"
-                      title="View detailed progress in modal"
-                    >
-                      <Activity className="w-3 h-3" />
-                      Expand
-                    </button>
-                  </div>
-
-                  <div className="space-y-3">
-                    {selectedTicket.stages.map((stage, index) => {
-                      const isFinallyDone = (selectedTicket.status === 'completed' || selectedTicket.status === 'closed');
-                      const effectiveStageStatus = isFinallyDone ? 'completed' : stage.status;
-                      const isCompleted = effectiveStageStatus === 'completed';
-                      const isCurrent = effectiveStageStatus === 'in-progress';
-                      const isError = effectiveStageStatus === 'error';
-
-                      return (
-                        <div key={stage.id} className="flex items-start gap-3">
-                          <div
-                            className={`w-8 h-8 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${getStageStatusColor(isFinallyDone ? 'completed' : stage.status)}`}
-                          >
-                            {isCompleted ? (
-                              <CheckCircle2 className="w-5 h-5" />
-                            ) : isError ? (
-                              <AlertCircle className="w-5 h-5" />
-                            ) : (
-                              <span className="text-sm font-medium">{index + 1}</span>
-                            )}
+                      <div className="grid grid-cols-2 gap-4 mt-4">
+                        {selectedTicket.category && (
+                          <div>
+                            <span className="text-gray-500 text-xs uppercase tracking-wider font-semibold flex items-center gap-1 mb-1">
+                              <Tag className="w-3 h-3" /> Category
+                            </span>
+                            <span className={`px-2 py-1 rounded text-xs font-bold ${selectedTicket.category.toUpperCase() === 'IAM'
+                              ? 'bg-blue-100 text-blue-700'
+                              : 'bg-gray-100 text-gray-700'
+                              }`}>
+                              {selectedTicket.category}
+                            </span>
                           </div>
-                          <div className="flex-1">
-                            <p className={`font-medium ${isCurrent ? 'text-blue-600' : 'text-gray-900'}`}>
-                              {stage.name}
-                            </p>
-                            {stage.message && (
-                              <div className="mt-1">
-                                {stage.name === "IAM Remediation" ? (
-                                  <button
-                                    onClick={() => setShowRemediationModal(true)}
-                                    className="flex items-center gap-1.5 text-xs font-bold text-[#012169] bg-blue-50 px-2 py-1 rounded hover:bg-blue-100 transition-colors"
-                                  >
-                                    <ShieldCheck className="w-3.5 h-3.5" />
-                                    View Remediation Journey
-                                  </button>
+                        )}
+                        {selectedTicket.slaDeadline && (
+                          <div>
+                            <span className="text-gray-500 text-xs uppercase tracking-wider font-semibold flex items-center gap-1 mb-1">
+                              <Clock className="w-3 h-3" /> SLA Deadline
+                            </span>
+                            <p className="text-gray-900 font-medium">{selectedTicket.slaDeadline}</p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+
+
+                    <div className="pt-6 border-t border-gray-200">
+                      <div className="flex items-center justify-between mb-4">
+                        <h3 className="text-gray-900 font-semibold">Agent Pipeline Progress</h3>
+                        <button
+                          onClick={() => setShowStepsModal(true)}
+                          className="px-2.5 py-1 bg-purple-600 text-white text-xs rounded-md hover:bg-purple-700 transition flex items-center gap-1 shadow-sm"
+                          title="View detailed progress in modal"
+                        >
+                          <Activity className="w-3 h-3" />
+                          Expand
+                        </button>
+                      </div>
+
+                      <div className="space-y-3">
+                        {selectedTicket.stages.map((stage, index) => {
+                          const isFinallyDone = (selectedTicket.status === 'completed' || selectedTicket.status === 'closed');
+                          const effectiveStageStatus = isFinallyDone ? 'completed' : stage.status;
+                          const isCompleted = effectiveStageStatus === 'completed';
+                          const isCurrent = effectiveStageStatus === 'in-progress';
+                          const isError = effectiveStageStatus === 'error';
+
+                          return (
+                            <div key={stage.id} className="flex items-start gap-3">
+                              <div
+                                className={`w-8 h-8 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${getStageStatusColor(isFinallyDone ? 'completed' : stage.status)}`}
+                              >
+                                {isCompleted ? (
+                                  <CheckCircle2 className="w-5 h-5" />
+                                ) : isError ? (
+                                  <AlertCircle className="w-5 h-5" />
                                 ) : (
-                                  <p className="text-sm text-gray-500">{stage.message}</p>
+                                  <span className="text-sm font-medium">{index + 1}</span>
                                 )}
                               </div>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })}
+                              <div className="flex-1">
+                                <p className={`font-medium ${isCurrent ? 'text-blue-600' : 'text-gray-900'}`}>
+                                  {stage.name}
+                                </p>
+                                {stage.message && (
+                                  <div className="mt-1">
+                                    {stage.name === "IAM Remediation" ? (
+                                      <button
+                                        onClick={() => setShowRemediationModal(true)}
+                                        className="flex items-center gap-1.5 text-xs font-bold text-[#012169] bg-blue-50 px-2 py-1 rounded hover:bg-blue-100 transition-colors"
+                                      >
+                                        <ShieldCheck className="w-3.5 h-3.5" />
+                                        View Remediation Journey
+                                      </button>
+                                    ) : (
+                                      <p className="text-sm text-gray-500">{stage.message}</p>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
                   </div>
-                </div>
-              </div>
-            </div >
-          )
-          }
-        </div >
-      </main >
+                </>
+              )}
+            </div>
+          )}
+        </div>
+      </main>
 
       {/* Email Preview Modal */}
       {

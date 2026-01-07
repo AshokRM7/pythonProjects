@@ -1,0 +1,21 @@
+[
+    {
+        "conflict_id": "C1",
+        "severity": "WARNING",
+        "description": "Read Only capability conflicts with write/modify/delete permission name",
+        "condition": {
+            "capability": "Read Only",
+            "permission_name_regex": "write|modify|delete"
+        }
+    },
+    {
+        "conflict_id": "C2",
+        "severity": "ERROR",
+        "description": "Admin capability with Proprietary data and Shared account",
+        "condition": {
+            "capability": "Admin",
+            "data_classification": "Proprietary",
+            "account_type": "Human Temporary or Shared"
+        }
+    }
+]
