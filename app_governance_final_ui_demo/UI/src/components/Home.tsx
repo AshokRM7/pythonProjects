@@ -298,6 +298,8 @@ export default function Home({ currentUser, onSignOut }: HomeProps) {
     if (selectedTicket &&
       selectedTicket.currentStage === 5 &&
       selectedTicket.stages[5].status === 'in-progress' &&
+      selectedTicket.ticket_type !== 'PCAT' &&
+      selectedTicket.category !== 'PCAT' &&
       !showRemediationModal) {
       setShowRemediationModal(true);
     }
