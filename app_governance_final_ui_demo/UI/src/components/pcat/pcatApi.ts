@@ -36,5 +36,29 @@ export const pcatApi = {
     resetDemo: async () => {
         const response = await fetch(`${BASE_URL}/demo/reset`);
         return response.json();
+    },
+
+    getFixPreview: async (ticketId: string) => {
+        const response = await fetch(`${BASE_URL}/tickets/${ticketId}/fixes/preview`);
+        if (!response.ok) throw new Error('Failed to fetch fix preview');
+        return response.json();
+    },
+
+    applyFixes: async (ticketId: string, options: {
+        apply: boolean,
+        upload_to_pcat: boolean,
+        upload_to_rise: boolean
+    }) => {
+        const response = await fetch(`${BASE_URL}/tickets/${ticketId}/fixes/apply`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(options)
+        });
+        if (!response.ok) throw new Error('Failed to apply fixes');
+        return response.json();
+    },
+
+    downloadUpdatedCsv: (ticketId: string) => {
+        window.location.href = `${BASE_URL}/tickets/${ticketId}/csv/updated/download`;
     }
 };

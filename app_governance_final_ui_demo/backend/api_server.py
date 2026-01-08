@@ -23,7 +23,25 @@ class EmailRequest(BaseModel):
     subject: str
     body: str
 
-app = FastAPI(title="Ticket Portal API", version="1.0.0")
+from contextlib import asynccontextmanager
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Seed mock IAM DB
+    from backend.iam_system.seed import ensure_seeded
+    ensure_seeded()
+    
+    await load_initial_tickets()
+    
+    # Initialize PCAT API
+    init_pcat_api(current_tickets, manager.broadcast)
+    
+    # Seed PCAT Demo Ticket
+    if os.getenv("ENABLE_PCAT", "true").lower() == "true":
+        seed_pcat_demo_ticket()
+    yield
+
+app = FastAPI(title="Ticket Portal API", version="1.0.0", lifespan=lifespan)
 
 # CORS middleware for React frontend
 app.add_middleware(
@@ -316,20 +334,6 @@ async def load_initial_tickets():
     except Exception as e:
         print(f"Error loading initial tickets: {e}")
 
-@app.on_event("startup")
-async def startup_event():
-    # Seed mock IAM DB
-    from backend.iam_system.seed import ensure_seeded
-    ensure_seeded()
-    
-    await load_initial_tickets()
-    
-    # Initialize PCAT API
-    init_pcat_api(current_tickets, manager.broadcast)
-    
-    # Seed PCAT Demo Ticket
-    if os.getenv("ENABLE_PCAT", "true").lower() == "true":
-        seed_pcat_demo_ticket()
 
 def seed_pcat_demo_ticket():
     ticket_id = "PCAT-7001"
@@ -342,7 +346,8 @@ def seed_pcat_demo_ticket():
             {"id": 4, "name": "Conflict Detection", "status": "pending", "message": ""},
             {"id": 5, "name": "Recommendations", "status": "pending", "message": ""},
             {"id": 6, "name": "Evidence Pack Generation", "status": "pending", "message": ""},
-            {"id": 7, "name": "Ticket Update", "status": "pending", "message": ""},
+            {"id": 7, "name": "Auto-Fix & Rebuild CSV", "status": "pending", "message": ""},
+            {"id": 8, "name": "Upload to PCAT & RISE", "status": "pending", "message": ""},
         ]
         
         current_tickets[ticket_id] = {

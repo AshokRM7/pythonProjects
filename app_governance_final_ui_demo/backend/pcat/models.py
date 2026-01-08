@@ -26,6 +26,13 @@ class Finding(BaseModel):
     message: str
     recommendation: Optional[str] = None
 
+class AppliedFix(BaseModel):
+    row_id: int
+    field: str
+    old_value: Any
+    new_value: Any
+    reason: str # rule_id or recommendation context
+
 class PCATReportSummary(BaseModel):
     ticket_id: str
     timestamp: str = Field(default_factory=lambda: datetime.now().isoformat())
@@ -34,3 +41,9 @@ class PCATReportSummary(BaseModel):
     warning_count: int
     findings: List[Finding]
     top_findings: List[Finding] = []
+    
+    # New Fields for Advanced Workflow
+    fix_preview: List[AppliedFix] = []
+    applied_fixes: List[AppliedFix] = []
+    upload_results: Dict[str, Any] = {}
+    updated_csv_path: Optional[str] = None

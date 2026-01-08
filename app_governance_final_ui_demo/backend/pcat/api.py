@@ -3,7 +3,18 @@ from fastapi.responses import JSONResponse, FileResponse
 import os
 import json
 from .orchestrator import PCATOrchestrator
-from typing import Dict, Any
+from .loader import PCATLoader
+from .fix_engine import PCATFixEngine
+from .csv_writer import PCATCSVWriter
+from .mock_portal_clients import upload_to_pcat_portal, upload_to_rise_portal
+from .models import PCATReportSummary, AppliedFix, Finding
+from typing import Dict, Any, List
+from pydantic import BaseModel
+
+class ApplyFixesRequest(BaseModel):
+    apply: bool = True
+    upload_to_pcat: bool = True
+    upload_to_rise: bool = True
 
 router = APIRouter(prefix="/api/pcat", tags=["pcat"])
 
@@ -106,6 +117,12 @@ async def run_pcat_pipeline(ticket_id: str, csv_path: str):
             ticket["stages"][stage_idx]["message"] = message
             
             if status == "completed" and stage_idx == 7:
+                # This was the old Ticket Update, now Auto-Fix is 7, Upload is 8.
+                # Validation pipeline ends at stage 6/7.
+                # Stage 7 and 8 are triggered separately by apply endpoint.
+                pass
+            
+            if status == "completed" and stage_idx == 6:
                 ticket["status"] = "PCAT Validation Completed"
                 ticket["pcat_summary"] = metrics
             
@@ -121,3 +138,96 @@ async def run_pcat_pipeline(ticket_id: str, csv_path: str):
                 })
 
     await orchestrator.run_validation(stage_update_callback)
+
+@router.get("/tickets/{ticket_id}/fixes/preview")
+async def get_fix_preview(ticket_id: str):
+    if not is_pcat_enabled():
+        return JSONResponse(status_code=403, content={"error": "PCAT is disabled"})
+    
+    report_path = f"backend/data/pcat/runs/{ticket_id}/latest_report.json"
+    if not os.path.exists(report_path):
+        raise HTTPException(status_code=404, detail="Run validation first.")
+    
+    with open(report_path, 'r') as f:
+        report_data = json.load(f)
+        findings = [Finding(**f) for f in report_data.get("findings", [])]
+    
+    ticket = current_tickets_ref.get(ticket_id)
+    if not ticket or not ticket.get("pcat_csv_path"):
+        raise HTTPException(status_code=404, detail="CSV missing.")
+    
+    rows = PCATLoader.load_csv(ticket["pcat_csv_path"])
+    preview = PCATFixEngine.preview_fixes(rows, findings)
+    
+    return {
+        "ticket_id": ticket_id,
+        "preview_count": len(preview),
+        "fix_preview": preview,
+        "blocked_items": []
+    }
+
+@router.post("/tickets/{ticket_id}/fixes/apply")
+async def apply_fixes(ticket_id: str, req: ApplyFixesRequest):
+    if not is_pcat_enabled():
+        return JSONResponse(status_code=403, content={"error": "PCAT is disabled"})
+    
+    ticket = current_tickets_ref.get(ticket_id)
+    if not ticket: raise HTTPException(status_code=404)
+    
+    report_path = f"backend/data/pcat/runs/{ticket_id}/latest_report.json"
+    if not os.path.exists(report_path):
+        raise HTTPException(status_code=400, detail="Validate first.")
+    
+    with open(report_path, 'r') as f:
+        report_data = json.load(f)
+        findings = [Finding(**f) for f in report_data.get("findings", [])]
+        summary = PCATReportSummary(**report_data)
+        
+    rows = PCATLoader.load_csv(ticket["pcat_csv_path"])
+    
+    # Stage 7
+    if broadcast_func:
+        await broadcast_func({"type": "pcat_stage_update", "ticket_id": ticket_id, "stage_id": 7, "status": "in-progress", "message": "Applying fixes..."})
+    
+    updated_rows, applied_fixes = PCATFixEngine.apply_fixes(rows, findings)
+    out_csv = f"backend/data/pcat/outputs/{ticket_id}_updated.csv"
+    PCATCSVWriter.write_csv(out_csv, updated_rows)
+    
+    if broadcast_func:
+        await broadcast_func({"type": "pcat_stage_update", "ticket_id": ticket_id, "stage_id": 7, "status": "completed", "message": f"Applied {len(applied_fixes)} fixes."})
+    
+    # Stage 8
+    results = {}
+    if req.upload_to_pcat:
+        results["pcat_portal"] = upload_to_pcat_portal(ticket_id, out_csv)
+    if req.upload_to_rise:
+        results["rise_portal"] = upload_to_rise_portal(ticket_id, out_csv)
+        
+    if broadcast_func:
+        await broadcast_func({
+            "type": "pcat_stage_update", 
+            "ticket_id": ticket_id, 
+            "stage_id": 8, 
+            "status": "completed", 
+            "message": "Uploaded successfully.",
+            "metrics": ticket.get("pcat_summary", {})
+        })
+    
+    ticket["status"] = "Uploaded"
+    ticket["currentStage"] = 8
+    ticket["stages"][7]["status"] = "completed"
+    ticket["stages"][8]["status"] = "completed"
+    
+    summary.applied_fixes = applied_fixes
+    summary.upload_results = results
+    summary.updated_csv_path = out_csv
+    with open(report_path, 'w') as f:
+        json.dump(summary.model_dump(), f, indent=2)
+        
+    return {"status": "ok", "applied_fixes": applied_fixes}
+
+@router.get("/tickets/{ticket_id}/csv/updated/download")
+async def download_updated_csv(ticket_id: str):
+    path = f"backend/data/pcat/outputs/{ticket_id}_updated.csv"
+    if not os.path.exists(path): raise HTTPException(status_code=404)
+    return FileResponse(path, filename=f"{ticket_id}_fixed.csv")
