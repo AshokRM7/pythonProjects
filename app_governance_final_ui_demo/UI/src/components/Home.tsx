@@ -51,6 +51,8 @@ interface Ticket {
     last_run_at: string;
     report_path?: string;
   };
+  final_csv_ready?: boolean;
+  final_csv_path?: string;
 }
 
 // Helper to map API ticket status to Dashboard status

@@ -1,0 +1,231 @@
+{
+  "ticket_id": "PCAT-7001",
+  "timestamp": "2026-01-09T19:34:23.278854",
+  "total_rows": 8,
+  "error_count": 8,
+  "warning_count": 6,
+  "findings": [
+    {
+      "row_id": 2,
+      "column": "provided_by",
+      "value": "AIT NOT SPECIFIED",
+      "severity": "WARNING",
+      "rule_id": "L1",
+      "message": "Value 'AIT NOT SPECIFIED' is not in the allowed list for provided_by.",
+      "recommendation": "Ensure that the value for 'provided_by' is selected from the specified list of options."
+    },
+    {
+      "row_id": 5,
+      "column": "platform_type",
+      "value": "Not Specified",
+      "severity": "WARNING",
+      "rule_id": "L1",
+      "message": "Value 'Not Specified' is not in the allowed list for platform_type.",
+      "recommendation": "Please specify the platform type as either web, mobile, or desktop."
+    },
+    {
+      "row_id": 1,
+      "column": "MULTIPLE",
+      "value": "N/A",
+      "severity": "ERROR",
+      "rule_id": "R1",
+      "message": "If platform_category is WAN, managed_by must contain Active Directory or AD",
+      "recommendation": "Ensure that the platform_category is set to WAN and that managed_by contains Active Directory or AD."
+    },
+    {
+      "row_id": 1,
+      "column": "capability",
+      "value": "N/A",
+      "severity": "WARNING",
+      "rule_id": "R3",
+      "message": "If permission_name contains read, capability should be Read Only",
+      "recommendation": "Update the capability to be Read Only if the permission_name contains read."
+    },
+    {
+      "row_id": 2,
+      "column": "MULTIPLE",
+      "value": "N/A",
+      "severity": "ERROR",
+      "rule_id": "R2",
+      "message": "If capability contains admin, account_type cannot be Human Temporary or Shared",
+      "recommendation": "Ensure that if a user's capability includes admin, their account_type is not set to Human Temporary or Shared."
+    },
+    {
+      "row_id": 2,
+      "column": "capability",
+      "value": "N/A",
+      "severity": "ERROR",
+      "rule_id": "R5",
+      "message": "provided_by cannot be AIT NOT SPECIFIED for WAN/APP/DB",
+      "recommendation": "Ensure that the provided_by field for WAN/APP/DB capabilities is specified and not left as AIT NOT SPECIFIED."
+    },
+    {
+      "row_id": 3,
+      "column": "capability",
+      "value": "N/A",
+      "severity": "WARNING",
+      "rule_id": "R6",
+      "message": "Write/Delete/Modify permission should have Modify or Admin capability",
+      "recommendation": "Ensure that users with Write/Delete permission also have Modify or Admin capability."
+    },
+    {
+      "row_id": 4,
+      "column": "MULTIPLE",
+      "value": "N/A",
+      "severity": "WARNING",
+      "rule_id": "R4",
+      "message": "Business function with Confidential-NPI/NTPI classification",
+      "recommendation": "Ensure that all employees handling confidential NPI/NTPI data are trained on proper data handling procedures."
+    },
+    {
+      "row_id": 5,
+      "column": "MULTIPLE",
+      "value": "N/A",
+      "severity": "ERROR",
+      "rule_id": "R1",
+      "message": "If platform_category is WAN, managed_by must contain Active Directory or AD",
+      "recommendation": "Ensure that the platform_category is set to WAN only if managed_by contains Active Directory or AD."
+    },
+    {
+      "row_id": 5,
+      "column": "capability",
+      "value": "N/A",
+      "severity": "ERROR",
+      "rule_id": "R7",
+      "message": "Platform type missing or not specified",
+      "recommendation": "Specify the platform type for the capability to ensure clear communication and understanding."
+    },
+    {
+      "row_id": 5,
+      "column": "MULTIPLE",
+      "value": "N/A",
+      "severity": "WARNING",
+      "rule_id": "R8",
+      "message": "Permission description and additional info both empty",
+      "recommendation": "Ensure that the permission description and additional information are filled out for all relevant fields."
+    },
+    {
+      "row_id": 6,
+      "column": "MULTIPLE",
+      "value": "N/A",
+      "severity": "ERROR",
+      "rule_id": "R2",
+      "message": "If capability contains admin, account_type cannot be Human Temporary or Shared",
+      "recommendation": "Update the account_type to a different option if the capability contains admin."
+    },
+    {
+      "row_id": 8,
+      "column": "MULTIPLE",
+      "value": "N/A",
+      "severity": "ERROR",
+      "rule_id": "R2",
+      "message": "If capability contains admin, account_type cannot be Human Temporary or Shared",
+      "recommendation": "Update the account_type to a different option if the capability contains admin."
+    },
+    {
+      "row_id": 8,
+      "column": "MULTIPLE",
+      "value": "CONFLICT",
+      "severity": "ERROR",
+      "rule_id": "C2",
+      "message": "Admin capability with Proprietary data and Shared account",
+      "recommendation": "Implement strict access controls and permissions to ensure that only authorized administrators can access proprietary data within shared accounts."
+    }
+  ],
+  "top_findings": [
+    {
+      "row_id": 2,
+      "column": "provided_by",
+      "value": "AIT NOT SPECIFIED",
+      "severity": "WARNING",
+      "rule_id": "L1",
+      "message": "Value 'AIT NOT SPECIFIED' is not in the allowed list for provided_by.",
+      "recommendation": "Ensure that the value for 'provided_by' is selected from the specified list of options."
+    },
+    {
+      "row_id": 5,
+      "column": "platform_type",
+      "value": "Not Specified",
+      "severity": "WARNING",
+      "rule_id": "L1",
+      "message": "Value 'Not Specified' is not in the allowed list for platform_type.",
+      "recommendation": "Please specify the platform type as either web, mobile, or desktop."
+    },
+    {
+      "row_id": 1,
+      "column": "MULTIPLE",
+      "value": "N/A",
+      "severity": "ERROR",
+      "rule_id": "R1",
+      "message": "If platform_category is WAN, managed_by must contain Active Directory or AD",
+      "recommendation": "Ensure that the platform_category is set to WAN and that managed_by contains Active Directory or AD."
+    },
+    {
+      "row_id": 1,
+      "column": "capability",
+      "value": "N/A",
+      "severity": "WARNING",
+      "rule_id": "R3",
+      "message": "If permission_name contains read, capability should be Read Only",
+      "recommendation": "Update the capability to be Read Only if the permission_name contains read."
+    },
+    {
+      "row_id": 2,
+      "column": "MULTIPLE",
+      "value": "N/A",
+      "severity": "ERROR",
+      "rule_id": "R2",
+      "message": "If capability contains admin, account_type cannot be Human Temporary or Shared",
+      "recommendation": "Ensure that if a user's capability includes admin, their account_type is not set to Human Temporary or Shared."
+    },
+    {
+      "row_id": 2,
+      "column": "capability",
+      "value": "N/A",
+      "severity": "ERROR",
+      "rule_id": "R5",
+      "message": "provided_by cannot be AIT NOT SPECIFIED for WAN/APP/DB",
+      "recommendation": "Ensure that the provided_by field for WAN/APP/DB capabilities is specified and not left as AIT NOT SPECIFIED."
+    },
+    {
+      "row_id": 3,
+      "column": "capability",
+      "value": "N/A",
+      "severity": "WARNING",
+      "rule_id": "R6",
+      "message": "Write/Delete/Modify permission should have Modify or Admin capability",
+      "recommendation": "Ensure that users with Write/Delete permission also have Modify or Admin capability."
+    },
+    {
+      "row_id": 4,
+      "column": "MULTIPLE",
+      "value": "N/A",
+      "severity": "WARNING",
+      "rule_id": "R4",
+      "message": "Business function with Confidential-NPI/NTPI classification",
+      "recommendation": "Ensure that all employees handling confidential NPI/NTPI data are trained on proper data handling procedures."
+    },
+    {
+      "row_id": 5,
+      "column": "MULTIPLE",
+      "value": "N/A",
+      "severity": "ERROR",
+      "rule_id": "R1",
+      "message": "If platform_category is WAN, managed_by must contain Active Directory or AD",
+      "recommendation": "Ensure that the platform_category is set to WAN only if managed_by contains Active Directory or AD."
+    },
+    {
+      "row_id": 5,
+      "column": "capability",
+      "value": "N/A",
+      "severity": "ERROR",
+      "rule_id": "R7",
+      "message": "Platform type missing or not specified",
+      "recommendation": "Specify the platform type for the capability to ensure clear communication and understanding."
+    }
+  ],
+  "fix_preview": [],
+  "applied_fixes": [],
+  "upload_results": {},
+  "updated_csv_path": null
+}

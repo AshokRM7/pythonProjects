@@ -122,6 +122,11 @@ def convert_ticket_to_frontend(ticket: Ticket) -> dict:
         "userEmail": ticket.user_email,
         "targetSystem": ticket.target_system,
         "requestedAction": ticket.requested_action,
+        # PCAT Specific
+        "final_csv_ready": ticket.final_csv_ready,
+        "final_csv_path": ticket.final_csv_path,
+        "pcat_summary": ticket.pcat_summary,
+        "ticket_type": ticket.ticket_type,
     }
 
 
@@ -150,7 +155,11 @@ def convert_frontend_to_ticket(data: dict) -> Ticket:
         employee_id=data.get("employeeId"),
         user_email=data.get("userEmail"),
         target_system=data.get("targetSystem"),
-        requested_action=data.get("requestedAction")
+        requested_action=data.get("requestedAction"),
+        final_csv_ready=data.get("final_csv_ready", False),
+        final_csv_path=data.get("final_csv_path"),
+        pcat_summary=data.get("pcat_summary"),
+        ticket_type=data.get("ticket_type", "IAM")
     )
 
 async def update_stage_progress(ticket_id: str, stage_index: int, status: str, message: str):
@@ -366,7 +375,9 @@ def seed_pcat_demo_ticket():
             "deliverableType": "PCAT Validation",
             "applicationName": "Mixed (ERP/CRM)",
             "pcat_csv_path": "backend/data/pcat/pcat_ticket_PCAT-7001.csv",
-            "stages": pcat_stages
+            "stages": pcat_stages,
+            "final_csv_ready": False,
+            "final_csv_path": None
         }
         print(f"Seeded PCAT Demo Ticket: {ticket_id}")
 
@@ -383,6 +394,8 @@ async def reset_pcat_demo():
             stage["status"] = "pending"
             stage["message"] = ""
         ticket["pcat_summary"] = None
+        ticket["final_csv_ready"] = False
+        ticket["final_csv_path"] = None
         
         # Optionally clean up reports
         import shutil

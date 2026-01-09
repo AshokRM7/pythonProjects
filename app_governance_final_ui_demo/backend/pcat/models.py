@@ -27,11 +27,13 @@ class Finding(BaseModel):
     recommendation: Optional[str] = None
 
 class AppliedFix(BaseModel):
+    fix_id: str
     row_id: int
     field: str
     old_value: Any
     new_value: Any
     reason: str # rule_id or recommendation context
+    user_decision: Optional[str] = "ACCEPTED" # ACCEPTED, REJECTED
 
 class PCATReportSummary(BaseModel):
     ticket_id: str

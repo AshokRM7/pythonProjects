@@ -35,6 +35,8 @@ class Ticket(BaseModel):
     ticket_type: Optional[str] = "IAM" # Default to IAM
     pcat_csv_path: Optional[str] = None
     pcat_summary: Optional[dict] = None
+    final_csv_ready: Optional[bool] = False
+    final_csv_path: Optional[str] = None
 
 class TicketResponse(BaseModel):
     tickets: List[Ticket]

@@ -44,10 +44,20 @@ export const pcatApi = {
         return response.json();
     },
 
+    saveFixDecisions: async (ticketId: string, decisions: { fix_id: string, decision: string }[]) => {
+        const response = await fetch(`${BASE_URL}/tickets/${ticketId}/fixes/decisions`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(decisions)
+        });
+        return response.json();
+    },
+
     applyFixes: async (ticketId: string, options: {
         apply: boolean,
         upload_to_pcat: boolean,
-        upload_to_rise: boolean
+        upload_to_rise: boolean,
+        fixes?: any[]
     }) => {
         const response = await fetch(`${BASE_URL}/tickets/${ticketId}/fixes/apply`, {
             method: 'POST',
@@ -60,5 +70,9 @@ export const pcatApi = {
 
     downloadUpdatedCsv: (ticketId: string) => {
         window.location.href = `${BASE_URL}/tickets/${ticketId}/csv/updated/download`;
+    },
+
+    downloadFinalCsv: (ticketId: string) => {
+        window.location.href = `${BASE_URL}/tickets/${ticketId}/csv/final/download`;
     }
 };

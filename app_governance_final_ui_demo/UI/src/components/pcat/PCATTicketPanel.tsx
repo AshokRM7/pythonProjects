@@ -20,13 +20,28 @@ export const PCATTicketPanel: React.FC<PCATTicketPanelProps> = ({ ticket, onRefr
     const [previewData, setPreviewData] = useState<any>(null);
     const [isApplying, setIsApplying] = useState(false);
 
+    // Decisions state: { [fix_id]: 'ACCEPTED' | 'REJECTED' }
+    const [decisions, setDecisions] = useState<Record<string, string>>({});
+
+    const actionHeaderRef = React.useRef<HTMLDivElement>(null);
+    const lastAwaitingTicketId = React.useRef<string | null>(null);
+
     useEffect(() => {
         if (ticket.status === 'PCAT Validation Completed' || ticket.status === 'Uploaded') {
             fetchReport();
         } else {
             setReport(null);
         }
-    }, [ticket.id, ticket.status]);
+
+        // Auto-scroll logic for Awaiting Confirmation
+        const isAwaiting = ticket.stages?.[7]?.status === 'awaiting_confirmation';
+        if (isAwaiting && lastAwaitingTicketId.current !== ticket.id) {
+            lastAwaitingTicketId.current = ticket.id;
+            setTimeout(() => {
+                actionHeaderRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }, 500);
+        }
+    }, [ticket.id, ticket.status, ticket.stages?.[7]?.status]);
 
     const fetchReport = async () => {
         try {
@@ -63,6 +78,14 @@ export const PCATTicketPanel: React.FC<PCATTicketPanelProps> = ({ ticket, onRefr
         try {
             const data = await pcatApi.getFixPreview(ticket.id);
             setPreviewData(data);
+
+            // Initialize decisions from preview data
+            const initialDecisions: Record<string, string> = {};
+            data.fix_preview.forEach((f: any) => {
+                initialDecisions[f.fix_id] = f.user_decision || 'ACCEPTED';
+            });
+            setDecisions(initialDecisions);
+
             setPreviewModalOpen(true);
         } catch (err) {
             setError('Failed to load fix preview.');
@@ -71,17 +94,37 @@ export const PCATTicketPanel: React.FC<PCATTicketPanelProps> = ({ ticket, onRefr
         }
     };
 
+    const toggleDecision = (fixId: string) => {
+        setDecisions(prev => ({
+            ...prev,
+            [fixId]: prev[fixId] === 'ACCEPTED' ? 'REJECTED' : 'ACCEPTED'
+        }));
+    };
+
     const handleApplyFixes = async () => {
         setIsApplying(true);
         setConfirmModalOpen(false);
         try {
-            await pcatApi.applyFixes(ticket.id, {
+            // Send decisions to backend first
+            const decisionList = Object.entries(decisions).map(([fix_id, decision]) => ({
+                fix_id,
+                decision
+            }));
+
+            if (decisionList.length > 0) {
+                await pcatApi.saveFixDecisions(ticket.id, decisionList);
+            }
+
+            const result = await pcatApi.applyFixes(ticket.id, {
                 apply: true,
                 upload_to_pcat: true,
-                upload_to_rise: true
+                upload_to_rise: true,
+                fixes: decisionList // Also send in payload for atomicity
             });
-            fetchReport();
+
+            // Refresh ticket data from parent
             onRefresh();
+            fetchReport();
         } catch (err) {
             setError('Failed to apply fixes and upload.');
         } finally {
@@ -89,14 +132,16 @@ export const PCATTicketPanel: React.FC<PCATTicketPanelProps> = ({ ticket, onRefr
         }
     };
 
+    const isAwaitingConfirmation = ticket.stages?.[7]?.status === 'awaiting_confirmation';
+
     return (
         <div className="flex-1 overflow-y-auto p-6 space-y-8 bg-gray-50/50">
             {/* Action Header */}
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div ref={actionHeaderRef} className={`flex flex-col sm:flex-row items-center justify-between gap-4 p-4 rounded-2xl transition-all duration-1000 ${isAwaitingConfirmation ? 'bg-blue-50/50 border-2 border-blue-200 shadow-lg scale-[1.02]' : ''}`}>
                 <div className="flex items-center gap-3">
                     <button
                         onClick={handleRunValidation}
-                        disabled={loading || ticket.status === 'PCAT Validation Completed' || ticket.status === 'Uploaded' || (ticket.currentStage > 0 && ticket.status === 'in-progress')}
+                        disabled={loading || ticket.status === 'PCAT Validation Completed' || ticket.status === 'Uploaded' || (ticket.currentStage > 0 && ticket.status === 'in-progress' && !isAwaitingConfirmation)}
                         className={`flex items-center gap-2 px-6 py-3 rounded-xl font-bold transition-all shadow-lg ${ticket.status === 'PCAT Validation Completed' || ticket.status === 'Uploaded'
                             ? 'bg-green-100 text-green-700 cursor-default'
                             : 'bg-[#012169] text-white hover:bg-[#00174F] active:scale-95 disabled:opacity-50'
@@ -104,7 +149,7 @@ export const PCATTicketPanel: React.FC<PCATTicketPanelProps> = ({ ticket, onRefr
                     >
                         {(ticket.status === 'PCAT Validation Completed' || ticket.status === 'Uploaded') ? (
                             <CheckCircle2 className="w-5 h-5" />
-                        ) : ticket.status === 'in-progress' ? (
+                        ) : (ticket.status === 'in-progress' && !isAwaitingConfirmation) ? (
                             <Loader2 className="w-5 h-5 animate-spin" />
                         ) : (
                             <Play className="w-5 h-5 fill-current" />
@@ -112,35 +157,40 @@ export const PCATTicketPanel: React.FC<PCATTicketPanelProps> = ({ ticket, onRefr
                         {(ticket.status === 'PCAT Validation Completed' || ticket.status === 'Uploaded') ? 'Validation Finished' : 'Run PCAT Validation'}
                     </button>
 
-                    {ticket.status === 'PCAT Validation Completed' && (
+                    {(ticket.status === 'PCAT Validation Completed' || ticket.status === 'Uploaded' || isAwaitingConfirmation) && (
                         <>
-                            <button
-                                onClick={handlePreviewFixes}
-                                className="flex items-center gap-2 px-4 py-3 bg-white border border-gray-200 text-gray-700 rounded-xl font-bold hover:bg-gray-50 active:scale-95 transition-all shadow-sm"
-                            >
-                                <Eye className="w-5 h-5" />
-                                Preview Fixes
-                            </button>
-                            <button
-                                onClick={() => setConfirmModalOpen(true)}
-                                disabled={isApplying}
-                                className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 active:scale-95 transition-all shadow-lg"
-                            >
-                                {isApplying ? <Loader2 className="w-5 h-5 animate-spin" /> : <UploadCloud className="w-5 h-5" />}
-                                Apply Fixes & Upload
-                            </button>
+                            {!ticket.final_csv_ready && (
+                                <>
+                                    <button
+                                        onClick={handlePreviewFixes}
+                                        className={`flex items-center gap-2 px-4 py-3 bg-white border text-gray-700 rounded-xl font-bold hover:bg-gray-50 active:scale-95 transition-all shadow-sm ${isAwaitingConfirmation ? 'border-blue-400 ring-2 ring-blue-100' : 'border-gray-200'}`}
+                                    >
+                                        <Eye className="w-5 h-5" />
+                                        Preview Fixes
+                                    </button>
+                                    <button
+                                        onClick={() => setConfirmModalOpen(true)}
+                                        disabled={isApplying}
+                                        className={`flex items-center gap-2 px-6 py-3 text-white rounded-xl font-bold active:scale-95 transition-all shadow-lg ${isAwaitingConfirmation ? 'bg-orange-600 hover:bg-orange-700 animate-pulse' : 'bg-blue-600 hover:bg-blue-700'}`}
+                                    >
+                                        {isApplying ? <Loader2 className="w-5 h-5 animate-spin" /> : <UploadCloud className="w-5 h-5" />}
+                                        Apply Fixes & Upload
+                                    </button>
+                                </>
+                            )}
+
+                            {ticket.final_csv_ready && (
+                                <button
+                                    onClick={() => pcatApi.downloadFinalCsv(ticket.id)}
+                                    className="flex items-center gap-2 px-6 py-3 bg-green-600 text-white rounded-xl font-bold hover:bg-green-700 active:scale-95 transition-all shadow-lg"
+                                >
+                                    <Download className="w-5 h-5" />
+                                    Download Updated CSV
+                                </button>
+                            )}
                         </>
                     )}
 
-                    {ticket.status === 'Uploaded' && (
-                        <button
-                            onClick={() => pcatApi.downloadUpdatedCsv(ticket.id)}
-                            className="flex items-center gap-2 px-6 py-3 bg-green-600 text-white rounded-xl font-bold hover:bg-green-700 active:scale-95 transition-all shadow-lg"
-                        >
-                            <Download className="w-5 h-5" />
-                            Download Updated CSV
-                        </button>
-                    )}
 
                     <button
                         onClick={handleReset}
@@ -153,7 +203,7 @@ export const PCATTicketPanel: React.FC<PCATTicketPanelProps> = ({ ticket, onRefr
 
                 <div className="text-right">
                     <p className="text-sm text-gray-500">Current Status</p>
-                    <p className="font-bold text-gray-900">{ticket.status}</p>
+                    <p className="font-bold text-gray-900">{isAwaitingConfirmation ? 'Awaiting Confirmation' : ticket.status}</p>
                 </div>
             </div>
 
@@ -163,7 +213,7 @@ export const PCATTicketPanel: React.FC<PCATTicketPanelProps> = ({ ticket, onRefr
                 </div>
             )}
 
-            <PCATDownloads ticketId={ticket.id} />
+            <PCATDownloads ticketId={ticket.id} ticket={ticket} />
 
             {/* Pipeline Progress */}
             <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
@@ -179,9 +229,11 @@ export const PCATTicketPanel: React.FC<PCATTicketPanelProps> = ({ ticket, onRefr
                                 <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 transition-all ${stage.status === 'completed' ? 'bg-green-500 border-green-500 text-white' :
                                     stage.status === 'in-progress' ? 'bg-blue-500 border-blue-500 text-white animate-pulse' :
                                         stage.status === 'error' ? 'bg-red-500 border-red-500 text-white' :
-                                            'border-gray-200 bg-white text-gray-300'
+                                            stage.status === 'awaiting_confirmation' ? 'bg-orange-500 border-orange-500 text-white ring-4 ring-orange-100' :
+                                                'border-gray-200 bg-white text-gray-300'
                                     }`}>
-                                    {stage.status === 'completed' ? <CheckCircle2 className="w-5 h-5" /> : idx + 1}
+                                    {stage.status === 'completed' ? <CheckCircle2 className="w-5 h-5" /> :
+                                        stage.status === 'awaiting_confirmation' ? <Wand2 className="w-4 h-4" /> : idx + 1}
                                 </div>
                                 {idx < ticket.stages.length - 1 && (
                                     <div className={`w-0.5 h-8 my-1 ${stage.status === 'completed' ? 'bg-green-200' : 'bg-gray-100'}`} />
@@ -211,50 +263,77 @@ export const PCATTicketPanel: React.FC<PCATTicketPanelProps> = ({ ticket, onRefr
 
             {/* Preview Modal */}
             {previewModalOpen && previewData && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
-                    <div className="bg-white rounded-2xl w-full max-w-4xl max-h-[80vh] overflow-hidden flex flex-col shadow-2xl transition-all scale-100">
-                        <div className="p-6 border-b flex items-center justify-between">
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40 backdrop-blur-md animate-in fade-in duration-300">
+                    <div className="bg-white rounded-3xl w-full max-w-5xl max-h-[85vh] overflow-hidden flex flex-col shadow-2xl transition-all scale-100 border border-gray-100">
+                        <div className="p-8 border-b bg-gray-50/50 flex items-center justify-between">
                             <div>
-                                <h2 className="text-xl font-bold text-gray-900">Recommended Auto-Fixes</h2>
-                                <p className="text-sm text-gray-500">{previewData.preview_count} corrections identified</p>
+                                <h2 className="text-2xl font-black text-[#012169] tracking-tight">Selective Auto-Fixes</h2>
+                                <p className="text-gray-500 font-medium">Review and choose which corrections to apply to the final CSV.</p>
                             </div>
-                            <button onClick={() => setPreviewModalOpen(false)} className="p-2 hover:bg-gray-100 rounded-lg">
+                            <button onClick={() => setPreviewModalOpen(false)} className="p-2 hover:bg-white rounded-full shadow-sm transition-all">
                                 <X className="w-6 h-6 text-gray-400" />
                             </button>
                         </div>
-                        <div className="flex-1 overflow-y-auto p-6">
-                            <table className="w-full text-left">
-                                <thead className="bg-gray-50 text-xs font-bold text-gray-500 uppercase tracking-wider">
+                        <div className="flex-1 overflow-y-auto p-8">
+                            <table className="w-full text-left border-separate border-spacing-y-3">
+                                <thead className="text-xs font-bold text-gray-400 uppercase tracking-widest px-4">
                                     <tr>
-                                        <th className="px-4 py-3">Row ID</th>
-                                        <th className="px-4 py-3">Field</th>
-                                        <th className="px-4 py-3">Proposed Change</th>
-                                        <th className="px-4 py-3">Reason</th>
+                                        <th className="px-6 py-2">Row</th>
+                                        <th className="px-6 py-2">Field</th>
+                                        <th className="px-6 py-2">Proposed Correction</th>
+                                        <th className="px-6 py-2">Reasoning</th>
+                                        <th className="px-6 py-2 text-center">Decision</th>
                                     </tr>
                                 </thead>
-                                <tbody className="divide-y divide-gray-100">
-                                    {previewData.fix_preview.map((fix: any, i: number) => (
-                                        <tr key={i} className="hover:bg-gray-50/50">
-                                            <td className="px-4 py-4 font-mono text-sm">{fix.row_id}</td>
-                                            <td className="px-4 py-4"><span className="px-2 py-1 bg-gray-100 text-gray-600 rounded text-xs font-bold uppercase">{fix.field}</span></td>
-                                            <td className="px-4 py-4 whitespace-pre">
-                                                <div className="flex flex-col gap-1">
-                                                    <span className="text-xs text-red-500 line-through">{fix.old_value}</span>
-                                                    <span className="text-sm text-green-600 font-bold">{fix.new_value}</span>
-                                                </div>
-                                            </td>
-                                            <td className="px-4 py-4 text-xs text-gray-500 italic">{fix.reason}</td>
-                                        </tr>
-                                    ))}
+                                <tbody className="">
+                                    {previewData.fix_preview.map((fix: any, i: number) => {
+                                        const isAccepted = decisions[fix.fix_id] === 'ACCEPTED';
+                                        return (
+                                            <tr key={i} className={`group transition-all duration-300 ${isAccepted ? 'bg-white' : 'bg-gray-50/50 opacity-75'}`}>
+                                                <td className="px-6 py-5 rounded-l-2xl border-y border-l border-gray-100 font-mono text-sm text-gray-500">{fix.row_id}</td>
+                                                <td className="px-6 py-5 border-y border-gray-100">
+                                                    <span className="px-3 py-1 bg-blue-50 text-blue-700 rounded-lg text-[10px] font-black uppercase tracking-wider">{fix.field}</span>
+                                                </td>
+                                                <td className="px-6 py-5 border-y border-gray-100 whitespace-pre">
+                                                    <div className="flex flex-col gap-1.5">
+                                                        <span className="text-xs text-red-400 line-through font-medium opacity-60 italic">{fix.old_value}</span>
+                                                        <span className={`text-sm font-bold ${isAccepted ? 'text-green-600' : 'text-gray-400'}`}>
+                                                            {isAccepted ? fix.new_value : '(Correction Skipped)'}
+                                                        </span>
+                                                    </div>
+                                                </td>
+                                                <td className="px-6 py-5 border-y border-gray-100 text-xs text-gray-500 font-medium italic max-w-xs">{fix.reason}</td>
+                                                <td className="px-6 py-5 rounded-r-2xl border-y border-r border-gray-100 text-center">
+                                                    <div className="flex items-center justify-center p-1 bg-gray-100 rounded-xl w-fit mx-auto">
+                                                        <button
+                                                            onClick={() => setDecisions(d => ({ ...d, [fix.fix_id]: 'ACCEPTED' }))}
+                                                            className={`px-4 py-1.5 rounded-lg text-[10px] font-black transition-all ${isAccepted ? 'bg-green-500 text-white shadow-md' : 'text-gray-400 hover:text-gray-600'}`}
+                                                        >
+                                                            ACCEPT
+                                                        </button>
+                                                        <button
+                                                            onClick={() => setDecisions(d => ({ ...d, [fix.fix_id]: 'REJECTED' }))}
+                                                            className={`px-4 py-1.5 rounded-lg text-[10px] font-black transition-all ${!isAccepted ? 'bg-red-500 text-white shadow-md' : 'text-gray-400 hover:text-gray-600'}`}
+                                                        >
+                                                            REJECT
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        );
+                                    })}
                                 </tbody>
                             </table>
                         </div>
-                        <div className="p-6 border-t bg-gray-50 flex justify-end">
+                        <div className="p-8 border-t bg-gray-50/50 flex justify-between items-center">
+                            <div className="text-sm font-bold text-gray-400">
+                                {Object.values(decisions).filter(d => d === 'ACCEPTED').length} of {previewData.preview_count} fixes accepted
+                            </div>
                             <button
                                 onClick={() => setPreviewModalOpen(false)}
-                                className="px-6 py-2 bg-[#012169] text-white rounded-xl font-bold"
+                                className="px-10 py-3 bg-[#012169] text-white rounded-2xl font-black text-sm tracking-widest hover:bg-[#00174F] shadow-xl active:scale-95 transition-all"
                             >
-                                Got it
+                                SAVE DECISIONS
                             </button>
                         </div>
                     </div>
@@ -263,29 +342,43 @@ export const PCATTicketPanel: React.FC<PCATTicketPanelProps> = ({ ticket, onRefr
 
             {/* Confirm Apply Modal */}
             {confirmModalOpen && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
-                    <div className="bg-white rounded-2xl w-full max-w-md p-8 shadow-2xl transition-all scale-100">
-                        <div className="flex items-center gap-4 text-orange-600 mb-6 font-bold text-xl">
-                            <Wand2 className="w-8 h-8" />
-                            Confirm Workflow
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40 backdrop-blur-md animate-in fade-in duration-300">
+                    <div className="bg-white rounded-3xl w-full max-w-md p-10 shadow-2xl transition-all scale-100 border border-gray-100">
+                        <div className="flex flex-col items-center text-center mb-8">
+                            <div className="p-4 bg-orange-100 rounded-2xl mb-4 text-orange-600">
+                                <Wand2 className="w-10 h-10" />
+                            </div>
+                            <h2 className="text-2xl font-black text-gray-900 tracking-tight">Confirm Workflow</h2>
+                            <p className="mt-2 text-gray-500 font-medium leading-relaxed px-4">
+                                Apply <span className="text-blue-600 font-bold">{Object.values(decisions).filter(d => d === 'ACCEPTED').length} corrections</span> and initiate portal uploads.
+                            </p>
                         </div>
-                        <p className="text-gray-600 mb-8 leading-relaxed">
-                            This will apply all deterministic fixes to the metadata, generate the final governed CSV, and upload it to both PCAT and RISE portals (mock).
-                            <br /><br />
-                            <span className="font-bold text-gray-900">Are you sure you want to proceed?</span>
-                        </p>
+
+                        <div className="space-y-3 mb-10">
+                            {[
+                                { icon: CheckCircle2, text: 'Apply accepted fixes to CSV', color: 'text-green-500' },
+                                { icon: UploadCloud, text: 'Rebuild Final Metadata', color: 'text-blue-500' },
+                                { icon: CheckCircle2, text: 'Upload to PCAT & RISE', color: 'text-purple-500' }
+                            ].map((item, i) => (
+                                <div key={i} className="flex items-center gap-3 p-3 bg-gray-50 rounded-2xl border border-gray-100">
+                                    <item.icon className={`w-5 h-5 ${item.color}`} />
+                                    <span className="text-sm font-bold text-gray-700">{item.text}</span>
+                                </div>
+                            ))}
+                        </div>
+
                         <div className="flex gap-4">
                             <button
                                 onClick={() => setConfirmModalOpen(false)}
-                                className="flex-1 px-6 py-3 border border-gray-200 text-gray-700 rounded-xl font-bold hover:bg-gray-50"
+                                className="flex-1 px-6 py-4 border-2 border-gray-100 text-gray-400 rounded-2xl font-black text-xs tracking-widest hover:bg-gray-50 hover:text-gray-600 transition-all"
                             >
-                                Cancel
+                                CANCEL
                             </button>
                             <button
                                 onClick={handleApplyFixes}
-                                className="flex-1 px-6 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 shadow-lg"
+                                className="flex-1 px-6 py-4 bg-blue-600 text-white rounded-2xl font-black text-xs tracking-widest hover:bg-blue-700 shadow-xl shadow-blue-200 active:scale-95 transition-all"
                             >
-                                Yes, Apply & Upload
+                                PROCEED
                             </button>
                         </div>
                     </div>
