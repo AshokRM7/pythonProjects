@@ -56,7 +56,7 @@ class LoggerAgent:
                 for stage in t.stages:
                     if "Logging" in stage.name:
                         stage.status = "completed"
-                        stage.message = "✅ Process lifecycle logged to governance audit trail."
+                        stage.message = "Logging Agent: Successfully logged process lifecycle to governance audit trail."
                 t.currentStage = 8 # Move to Stage 9
                 t.status = "Closed" # Final terminal status
             return res

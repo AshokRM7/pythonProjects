@@ -13,15 +13,15 @@ def fetch_all_tickets(data_file: str) -> TicketResponse:
 
     # Base stages definition
     base_stages = [
-        {"id": 1, "name": "Ticket Fetching", "status": "completed", "message": "Ticket fetched successfully"},
-        {"id": 2, "name": "Category Check", "status": "pending", "message": ""},
-        {"id": 3, "name": "SLA Prioritization", "status": "pending", "message": ""},
-        {"id": 4, "name": "Ownership Enrichment", "status": "pending", "message": ""},
-        {"id": 5, "name": "App Owner Check", "status": "pending", "message": ""},
-        {"id": 6, "name": "IAM Remediation", "status": "pending", "message": ""},
-        {"id": 7, "name": "Evidence Collection", "status": "pending", "message": ""},
-        {"id": 8, "name": "Ticket Closure", "status": "pending", "message": ""},
-        {"id": 9, "name": "Logging", "status": "pending", "message": ""},
+        {"id": 1, "name": "Ticket Fetcher Agent", "status": "completed", "message": "Ticket fetched successfully"},
+        {"id": 2, "name": "Category Check Agent", "status": "pending", "message": ""},
+        {"id": 3, "name": "SLA Prioritization Agent", "status": "pending", "message": ""},
+        {"id": 4, "name": "Ownership Enrichment Agent", "status": "pending", "message": ""},
+        {"id": 5, "name": "App Owner Check Agent", "status": "pending", "message": ""},
+        {"id": 6, "name": "IAM Remediation Agent", "status": "pending", "message": ""},
+        {"id": 7, "name": "Evidence Collection Agent", "status": "pending", "message": ""},
+        {"id": 8, "name": "Ticket Closure Agent", "status": "pending", "message": ""},
+        {"id": 9, "name": "Logging Agent", "status": "pending", "message": ""},
     ]
 
     tickets = [Ticket(**{**t, "stages": base_stages, "currentStage": 0}) for t in sample_data]

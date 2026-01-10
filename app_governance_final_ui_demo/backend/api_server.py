@@ -7,8 +7,10 @@ import json
 import os
 from dotenv import load_dotenv
 from backend.core.orchestrator import IAMOrchestrator
+from backend.core.logger_utils import AgentLogger, AgentTimer
 from backend.models.ticket_context import Ticket, TicketResponse, Stage
 from datetime import datetime
+import time
 from backend.pcat.api import router as pcat_router, init_pcat_api
 
 load_dotenv()
@@ -193,6 +195,8 @@ async def process_individual_ticket(ticket_id: str):
         ticket_obj = convert_frontend_to_ticket(ticket_data)
         ticket_context = TicketResponse(tickets=[ticket_obj])
         
+        AgentLogger.log_pipeline_start(ticket_id)
+        
         await manager.broadcast({
             "type": "processing_start",
             "message": f"Processing ticket {ticket_id} with AI Agents..."
@@ -200,25 +204,30 @@ async def process_individual_ticket(ticket_id: str):
         
         # Stage 1: Category Check
         if current_stage < 1:
-            await update_stage_progress(ticket_id, 1, "in-progress", "Agent: Analyzing ticket category...")
-            ticket_context.tickets = [ticket_obj]
-            result = await asyncio.to_thread(orch.categorizer.invoke, ticket_context)
-            if result.tickets:
-                ticket_obj = result.tickets[0]
-                current_tickets[ticket_id] = convert_ticket_to_frontend(ticket_obj)
-            else:
-                await update_stage_progress(ticket_id, 1, "error", "❌ Not an IAM ticket - processing stopped")
-                return
+            with AgentTimer("CategoryCheckerAgent", ticket_id, "Analyzing ticket category"):
+                await update_stage_progress(ticket_id, 1, "in-progress", "Agent: Analyzing ticket category...")
+                ticket_context.tickets = [ticket_obj]
+                result = await asyncio.to_thread(orch.categorizer.invoke, ticket_context)
+                if result.tickets:
+                    ticket_obj = result.tickets[0]
+                    current_tickets[ticket_id] = convert_ticket_to_frontend(ticket_obj)
+                    AgentLogger.log_agent_success("CategoryCheckerAgent", 0, f"Validated IAM category: {ticket_obj.category}")
+                else:
+                    await update_stage_progress(ticket_id, 1, "error", "Category Check Agent: Not an IAM ticket - processing stopped.")
+                    AgentLogger.log_agent_error("CategoryCheckerAgent", "Not an IAM ticket")
+                    return
             current_stage = 1
             
         # Stage 2: SLA Prioritization
         if current_stage < 2:
-            await update_stage_progress(ticket_id, 2, "in-progress", "Agent: Calculating SLA & Risk...")
-            ticket_context.tickets = [ticket_obj]
-            result = await asyncio.to_thread(orch.sla.invoke, ticket_context)
-            if result.tickets:
-                ticket_obj = result.tickets[0]
-                current_tickets[ticket_id] = convert_ticket_to_frontend(ticket_obj)
+            with AgentTimer("SLAPrioritizerAgent", ticket_id, "Calculating SLA & Risk"):
+                await update_stage_progress(ticket_id, 2, "in-progress", "SLA Prioritization Agent: Calculating SLA & Risk...")
+                ticket_context.tickets = [ticket_obj]
+                result = await asyncio.to_thread(orch.sla.invoke, ticket_context)
+                if result.tickets:
+                    ticket_obj = result.tickets[0]
+                    current_tickets[ticket_id] = convert_ticket_to_frontend(ticket_obj)
+                    AgentLogger.log_agent_success("SLAPrioritizerAgent", 0, f"Priority set to {ticket_obj.risk_level}")
             current_stage = 2
             
             # Checkpoint: Priority Confirmation
@@ -231,42 +240,50 @@ async def process_individual_ticket(ticket_id: str):
             
         # Stage 3: Ownership Enrichment
         if current_stage < 3:
-            await update_stage_progress(ticket_id, 3, "in-progress", "Agent: Fetching ownership data...")
-            ticket_context.tickets = [ticket_obj]
-            result = await asyncio.to_thread(orch.ownership.invoke, ticket_context)
-            if result.tickets:
-                ticket_obj = result.tickets[0]
-                current_tickets[ticket_id] = convert_ticket_to_frontend(ticket_obj)
+            with AgentTimer("AppHQResolverAgent", ticket_id, "Fetching ownership data"):
+                await update_stage_progress(ticket_id, 3, "in-progress", "Ownership Enrichment Agent: Fetching ownership data...")
+                ticket_context.tickets = [ticket_obj]
+                result = await asyncio.to_thread(orch.ownership.invoke, ticket_context)
+                if result.tickets:
+                    ticket_obj = result.tickets[0]
+                    current_tickets[ticket_id] = convert_ticket_to_frontend(ticket_obj)
+                    AgentLogger.log_agent_success("AppHQResolverAgent", 0, f"Fetched owner: {ticket_obj.application_owner}")
             current_stage = 3
             
         # Stage 4: App Owner Check
         if current_stage < 4:
-            await update_stage_progress(ticket_id, 4, "in-progress", "Agent: Verifying app owner space...")
-            ticket_context.tickets = [ticket_obj]
-            result = await asyncio.to_thread(orch.app_space_checker.invoke, ticket_context)
-            if result.tickets:
-                ticket_obj = result.tickets[0]
-                current_tickets[ticket_id] = convert_ticket_to_frontend(ticket_obj)
+            with AgentTimer("AppOwnerCheckerAgent", ticket_id, "Verifying app owner space"):
+                await update_stage_progress(ticket_id, 4, "in-progress", "App Owner Check Agent: Verifying app owner space...")
+                ticket_context.tickets = [ticket_obj]
+                result = await asyncio.to_thread(orch.app_space_checker.invoke, ticket_context)
+                if result.tickets:
+                    ticket_obj = result.tickets[0]
+                    current_tickets[ticket_id] = convert_ticket_to_frontend(ticket_obj)
+                    AgentLogger.log_agent_success("AppOwnerCheckerAgent", 0, "App owner space verified")
             current_stage = 4
             
         # Stage 5: IAM Remediation
         if current_stage < 5:
-            await update_stage_progress(ticket_id, 5, "in-progress", "Agent: Executing IAM Remediation Journey...")
-            ticket_context.tickets = [ticket_obj]
-            result = await asyncio.to_thread(orch.remediation.invoke, ticket_context)
-            if result.tickets:
-                ticket_obj = result.tickets[0]
-                current_tickets[ticket_id] = convert_ticket_to_frontend(ticket_obj)
+            with AgentTimer("IAMRemediationAgent", ticket_id, "Executing IAM Remediation"):
+                await update_stage_progress(ticket_id, 5, "in-progress", "IAM Remediation Agent: Executing remediation journey...")
+                ticket_context.tickets = [ticket_obj]
+                result = await asyncio.to_thread(orch.remediation.invoke, ticket_context)
+                if result.tickets:
+                    ticket_obj = result.tickets[0]
+                    current_tickets[ticket_id] = convert_ticket_to_frontend(ticket_obj)
+                    AgentLogger.log_agent_success("IAMRemediationAgent", 0, "Remediation journey completed")
             current_stage = 5
 
         # Stage 6: Evidence Collection (Pause)
         if current_stage < 6:
-            await update_stage_progress(ticket_id, 6, "in-progress", "Agent: Preparing evidence emails...")
-            ticket_context.tickets = [ticket_obj]
-            await asyncio.to_thread(orch.evidence.invoke, ticket_context)
-            
-            current_tickets[ticket_id]["waitingForReview"] = True
-            await update_stage_progress(ticket_id, 6, "in-progress", "⏸️ Waiting for application team review...")
+            with AgentTimer("EvidenceCollectorAgent", ticket_id, "Preparing evidence emails"):
+                await update_stage_progress(ticket_id, 6, "in-progress", "Evidence Collection Agent: Preparing evidence emails...")
+                ticket_context.tickets = [ticket_obj]
+                await asyncio.to_thread(orch.evidence.invoke, ticket_context)
+                
+                current_tickets[ticket_id]["waitingForReview"] = True
+                await update_stage_progress(ticket_id, 6, "in-progress", "Evidence Collection Agent: Waiting for application team review...")
+                AgentLogger.log_agent_success("EvidenceCollectorAgent", 0, "Evidence collected, waiting for review")
             
             await manager.broadcast({
                 "type": "ticket_update",
@@ -278,9 +295,9 @@ async def process_individual_ticket(ticket_id: str):
         stage_7_status = current_tickets[ticket_id]["stages"][7]["status"]
         if current_stage < 7 or (current_stage == 7 and stage_7_status != "completed"):
             if not current_tickets[ticket_id].get("closure_approved", False):
-                await update_stage_progress(ticket_id, 7, "in-progress", "Agent: Preparing for closure...")
+                await update_stage_progress(ticket_id, 7, "in-progress", "Ticket Closure Agent: Preparing for closure...")
                 current_tickets[ticket_id]["waitingForClosureConfirmation"] = True
-                await update_stage_progress(ticket_id, 7, "in-progress", "⏸️ Waiting for final closure confirmation...")
+                await update_stage_progress(ticket_id, 7, "in-progress", "Ticket Closure Agent: Waiting for final closure confirmation...")
                 
                 await manager.broadcast({
                     "type": "ticket_update",
@@ -288,24 +305,30 @@ async def process_individual_ticket(ticket_id: str):
                 })
                 return
             
-            await update_stage_progress(ticket_id, 7, "in-progress", "Agent: Closing ticket...")
-            ticket_context.tickets = [ticket_obj]
-            result = await asyncio.to_thread(orch.closer.invoke, ticket_context)
-            if result.tickets:
-                ticket_obj = result.tickets[0]
-                current_tickets[ticket_id] = convert_ticket_to_frontend(ticket_obj)
+            with AgentTimer("CloserAgent", ticket_id, "Closing ticket"):
+                await update_stage_progress(ticket_id, 7, "in-progress", "Ticket Closure Agent: Closing ticket...")
+                ticket_context.tickets = [ticket_obj]
+                result = await asyncio.to_thread(orch.closer.invoke, ticket_context)
+                if result.tickets:
+                    ticket_obj = result.tickets[0]
+                    current_tickets[ticket_id] = convert_ticket_to_frontend(ticket_obj)
+                    AgentLogger.log_agent_success("CloserAgent", 0, "Ticket closed successfully")
             current_stage = 7
             
         # Stage 8: Logging
         if current_stage < 8:
-            await update_stage_progress(ticket_id, 8, "in-progress", "Agent: Logging results...")
-            ticket_context.tickets = [ticket_obj]
-            # Logger return value is a dict, not TicketResponse
-            await asyncio.to_thread(orch.logger.invoke, ticket_context)
-            # ticket_obj is updated in place
-            current_tickets[ticket_id] = convert_ticket_to_frontend(ticket_obj)
+            with AgentTimer("LoggerAgent", ticket_id, "Logging results"):
+                await update_stage_progress(ticket_id, 8, "in-progress", "Logging Agent: Logging results to audit trail...")
+                ticket_context.tickets = [ticket_obj]
+                # Logger return value is a dict, not TicketResponse
+                await asyncio.to_thread(orch.logger.invoke, ticket_context)
+                # ticket_obj is updated in place
+                current_tickets[ticket_id] = convert_ticket_to_frontend(ticket_obj)
+                AgentLogger.log_agent_success("LoggerAgent", 0, "Execution results logged to audit trail")
             current_stage = 8
             
+        AgentLogger.log_pipeline_end(ticket_id)
+        
         await manager.broadcast({
             "type": "processing_complete",
             "message": f"Ticket {ticket_id} processed successfully",
@@ -314,6 +337,8 @@ async def process_individual_ticket(ticket_id: str):
 
 
     except Exception as e:
+        AgentLogger.log_agent_error("Pipeline", str(e))
+        AgentLogger.log_pipeline_end(ticket_id, status="Error")
         print(f"Error processing ticket {ticket_id}: {e}")
         await manager.broadcast({
             "type": "error",
@@ -341,6 +366,7 @@ async def load_initial_tickets():
             print("No tickets found")
             
     except Exception as e:
+        AgentLogger.log_agent_error("TicketFetcher", str(e))
         print(f"Error loading initial tickets: {e}")
 
 
@@ -348,15 +374,15 @@ def seed_pcat_demo_ticket():
     ticket_id = "PCAT-7001"
     if ticket_id not in current_tickets:
         pcat_stages = [
-            {"id": 0, "name": "PCAT Intake", "status": "pending", "message": ""},
-            {"id": 1, "name": "Schema & Required Fields", "status": "pending", "message": ""},
-            {"id": 2, "name": "Validation Lists Check", "status": "pending", "message": ""},
-            {"id": 3, "name": "Rules Engine", "status": "pending", "message": ""},
-            {"id": 4, "name": "Conflict Detection", "status": "pending", "message": ""},
-            {"id": 5, "name": "Recommendations", "status": "pending", "message": ""},
-            {"id": 6, "name": "Evidence Pack Generation", "status": "pending", "message": ""},
-            {"id": 7, "name": "Auto-Fix & Rebuild CSV", "status": "pending", "message": ""},
-            {"id": 8, "name": "Upload to PCAT & RISE", "status": "pending", "message": ""},
+            {"id": 0, "name": "PCAT Intake Agent", "status": "pending", "message": ""},
+            {"id": 1, "name": "Schema & Required Fields Agent", "status": "pending", "message": ""},
+            {"id": 2, "name": "Validation Lists Check Agent", "status": "pending", "message": ""},
+            {"id": 3, "name": "Rules Engine Agent", "status": "pending", "message": ""},
+            {"id": 4, "name": "Conflict Detection Agent", "status": "pending", "message": ""},
+            {"id": 5, "name": "Recommendations Agent", "status": "pending", "message": ""},
+            {"id": 6, "name": "Evidence Pack Generation Agent", "status": "pending", "message": ""},
+            {"id": 7, "name": "Auto-Fix & Rebuild CSV Agent", "status": "pending", "message": ""},
+            {"id": 8, "name": "Upload to PCAT & RISE Agent", "status": "pending", "message": ""},
         ]
         
         current_tickets[ticket_id] = {

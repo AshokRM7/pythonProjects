@@ -28,16 +28,16 @@ export function TimelineSlider({ value, onChange }: TimelineSliderProps) {
 
   return (
     <div className="flex-grow min-w-[230px] max-w-[280px]">
-      <div className="flex items-center justify-between mb-2">
-        <label className="block text-gray-900 mb-2 text-md">
+      <div className="flex items-center justify-between mb-1 ml-1">
+        <label className="block text-xs font-medium text-gray-500">
           Timeline
         </label>
-        <span className="text-blue-600 font-semibold text-sm">
+        <span className="text-blue-600 font-semibold text-xs">
           {numValue} {numValue === 1 ? 'Day' : 'Days'}
         </span>
       </div>
 
-      <div className="relative pt-2 px-2">
+      <div className="relative h-[42px] flex flex-col justify-center px-1 border border-transparent rounded-xl bg-white/50">
         {/* Track */}
         <div className="relative h-1.5 bg-gray-200 rounded-full">
           {/* Progress */}

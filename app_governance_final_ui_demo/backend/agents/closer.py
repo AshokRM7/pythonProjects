@@ -60,7 +60,7 @@ class CloserAgent:
                 for stage in t.stages:
                     if "Ticket Closure" in stage.name:
                         stage.status = "completed"
-                        stage.message = "✅ Ticket marked as closed in Governance Portal."
+                        stage.message = "Ticket Closure Agent: Successfully marked ticket as closed in Governance Portal."
                 t.currentStage = 7 # Move to Stage 8
                 updated.append(t)
             return TicketResponse(tickets=updated)

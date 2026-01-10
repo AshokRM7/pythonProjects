@@ -54,6 +54,7 @@ class IAMRemediationAgent:
                     account_enabled_after = after['accounts'].get(system, False)
                     
                     remediation_journey = [
+                        "IAM Remediation Agent - Detailed Report:",
                         "BEFORE:",
                         f"System: {system}",
                         f"Account enabled: {account_enabled_before}",
@@ -86,6 +87,7 @@ class IAMRemediationAgent:
                     app_name = t.application_name or "Target System"
                     
                     remediation_journey = [
+                        "IAM Remediation Agent Executing Protocol:",
                         f"🔍 [EXTRACT] Identified User ID: {user_match} and target application: {app_name}.",
                         f"🔔 [NOTIFY] Automated alert sent to {t.application_owner}'s manager for awareness.",
                         f"⚠️ [RISK] Verified: User is not a critical Project Owner. No cross-impact detected.",

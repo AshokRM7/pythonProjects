@@ -69,7 +69,7 @@ class AppOwnerCheckerAgent:
                     for stage in t.stages:
                         if "App Owner Check" in stage.name:
                             stage.status = "completed"
-                            stage.message = f"✅ Owner verified: {t.application_owner}"
+                            stage.message = f"App Owner Check Agent: verified owner space ({t.application_owner})"
                     t.currentStage = 4 # Move to Stage 5
                     valid_tickets.append(t)
                 else:

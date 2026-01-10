@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Play, RotateCcw, Loader2, CheckCircle2, ChevronRight, Eye, UploadCloud, Wand2, X, Download } from 'lucide-react';
+import { Play, RotateCcw, Loader2, Bot, Database, ChevronRight, Eye, UploadCloud, Wand2, X, Download } from 'lucide-react';
 import { PCATMetricsCards } from './PCATMetricsCards';
 import { PCATFindingsTable } from './PCATFindingsTable';
 import { PCATDownloads } from './PCATDownloads';
@@ -148,7 +148,7 @@ export const PCATTicketPanel: React.FC<PCATTicketPanelProps> = ({ ticket, onRefr
                             }`}
                     >
                         {(ticket.status === 'PCAT Validation Completed' || ticket.status === 'Uploaded') ? (
-                            <CheckCircle2 className="w-5 h-5" />
+                            <Bot className="w-5 h-5" />
                         ) : (ticket.status === 'in-progress' && !isAwaitingConfirmation) ? (
                             <Loader2 className="w-5 h-5 animate-spin" />
                         ) : (
@@ -232,7 +232,7 @@ export const PCATTicketPanel: React.FC<PCATTicketPanelProps> = ({ ticket, onRefr
                                             stage.status === 'awaiting_confirmation' ? 'bg-orange-500 border-orange-500 text-white ring-4 ring-orange-100' :
                                                 'border-gray-200 bg-white text-gray-300'
                                     }`}>
-                                    {stage.status === 'completed' ? <CheckCircle2 className="w-5 h-5" /> :
+                                    {stage.status === 'completed' ? <Bot className="w-5 h-5" /> :
                                         stage.status === 'awaiting_confirmation' ? <Wand2 className="w-4 h-4" /> : idx + 1}
                                 </div>
                                 {idx < ticket.stages.length - 1 && (
@@ -356,9 +356,9 @@ export const PCATTicketPanel: React.FC<PCATTicketPanelProps> = ({ ticket, onRefr
 
                         <div className="space-y-3 mb-10">
                             {[
-                                { icon: CheckCircle2, text: 'Apply accepted fixes to CSV', color: 'text-green-500' },
-                                { icon: UploadCloud, text: 'Rebuild Final Metadata', color: 'text-blue-500' },
-                                { icon: CheckCircle2, text: 'Upload to PCAT & RISE', color: 'text-purple-500' }
+                                { icon: Bot, text: 'Apply accepted fixes to CSV', color: 'text-green-500' },
+                                { icon: Database, text: 'Refresh dashboard metrics', color: 'text-blue-500' },
+                                { icon: Bot, text: 'Upload to PCAT & RISE', color: 'text-purple-500' }
                             ].map((item, i) => (
                                 <div key={i} className="flex items-center gap-3 p-3 bg-gray-50 rounded-2xl border border-gray-100">
                                     <item.icon className={`w-5 h-5 ${item.color}`} />

@@ -1,13 +1,13 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { createPortal } from 'react-dom';
-import { Play, Activity, Clock, User, Calendar, Tag, FileText, CheckCircle2, ShieldCheck, AlertCircle, X, CheckCheck, Loader2, CheckCircle, Search, Filter, ChevronLeft, ChevronRight, Menu, Bell, Settings, Download, MoreVertical, Heart, Share2, Clipboard, Layers, RotateCcw, PlayCircle } from 'lucide-react';
+import { Play, Activity, Clock, User, Calendar, Tag, FileText, Bot, ShieldCheck, AlertCircle, X, CheckCheck, Loader2, CheckCircle, ChevronRight, Download, Layers, RotateCcw, PlayCircle } from 'lucide-react';
 import { PCATTicketPanel } from './pcat/PCATTicketPanel';
-import { PCATMetricsCards } from './pcat/PCATMetricsCards';
-import { PCATSummary } from './pcat/types';
 import { pcatApi } from './pcat/pcatApi';
 import Header from './Header';
 import Footer from './Footer';
+import { TicketStagesAccordion } from './TicketStagesAccordion';
+
 
 interface HomeProps {
   currentUser: string;
@@ -68,6 +68,16 @@ const normalizeStatus = (apiStatus: string) => {
   return 'Open';
 };
 
+// Centralized PCAT Identification Helper
+const isPCATTicket = (ticket: Ticket | null) => {
+  if (!ticket) return false;
+  return (
+    ticket.ticket_type?.toUpperCase() === 'PCAT' ||
+    ticket.category?.toUpperCase() === 'PCAT' ||
+    ticket.deliverableType?.toUpperCase().includes('PCAT')
+  );
+};
+
 export default function Home({ currentUser, onSignOut }: HomeProps) {
 
   const navigate = useNavigate();
@@ -93,7 +103,16 @@ export default function Home({ currentUser, onSignOut }: HomeProps) {
   const [timelineFilter, setTimelineFilter] = useState<number | null>(null);
   const [categoryFilter, setCategoryFilter] = useState<string | string[]>('all');
   const [ownerFilter, setOwnerFilter] = useState<string | string[]>('all');
+  const [pastDueOptions, setPastDueOptions] = useState<string[]>(['all']);
   const [searchQuery, setSearchQuery] = useState('');
+  const [expandedTickets, setExpandedTickets] = useState<Record<string, boolean>>({});
+
+  const toggleTicketExpansion = (ticketId: string) => {
+    setExpandedTickets(prev => ({
+      ...prev,
+      [ticketId]: !prev[ticketId]
+    }));
+  };
 
   // Update selectedTicketRef whenever selectedTicket state changes
   useEffect(() => {
@@ -107,6 +126,7 @@ export default function Home({ currentUser, onSignOut }: HomeProps) {
       if (location.state.timeline) setTimelineFilter(parseInt(location.state.timeline));
       if (location.state.category) setCategoryFilter(location.state.category);
       if (location.state.owner) setOwnerFilter(location.state.owner);
+      if (location.state.pastDueOptions) setPastDueOptions(location.state.pastDueOptions);
       // Ensure we fetch all categories if coming from Dashboard
       setShowAllTickets(true);
     }
@@ -152,8 +172,11 @@ export default function Home({ currentUser, onSignOut }: HomeProps) {
         }
       }
 
-      // Check Timeline
-      if (timelineFilter) {
+      // Past Due logic - Check if active
+      const isPastDueSelected = pastDueOptions.length > 0 && !pastDueOptions.includes("all");
+
+      // Check Timeline - ONLY if past due is NOT selected
+      if (timelineFilter && !isPastDueSelected) {
         const ticketDate = new Date(ticket.createdAt);
         const days = timelineFilter;
         const limit = new Date();
@@ -164,9 +187,34 @@ export default function Home({ currentUser, onSignOut }: HomeProps) {
           return false;
         }
       }
+
+      const now = new Date();
+      const isOverdue = ticket.slaDeadline && new Date(ticket.slaDeadline) < now;
+      if (isOverdue && ticket.status !== 'closed' && ticket.status !== 'completed') {
+        ticket.priority = 'high'; // Elevate priority for display
+      }
+
+      if (isPastDueSelected) {
+        // If any specific option is selected, ticket must match at least one
+        const matchesOption = pastDueOptions.some(option => {
+          if (option === 'past_due') return isOverdue && ticket.status !== 'closed' && ticket.status !== 'completed';
+          if (option === 'past_due_10') {
+            const tenDaysAgo = new Date(now.getTime() - 10 * 24 * 60 * 60 * 1000);
+            return ticket.slaDeadline && new Date(ticket.slaDeadline) < tenDaysAgo && ticket.status !== 'closed' && ticket.status !== 'completed';
+          }
+          if (option === 'past_due_30') {
+            const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+            return ticket.slaDeadline && new Date(ticket.slaDeadline) < thirtyDaysAgo && ticket.status !== 'closed' && ticket.status !== 'completed';
+          }
+          return false;
+        });
+
+        if (!matchesOption) return false;
+      }
+
       return true;
     });
-  }, [tickets, categoryFilter, ownerFilter, timelineFilter, searchQuery]);
+  }, [tickets, categoryFilter, ownerFilter, timelineFilter, searchQuery, pastDueOptions]);
 
   // 2. Status Filter (Applied on top of Context)
   const filteredTickets = useMemo(() => {
@@ -175,9 +223,16 @@ export default function Home({ currentUser, onSignOut }: HomeProps) {
     return contextTickets.filter(ticket => {
       // Use standardized normalization to match Dashboard counts
       const tNormalizedStatus = normalizeStatus(ticket.status || '');
-      return tNormalizedStatus.toLowerCase() === statusFilter.toLowerCase();
+      const matchesStatus = tNormalizedStatus.toLowerCase() === statusFilter.toLowerCase();
+
+      // PERSISTENCE FIX: Always show the selected ticket in the sidebar list, 
+      // even if its status changed (e.g. from Open to In Progress), 
+      // so it doesn't "disappear" from under the user.
+      const isSelected = selectedTicket?.id === ticket.id;
+
+      return matchesStatus || isSelected;
     });
-  }, [contextTickets, statusFilter]);
+  }, [contextTickets, statusFilter, selectedTicket]);
 
 
   useEffect(() => {
@@ -217,6 +272,11 @@ export default function Home({ currentUser, onSignOut }: HomeProps) {
             if (selectedTicket && selectedTicket.id === data.ticket.id) {
               setSelectedTicket(data.ticket);
             }
+
+            // Update status message if provided
+            if (data.message) {
+              setStatusMessage(data.message);
+            }
             break;
 
           case 'processing_start':
@@ -235,9 +295,14 @@ export default function Home({ currentUser, onSignOut }: HomeProps) {
             if (selectedTicketRef.current?.id === data.ticket_id) {
               setSelectedTicket(prev => prev ? { ...prev, ...data.ticket } : null);
             }
+            // Update status message banner for PCAT
+            if (data.message) {
+              setStatusMessage(data.message);
+            }
             break;
           case 'processing_complete':
-            setStatusMessage(data.message);
+            setStatusMessage(data.message || 'Processing complete');
+
             if (data.ticket) {
               // Update the specific ticket
               setTickets((prev) => {
@@ -250,6 +315,9 @@ export default function Home({ currentUser, onSignOut }: HomeProps) {
                 return prev;
               });
             }
+
+            // ALWAYS clear the status message after 3 seconds for completion
+            setTimeout(() => setStatusMessage(''), 3000);
             break;
 
           case 'error':
@@ -300,8 +368,7 @@ export default function Home({ currentUser, onSignOut }: HomeProps) {
     if (selectedTicket &&
       selectedTicket.currentStage === 5 &&
       selectedTicket.stages[5].status === 'in-progress' &&
-      selectedTicket.ticket_type !== 'PCAT' &&
-      selectedTicket.category !== 'PCAT' &&
+      !isPCATTicket(selectedTicket) &&
       !showRemediationModal) {
       setShowRemediationModal(true);
     }
@@ -528,7 +595,7 @@ export default function Home({ currentUser, onSignOut }: HomeProps) {
       case 'completed':
       case 'closed':
       case 'pcat validation completed':
-        return <CheckCircle2 className="w-4 h-4" />;
+        return <CheckCircle className="w-4 h-4" />;
       default:
         return <Clock className="w-4 h-4" />;
 
@@ -587,11 +654,19 @@ export default function Home({ currentUser, onSignOut }: HomeProps) {
                   Back to Dashboard
                 </button>
               </div>
-              <h1 className="text-2xl font-bold text-gray-800 tracking-tight">
-                {statusFilter ? `${statusFilter} Tickets` : 'All Tickets'}
-                <span className="ml-3 text-sm font-normal text-gray-500 bg-gray-100 px-3 py-1 rounded-full border border-gray-200">
+              <h1 className="text-2xl font-bold text-gray-800 tracking-tight flex items-center gap-3">
+                <span>{(pastDueOptions.length > 0 && !pastDueOptions.includes('all')) ? 'Past Due' : (statusFilter ? `${statusFilter}` : 'All')} Tickets</span>
+                <span className="text-sm font-normal text-gray-500 bg-gray-100 px-3 py-1 rounded-full border border-gray-200">
                   {filteredTickets.length} items
                 </span>
+                {statusFilter && statusFilter !== 'Total' && (
+                  <button
+                    onClick={() => setStatusFilter(null)}
+                    className="text-xs font-semibold text-blue-600 hover:text-blue-800 bg-blue-50 px-2 py-1 rounded-md border border-blue-100 transition-all"
+                  >
+                    ✕ Clear Filter
+                  </button>
+                )}
               </h1>
             </div>
 
@@ -599,7 +674,7 @@ export default function Home({ currentUser, onSignOut }: HomeProps) {
             <div className="flex items-center gap-3">
               <div className="bg-white p-3 rounded-xl border border-gray-200 shadow-sm flex items-center gap-3 transition-transform hover:scale-105 duration-300 hover:shadow-md">
                 <div className="p-2 bg-[#E31837]/10 text-[#E31837] rounded-lg">
-                  <CheckCircle2 className="w-5 h-5" />
+                  <CheckCircle className="w-5 h-5" />
                 </div>
                 <div>
                   <p className="text-xs text-gray-500 font-medium uppercase tracking-wider">Completed</p>
@@ -686,9 +761,24 @@ export default function Home({ currentUser, onSignOut }: HomeProps) {
 
           {/* Status Message */}
           {statusMessage && (
-            <div className="bg-blue-50 border border-blue-200 text-blue-700 px-4 py-3 rounded-lg mb-6 shadow-sm flex items-center gap-2">
-              <Activity className="w-4 h-4 animate-pulse" />
-              {statusMessage}
+            <div
+              onClick={() => {
+                // If the message contains a ticket ID (e.g. REQ9999), select it on click
+                const match = statusMessage.match(/REQ\d+|PCAT-\d+/);
+                if (match) {
+                  const t = tickets.find(ticket => ticket.id === match[0]);
+                  if (t) handleTicketClick(t);
+                }
+              }}
+              className={`bg-blue-50 border border-blue-200 text-blue-700 px-4 py-3 rounded-lg mb-6 shadow-sm flex items-center gap-2 transition-all group ${statusMessage.match(/REQ\d+|PCAT-\d+/) ? 'cursor-pointer hover:bg-blue-100' : ''}`}
+            >
+              <Activity className={`w-4 h-4 ${statusMessage.includes('Processing') ? 'animate-pulse' : ''}`} />
+              <span className="flex-1">{statusMessage}</span>
+              {statusMessage.match(/REQ\d+|PCAT-\d+/) && (
+                <span className="text-[10px] font-bold uppercase bg-blue-100 px-1.5 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity">
+                  Click to View Ticket
+                </span>
+              )}
             </div>
           )}
         </div>
@@ -720,13 +810,17 @@ export default function Home({ currentUser, onSignOut }: HomeProps) {
                     >
                       <div className="flex items-start justify-between mb-3">
                         <div className="flex items-center gap-2">
-                          <span className="text-gray-900 font-semibold">{ticket.id}</span>
+                          <span className="text-gray-900 font-semibold cursor-pointer hover:text-blue-600 transition-colors" onClick={(e) => { e.stopPropagation(); toggleTicketExpansion(ticket.id); }}>{ticket.id}</span>
                           {/* Category Badge */}
-                          <span className={`px-2 py-1 rounded text-xs font-medium ${ticket.category?.toUpperCase() === 'IAM'
-                            ? 'bg-blue-100 text-blue-700 border border-blue-200'
-                            : 'bg-gray-100 text-gray-700 border border-gray-200'
-                            }`}>
-                            {ticket.category || 'Unknown'}
+                          <span
+                            onClick={(e) => { e.stopPropagation(); toggleTicketExpansion(ticket.id); }}
+                            className={`px-2 py-1 rounded text-xs font-medium cursor-pointer hover:brightness-95 transition-all ${isPCATTicket(ticket)
+                                ? 'bg-purple-100 text-purple-700 border border-purple-200'
+                                : ticket.category?.toUpperCase() === 'IAM'
+                                  ? 'bg-blue-100 text-blue-700 border border-blue-200'
+                                  : 'bg-gray-100 text-gray-700 border border-gray-200'
+                              }`}>
+                            {isPCATTicket(ticket) ? 'PCAT Module' : (ticket.category || 'Unknown')}
                           </span>
                           {ticket.priority === 'urgent' && (
                             <AlertCircle className="w-4 h-4 text-red-600" />
@@ -739,14 +833,16 @@ export default function Home({ currentUser, onSignOut }: HomeProps) {
                         </div>
                         <div className="flex gap-2">
                           <span
-                            className={`px-2 py-1 rounded text-xs border ${getPriorityColor(
+                            onClick={(e) => { e.stopPropagation(); toggleTicketExpansion(ticket.id); }}
+                            className={`px-2 py-1 rounded text-xs border cursor-pointer hover:brightness-95 transition-all ${getPriorityColor(
                               ticket.priority
                             )}`}
                           >
                             {ticket.priority.toUpperCase()}
                           </span>
                           <span
-                            className={`px-2 py-1 rounded text-xs flex items-center gap-1 ${getStatusColor(
+                            onClick={(e) => { e.stopPropagation(); toggleTicketExpansion(ticket.id); }}
+                            className={`px-2 py-1 rounded text-xs flex items-center gap-1 cursor-pointer hover:brightness-95 transition-all ${getStatusColor(
                               ticket.status
                             )}`}
                           >
@@ -769,10 +865,19 @@ export default function Home({ currentUser, onSignOut }: HomeProps) {
                         </div>
                       </div>
 
-                      <div className="flex items-center justify-between pt-3 border-t border-gray-200">
-                        <span className="text-gray-600 text-sm">
-                          Stage {(ticket.status === 'completed' || ticket.status === 'closed') ? ticket.stages.length : ticket.currentStage + 1}/{ticket.stages.length}
-                        </span>
+                      <div
+                        className="flex items-center justify-between pt-3 border-t border-gray-200 cursor-pointer hover:bg-gray-50 -mx-4 px-4 transition-colors"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toggleTicketExpansion(ticket.id);
+                        }}
+                      >
+                        <div className="flex items-center gap-2">
+                          <ChevronRight className={`w-4 h-4 text-gray-400 transition-transform duration-300 ${expandedTickets[ticket.id] ? 'rotate-90' : ''}`} />
+                          <span className="text-gray-600 text-sm font-medium">
+                            Stage {(ticket.status === 'completed' || ticket.status === 'closed') ? ticket.stages.length : ticket.currentStage + 1}/{ticket.stages.length}
+                          </span>
+                        </div>
                         <div className="flex gap-1">
                           {ticket.stages.slice(0, 9).map((stage, idx) => {
                             const isDone = (ticket.status === 'completed' || ticket.status === 'closed');
@@ -792,6 +897,16 @@ export default function Home({ currentUser, onSignOut }: HomeProps) {
                           })}
                         </div>
                       </div>
+
+                      {/* ACCORDION CONTENT */}
+                      {expandedTickets[ticket.id] && (
+                        <div onClick={(e) => e.stopPropagation()}>
+                          <TicketStagesAccordion
+                            stages={ticket.stages}
+                            ticketStatus={ticket.status}
+                          />
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -803,7 +918,7 @@ export default function Home({ currentUser, onSignOut }: HomeProps) {
           {/* Ticket Detail Panel */}
           {selectedTicket && (
             <div className="md:sticky md:top-24 h-[calc(100vh-8rem)] bg-white rounded-xl shadow-sm border border-gray-200 flex flex-col overflow-hidden">
-              {(selectedTicket.ticket_type === 'PCAT' || selectedTicket.category === 'PCAT') ? (
+              {isPCATTicket(selectedTicket) ? (
                 <div className="flex flex-col h-full bg-white">
                   <div className="p-6 pb-2 border-b border-gray-100 bg-white z-20">
                     <div className="flex items-start justify-between mb-2">
@@ -906,8 +1021,32 @@ export default function Home({ currentUser, onSignOut }: HomeProps) {
 
                         // 5. Processing State
                         if (selectedTicket.status === 'in-progress') {
+                          // Check if any stage has an error (meaning it halted)
+                          const hasError = selectedTicket.stages.some(s => s.status === 'error');
+
+                          // Check if all stages are completed within an 'in-progress' ticket
+                          const isCompleted = selectedTicket.stages.every(s => s.status === 'completed');
+
+                          if (isCompleted) {
+                            return (
+                              <div className="w-full bg-green-50 text-green-700 py-3 rounded-lg flex items-center justify-center gap-2 border border-green-100 font-bold shadow-sm">
+                                <Bot className="w-5 h-5" />
+                                Execution Completed
+                              </div>
+                            );
+                          }
+
+                          if (hasError) {
+                            return (
+                              <div className="w-full bg-red-50 text-red-700 py-3 rounded-lg flex items-center justify-center gap-2 border border-red-100 font-bold shadow-sm">
+                                <AlertCircle className="w-5 h-5" />
+                                Execution Halted / Not Eligible
+                              </div>
+                            );
+                          }
+
                           return (
-                            <div className="w-full bg-blue-50 text-blue-700 py-3 rounded-lg flex items-center justify-center gap-2 border border-blue-100 font-medium">
+                            <div className="w-full bg-blue-50 text-blue-700 py-3 rounded-lg flex items-center justify-center gap-2 border border-blue-100 font-medium shadow-sm">
                               <Loader2 className="w-5 h-5 animate-spin" />
                               Processing...
                             </div>
@@ -1032,9 +1171,11 @@ export default function Home({ currentUser, onSignOut }: HomeProps) {
                                 className={`w-8 h-8 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${getStageStatusColor(isFinallyDone ? 'completed' : stage.status)}`}
                               >
                                 {isCompleted ? (
-                                  <CheckCircle2 className="w-5 h-5" />
+                                  <Bot className="w-5 h-5" />
                                 ) : isError ? (
                                   <AlertCircle className="w-5 h-5" />
+                                ) : isCurrent ? (
+                                  <Loader2 className="w-5 h-5 animate-spin" />
                                 ) : (
                                   <span className="text-sm font-medium">{index + 1}</span>
                                 )}
@@ -1045,7 +1186,7 @@ export default function Home({ currentUser, onSignOut }: HomeProps) {
                                 </p>
                                 {stage.message && (
                                   <div className="mt-1">
-                                    {stage.name === "IAM Remediation" ? (
+                                    {stage.name.includes("IAM Remediation") ? (
                                       <button
                                         onClick={() => setShowRemediationModal(true)}
                                         className="flex items-center gap-1.5 text-xs font-bold text-[#012169] bg-blue-50 px-2 py-1 rounded hover:bg-blue-100 transition-colors"
@@ -1166,9 +1307,9 @@ export default function Home({ currentUser, onSignOut }: HomeProps) {
                     <CheckCheck className="w-5 h-5" /> Actions Verified
                   </h3>
                   <ul className="space-y-2 text-sm text-green-700 ml-1">
-                    <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4" /> IAM Category Verified</li>
-                    <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4" /> Risk Assessment Complete</li>
-                    <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4" /> Evidence Collected</li>
+                    <li className="flex items-center gap-2 font-medium text-gray-700"><Bot className="w-4 h-4 text-green-500" /> IAM Category Verified</li>
+                    <li className="flex items-center gap-2 font-medium text-gray-700"><Bot className="w-4 h-4 text-green-500" /> Risk Assessment Complete</li>
+                    <li className="flex items-center gap-2 font-medium text-gray-700"><Bot className="w-4 h-4 text-green-500" /> Evidence Collected</li>
                   </ul>
                 </div>
 
@@ -1245,7 +1386,7 @@ export default function Home({ currentUser, onSignOut }: HomeProps) {
                           className={`w-10 h-10 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${getStageStatusColor(isFinallyDone ? 'completed' : stage.status)}`}
                         >
                           {isCompleted ? (
-                            <CheckCircle2 className="w-6 h-6" />
+                            <Bot className="w-6 h-6" />
                           ) : isError ? (
                             <AlertCircle className="w-6 h-6" />
                           ) : isCurrent ? (
@@ -1338,7 +1479,7 @@ export default function Home({ currentUser, onSignOut }: HomeProps) {
             {/* Content */}
             <div className="p-8 max-h-[60vh] overflow-y-auto bg-gray-50/30">
               <div className="space-y-8 relative before:absolute before:left-[19px] before:top-2 before:bottom-2 before:w-[3px] before:bg-blue-100">
-                {selectedTicket.stages.find(s => s.name === "IAM Remediation")?.message.split('\n\n').map((step, idx) => (
+                {selectedTicket.stages.find(s => s.name.includes("IAM Remediation"))?.message.split('\n\n').map((step, idx) => (
                   <div key={idx} className="flex gap-6 relative animate-in slide-in-from-left-8 duration-700" style={{ animationDelay: `${idx * 200}ms` }}>
                     <div className="z-10 w-10 h-10 rounded-full bg-white border-[3px] border-green-500 flex items-center justify-center shadow-md">
                       <div className="w-6 h-6 rounded-full bg-green-500 flex items-center justify-center text-white text-[11px] font-black">
@@ -1374,7 +1515,7 @@ export default function Home({ currentUser, onSignOut }: HomeProps) {
         showSuccessToast && (
           <div className="fixed bottom-8 right-8 bg-white border-l-4 border-green-500 shadow-2xl rounded-lg p-4 flex items-center gap-4 animate-slide-up z-50 max-w-md">
             <div className="bg-green-100 p-2 rounded-full">
-              <CheckCircle2 className="w-6 h-6 text-green-600" />
+              <CheckCircle className="w-6 h-6 text-green-600" />
             </div>
             <div>
               <h4 className="font-bold text-gray-900">Ticket Processed Successfully!</h4>

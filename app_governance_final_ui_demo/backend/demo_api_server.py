@@ -6,6 +6,7 @@ import asyncio
 import json
 from datetime import datetime
 from pydantic import BaseModel
+from backend.core.logger_utils import AgentLogger, AgentTimer
 
 class PriorityUpdate(BaseModel):
     priority: str
@@ -112,15 +113,15 @@ def create_ticket_with_stages(mock_ticket):
         "currentStage": 0,
         "status": "not-started",
         "stages": [
-            {"id": 1, "name": "Ticket Fetching", "status": "completed", "message": "Ticket fetched successfully"},
-            {"id": 2, "name": "Category Check", "status": "pending", "message": ""},
-            {"id": 3, "name": "SLA Prioritization", "status": "pending", "message": ""},
-            {"id": 4, "name": "Ownership Enrichment", "status": "pending", "message": ""},
-            {"id": 5, "name": "App Owner Check", "status": "pending", "message": ""},
-            {"id": 6, "name": "IAM Remediation", "status": "pending", "message": ""},
-            {"id": 7, "name": "Evidence Collection", "status": "pending", "message": ""},
-            {"id": 8, "name": "Ticket Closure", "status": "pending", "message": ""},
-            {"id": 9, "name": "Logging", "status": "pending", "message": ""},
+            {"id": 1, "name": "Ticket Fetcher Agent", "status": "completed", "message": "Ticket fetched successfully"},
+            {"id": 2, "name": "Category Check Agent", "status": "pending", "message": ""},
+            {"id": 3, "name": "SLA Prioritization Agent", "status": "pending", "message": ""},
+            {"id": 4, "name": "Ownership Enrichment Agent", "status": "pending", "message": ""},
+            {"id": 5, "name": "App Owner Check Agent", "status": "pending", "message": ""},
+            {"id": 6, "name": "IAM Remediation Agent", "status": "pending", "message": ""},
+            {"id": 7, "name": "Evidence Collection Agent", "status": "pending", "message": ""},
+            {"id": 8, "name": "Ticket Closure Agent", "status": "pending", "message": ""},
+            {"id": 9, "name": "Logging Agent", "status": "pending", "message": ""},
 
 
         ]
@@ -158,6 +159,8 @@ async def process_individual_ticket(ticket_id: str):
         current_stage = ticket["currentStage"]
         
         # Start from current stage
+        AgentLogger.log_pipeline_start(ticket_id)
+        
         await manager.broadcast({
             "type": "processing_start",
             "message": f"Processing ticket {ticket_id} (Demo Mode)..."
@@ -165,29 +168,34 @@ async def process_individual_ticket(ticket_id: str):
         
         # Stage 1: Category Check - Validate if IAM
         if current_stage < 1:
-            await update_stage_progress(ticket_id, 1, "in-progress", "AI Agent: Checking if ticket is IAM category...")
-            await asyncio.sleep(2)
-            
-            # Check if ticket is IAM
-            if ticket['category'].upper() == 'IAM':
-                await update_stage_progress(ticket_id, 1, "completed", f"✅ Confirmed: {ticket['category']} ticket")
-                current_stage = 1
-            else:
-                # Not IAM - stop processing
-                await update_stage_progress(ticket_id, 1, "error", f"❌ Not an IAM ticket (Category: {ticket['category']})")
-                current_tickets[ticket_id]["status"] = "completed"
-                await manager.broadcast({
-                    "type": "processing_complete",
-                    "message": f"Ticket {ticket_id} is not IAM - processing stopped",
-                    "ticket": current_tickets[ticket_id]
-                })
-                return  # Stop here
+            with AgentTimer("CategoryCheckerAgent", ticket_id, "Checking if ticket is IAM category"):
+                await update_stage_progress(ticket_id, 1, "in-progress", "Category Check Agent: Analyzing ticket category...")
+                await asyncio.sleep(1)
+                
+                # Check if ticket is IAM
+                if ticket['category'].upper() == 'IAM':
+                    await update_stage_progress(ticket_id, 1, "completed", f"Category Check Agent: Confirmed {ticket['category']} category.")
+                    AgentLogger.log_agent_success("CategoryCheckerAgent", 0, f"Validated IAM category: {ticket['category']}")
+                    current_stage = 1
+                else:
+                    # Not IAM - stop processing
+                    await update_stage_progress(ticket_id, 1, "error", "Category Check Agent: Not an IAM ticket - processing stopped.")
+                    AgentLogger.log_agent_error("CategoryCheckerAgent", f"Not an IAM ticket: {ticket['category']}")
+                    current_tickets[ticket_id]["status"] = "completed"
+                    await manager.broadcast({
+                        "type": "processing_complete",
+                        "message": f"Ticket {ticket_id} is not IAM - processing stopped",
+                        "ticket": current_tickets[ticket_id]
+                    })
+                    return  # Stop here
         
         # Stage 2: SLA Prioritization (if not done)
         if current_stage < 2:
-            await update_stage_progress(ticket_id, 2, "in-progress", "Calculating SLA priority...")
-            await asyncio.sleep(1)
-            await update_stage_progress(ticket_id, 2, "completed", f"✅ Risk: {ticket.get('priority', 'medium').upper()} | SLA: {ticket.get('slaDeadline', 'N/A')}")
+            with AgentTimer("SLAPrioritizerAgent", ticket_id, "Calculating SLA priority"):
+                await update_stage_progress(ticket_id, 2, "in-progress", "SLA Prioritization Agent: Calculating SLA & Risk...")
+                await asyncio.sleep(1)
+                await update_stage_progress(ticket_id, 2, "completed", f"✅ Risk: {ticket.get('priority', 'medium').upper()} | SLA: {ticket.get('slaDeadline', 'N/A')}")
+                AgentLogger.log_agent_success("SLAPrioritizerAgent", 0, f"Priority set to {ticket.get('priority', 'medium').upper()}")
             current_stage = 2
             
             # NEW CHECKPOINT: Pause for Priority Confirmation
@@ -200,41 +208,49 @@ async def process_individual_ticket(ticket_id: str):
 
         # Stage 3: Ownership Enrichment (if not done)
         if current_stage < 3:
-            await update_stage_progress(ticket_id, 3, "in-progress", "Enriching ownership data...")
-            await asyncio.sleep(1)
-            await update_stage_progress(ticket_id, 3, "completed", f"✅ Owner: {ticket['lobOwner']}")
+            with AgentTimer("AppHQResolverAgent", ticket_id, "Enriching ownership data"):
+                await update_stage_progress(ticket_id, 3, "in-progress", "Ownership Enrichment Agent: Fetching ownership data...")
+                await asyncio.sleep(1)
+                await update_stage_progress(ticket_id, 3, "completed", f"✅ Owner: {ticket['lobOwner']}")
+                AgentLogger.log_agent_success("AppHQResolverAgent", 0, f"Enriched owner: {ticket['lobOwner']}")
             current_stage = 3
 
         # Stage 4: App Owner Check (if not done)
         if current_stage < 4:
-            await update_stage_progress(ticket_id, 4, "in-progress", "Checking app owner space...")
-            await asyncio.sleep(1)
-            await update_stage_progress(ticket_id, 4, "completed", "✅ App owner verified")
+            with AgentTimer("AppOwnerCheckerAgent", ticket_id, "Checking app owner space"):
+                await update_stage_progress(ticket_id, 4, "in-progress", "App Owner Check Agent: Verifying app owner space...")
+                await asyncio.sleep(1)
+                await update_stage_progress(ticket_id, 4, "completed", "✅ App owner verified")
+                AgentLogger.log_agent_success("AppOwnerCheckerAgent", 0, "App owner space verified")
             current_stage = 4
         
         # Stage 5: IAM Remediation (NEW)
         if current_stage < 5:
-            await update_stage_progress(ticket_id, 5, "in-progress", "Initiating IAM Remediation protocol...")
-            await asyncio.sleep(1)
-            
-            remediation_journey = [
-                f"🔍 [EXTRACT] Identified User ID: U{ticket_id.replace('REQ', '')}",
-                f"🔔 [NOTIFY] Manager alerted for awareness",
-                f"⚠️ [RISK] Verified: No cross-impact detected",
-                f"⚡ [REVOKE] Technical access pull executed",
-                f"✅ [VERIFY] Post-remediation audit confirms success",
-                f"📄 [LOG] Governance signature added"
-            ]
-            await update_stage_progress(ticket_id, 5, "completed", "\n\n".join(remediation_journey))
+            with AgentTimer("IAMRemediationAgent", ticket_id, "Initiating IAM Remediation"):
+                await update_stage_progress(ticket_id, 5, "in-progress", "IAM Remediation Agent: Executing remediation journey...")
+                await asyncio.sleep(1)
+                
+                remediation_journey = [
+                    f"🔍 [EXTRACT] Identified User ID: U{ticket_id.replace('REQ', '')}",
+                    f"🔔 [NOTIFY] Manager alerted for awareness",
+                    f"⚠️ [RISK] Verified: No cross-impact detected",
+                    f"⚡ [REVOKE] Technical access pull executed",
+                    f"✅ [VERIFY] Post-remediation audit confirms success",
+                    f"📄 [LOG] Governance signature added"
+                ]
+                await update_stage_progress(ticket_id, 5, "completed", "\n\n".join(remediation_journey))
+                AgentLogger.log_agent_success("IAMRemediationAgent", 0, "Remediation journey completed")
             current_stage = 5
         
         # Stage 6: Evidence Collection (PAUSE FOR HUMAN REVIEW)
         if current_stage < 6:
-            await update_stage_progress(ticket_id, 6, "in-progress", "Preparing evidence emails...")
-            await asyncio.sleep(1)
-            # Mark as waiting for review
-            current_tickets[ticket_id]["waitingForReview"] = True
-            await update_stage_progress(ticket_id, 6, "in-progress", "⏸️ Waiting for application team review...")
+            with AgentTimer("EvidenceCollectorAgent", ticket_id, "Preparing evidence emails"):
+                await update_stage_progress(ticket_id, 6, "in-progress", "Evidence Collection Agent: Preparing evidence emails...")
+                await asyncio.sleep(1)
+                # Mark as waiting for review
+                current_tickets[ticket_id]["waitingForReview"] = True
+                await update_stage_progress(ticket_id, 6, "in-progress", "Evidence Collection Agent: Waiting for application team review...")
+                AgentLogger.log_agent_success("EvidenceCollectorAgent", 0, "Evidence prepared, waiting for review")
 
             
             await manager.broadcast({
@@ -252,7 +268,7 @@ async def process_individual_ticket(ticket_id: str):
             
             # NEW CHECKPOINT: Pause for Closure Confirmation
             current_tickets[ticket_id]["waitingForClosureConfirmation"] = True
-            await update_stage_progress(ticket_id, 6, "in-progress", "⏸️ Waiting for final closure confirmation...")
+            await update_stage_progress(ticket_id, 6, "in-progress", "Ticket Closure Agent: Waiting for final closure confirmation...")
             
             await manager.broadcast({
                 "type": "ticket_update",
@@ -262,18 +278,24 @@ async def process_individual_ticket(ticket_id: str):
 
         # Stage 8: Final Closure
         if current_stage < 8:
-            await update_stage_progress(ticket_id, 7, "in-progress", "Closing ticket...")
-            await asyncio.sleep(1)
-            await update_stage_progress(ticket_id, 7, "completed", "✅ Ticket closed successfully")
+            with AgentTimer("CloserAgent", ticket_id, "Closing ticket"):
+                await update_stage_progress(ticket_id, 7, "in-progress", "Ticket Closure Agent: Closing ticket...")
+                await asyncio.sleep(1)
+                await update_stage_progress(ticket_id, 7, "completed", "✅ Ticket closed successfully")
+                AgentLogger.log_agent_success("CloserAgent", 0, "Ticket closed successfully")
             current_stage = 8
         
         # Stage 9: Logging (Index 8)
         if current_stage < 9:
-            await update_stage_progress(ticket_id, 8, "in-progress", "Logging...")
-            await asyncio.sleep(1)
-            await update_stage_progress(ticket_id, 8, "completed", "✅ Logged successfully")
+            with AgentTimer("LoggerAgent", ticket_id, "Logging results"):
+                await update_stage_progress(ticket_id, 8, "in-progress", "Logging Agent: Logging results to audit trail...")
+                await asyncio.sleep(1)
+                await update_stage_progress(ticket_id, 8, "completed", "✅ Logged successfully")
+                AgentLogger.log_agent_success("LoggerAgent", 0, "Log entry created")
             current_tickets[ticket_id]["status"] = "completed"
 
+        
+        AgentLogger.log_pipeline_end(ticket_id)
         
         await manager.broadcast({
             "type": "processing_complete",
@@ -282,6 +304,8 @@ async def process_individual_ticket(ticket_id: str):
         })
         
     except Exception as e:
+        AgentLogger.log_agent_error("Pipeline", str(e))
+        AgentLogger.log_pipeline_end(ticket_id, status="Error")
         error_message = f"Error processing ticket {ticket_id}: {str(e)}"
         await manager.broadcast({
             "type": "error",

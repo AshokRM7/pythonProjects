@@ -81,7 +81,7 @@ class SLAPrioritizerAgent:
                 for stage in t.stages:
                     if "SLA Prioritization" in stage.name:
                         stage.status = "completed"
-                        stage.message = f"✅ Risk: {t.risk_level} | Deadline: {t.sla_deadline}"
+                        stage.message = f"SLA Prioritization Agent set risk level: {t.risk_level} (Deadline: {t.sla_deadline})"
                 t.currentStage = 2 # Move to Stage 3
                 
                 updated.append(t)

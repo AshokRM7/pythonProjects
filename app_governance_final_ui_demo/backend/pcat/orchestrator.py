@@ -31,51 +31,51 @@ class PCATOrchestrator:
 
         try:
             # Stage 0: Intake
-            await on_stage_update(0, "in-progress", "Initiating PCAT Intake...", {})
+            await on_stage_update(0, "in-progress", "PCAT Intake Agent is initiating...", {})
             await asyncio.sleep(1)
             rows = self.loader.load_csv(self.csv_path)
-            await on_stage_update(0, "completed", f"Loaded {len(rows)} rows from CSV.", {"row_count": len(rows)})
+            await on_stage_update(0, "completed", f"PCAT Intake Agent loaded {len(rows)} rows.", {"row_count": len(rows)})
 
             # Stage 1: Schema & Required Fields (Metadata Checklist)
-            await on_stage_update(1, "in-progress", "Validating Schema & Required Fields...", {})
+            await on_stage_update(1, "in-progress", "Schema & Required Fields Agent is validating schema...", {})
             await asyncio.sleep(1)
             # Basic required checks are implicit in Pydantic PCATRow or can be added
-            await on_stage_update(1, "completed", "Schema validation passed.", {})
+            await on_stage_update(1, "completed", "Schema & Required Fields Agent: validation passed.", {})
 
             # Stage 2: Validation Lists Check
-            await on_stage_update(2, "in-progress", "Running Validation Lists Check...", {})
+            await on_stage_update(2, "in-progress", "Validation Lists Check Agent is running checks...", {})
             list_findings = self.allowed_validator.validate(rows)
             findings.extend(list_findings)
             await asyncio.sleep(1)
-            await on_stage_update(2, "completed", f"Completed. Found {len(list_findings)} list violations.", {"violations": len(list_findings)})
+            await on_stage_update(2, "completed", f"Validation Lists Check Agent found {len(list_findings)} violations.", {"violations": len(list_findings)})
 
             # Stage 3: Rules Engine
-            await on_stage_update(3, "in-progress", "Running Rules Engine...", {})
+            await on_stage_update(3, "in-progress", "Rules Engine Agent is processing rules...", {})
             rule_findings = self.rules_engine.validate(rows)
             findings.extend(rule_findings)
             await asyncio.sleep(1)
-            await on_stage_update(3, "completed", f"Completed. Found {len(rule_findings)} rule violations.", {"violations": len(rule_findings)})
+            await on_stage_update(3, "completed", f"Rules Engine Agent found {len(rule_findings)} violations.", {"violations": len(rule_findings)})
 
             # Stage 4: Conflict Detection
-            await on_stage_update(4, "in-progress", "Detecting Attribute Conflicts...", {})
+            await on_stage_update(4, "in-progress", "Conflict Detection Agent is detecting conflicts...", {})
             conflict_findings = self.conflict_detector.validate(rows)
             findings.extend(conflict_findings)
             await asyncio.sleep(1)
-            await on_stage_update(4, "completed", f"Completed. Found {len(conflict_findings)} conflicts.", {"violations": len(conflict_findings)})
+            await on_stage_update(4, "completed", f"Conflict Detection Agent found {len(conflict_findings)} conflicts.", {"violations": len(conflict_findings)})
 
             # Stage 5: Recommendations
-            await on_stage_update(5, "in-progress", "Generating Recommendations...", {})
+            await on_stage_update(5, "in-progress", "Recommendations Agent is generating insights...", {})
             await self.rec_engine.enrich_findings(findings)
             await asyncio.sleep(1)
-            await on_stage_update(5, "completed", "Recommendations generated.", {})
+            await on_stage_update(5, "completed", "Recommendations Agent: insights generated.", {})
 
             # Stage 6: Evidence Pack Generation (Mock)
-            await on_stage_update(6, "in-progress", "Generating Evidence Pack...", {})
+            await on_stage_update(6, "in-progress", "Evidence Pack Generation Agent is assembling pack...", {})
             await asyncio.sleep(1)
-            await on_stage_update(6, "completed", "Evidence pack available for download.", {})
+            await on_stage_update(6, "completed", "Evidence Pack Generation Agent: pack ready.", {})
 
             # Stage 7: Ticket Update & Report
-            await on_stage_update(7, "in-progress", "Finalizing Report & Ticket...", {})
+            await on_stage_update(7, "in-progress", "Auto-Fix & Rebuild CSV Agent is finalizing report...", {})
             
             error_count = len([f for f in findings if f.severity == "ERROR"])
             warning_count = len([f for f in findings if f.severity == "WARNING"])
@@ -99,7 +99,7 @@ class PCATOrchestrator:
                 "report_path": report_path
             }
             
-            await on_stage_update(7, "completed", "PCAT Validation Completed.", pcat_summary_data)
+            await on_stage_update(7, "completed", "Auto-Fix & Rebuild CSV Agent: finished report.", pcat_summary_data)
 
             return summary
 

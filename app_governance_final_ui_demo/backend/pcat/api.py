@@ -128,7 +128,7 @@ async def run_pcat_pipeline(ticket_id: str, csv_path: str):
                 # ENHANCEMENT 1: Pause at Stage 7 for confirmation
                 ticket["currentStage"] = 7
                 ticket["stages"][7]["status"] = "awaiting_confirmation"
-                ticket["stages"][7]["message"] = "Awaiting user confirmation to apply fixes"
+                ticket["stages"][7]["message"] = "Auto-Fix & Rebuild CSV Agent is awaiting user confirmation to apply fixes"
                 
                 # Pre-generate fixes for pending list
                 rows = PCATLoader.load_csv(csv_path)
@@ -226,7 +226,7 @@ async def apply_fixes(ticket_id: str, req: ApplyFixesRequest):
     
     # Stage 7
     if broadcast_func:
-        await broadcast_func({"type": "pcat_stage_update", "ticket_id": ticket_id, "stage_id": 7, "status": "in-progress", "message": "Applying accepted fixes and rebuilding CSV...", "ticket": ticket})
+        await broadcast_func({"type": "pcat_stage_update", "ticket_id": ticket_id, "stage_id": 7, "status": "in-progress", "message": "Auto-Fix & Rebuild CSV Agent is applying accepted fixes and rebuilding CSV...", "ticket": ticket})
     
     manual_fixes = []
     if req.fixes:
@@ -244,18 +244,18 @@ async def apply_fixes(ticket_id: str, req: ApplyFixesRequest):
     PCATCSVWriter.write_csv(out_csv, updated_rows)
     
     if broadcast_func:
-        await broadcast_func({"type": "pcat_stage_update", "ticket_id": ticket_id, "stage_id": 7, "status": "completed", "message": f"Applied {len(applied_fixes)} fixes. CSV rebuilt.", "ticket": ticket})
+        await broadcast_func({"type": "pcat_stage_update", "ticket_id": ticket_id, "stage_id": 7, "status": "completed", "message": f"Auto-Fix & Rebuild CSV Agent applied {len(applied_fixes)} fixes and rebuilt CSV.", "ticket": ticket})
     
     # Stage 8
     results = {}
     if req.upload_to_pcat:
         if broadcast_func:
-            await broadcast_func({"type": "pcat_stage_update", "ticket_id": ticket_id, "stage_id": 8, "status": "in-progress", "message": "Uploading to PCAT...", "ticket": ticket})
+            await broadcast_func({"type": "pcat_stage_update", "ticket_id": ticket_id, "stage_id": 8, "status": "in-progress", "message": "Upload to PCAT & RISE Agent is uploading to PCAT...", "ticket": ticket})
         results["pcat_portal"] = upload_to_pcat_portal(ticket_id, out_csv)
     
     if req.upload_to_rise:
         if broadcast_func:
-            await broadcast_func({"type": "pcat_stage_update", "ticket_id": ticket_id, "stage_id": 8, "status": "in-progress", "message": "Uploading to RISE...", "ticket": ticket})
+            await broadcast_func({"type": "pcat_stage_update", "ticket_id": ticket_id, "stage_id": 8, "status": "in-progress", "message": "Upload to PCAT & RISE Agent is uploading to RISE...", "ticket": ticket})
         results["rise_portal"] = upload_to_rise_portal(ticket_id, out_csv)
 
     # NEW: Store final CSV metadata for frontend BEFORE final broadcast
@@ -272,7 +272,7 @@ async def apply_fixes(ticket_id: str, req: ApplyFixesRequest):
             "ticket_id": ticket_id, 
             "stage_id": 8, 
             "status": "completed", 
-            "message": "Upload completed.",
+            "message": "Upload to PCAT & RISE Agent: upload completed.",
             "metrics": ticket.get("pcat_summary", {}),
             "ticket": ticket
         })

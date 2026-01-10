@@ -32,6 +32,7 @@ export const DashboardPage = () => {
   const [category, setCategory] = useState<string[]>(["all"]);
   const [owner, setOwner] = useState<string[]>(["all"]); // Array state
   const [timeline, setTimeline] = useState("90");
+  const [pastDueOptions, setPastDueOptions] = useState<string[]>(["all"]);
   const [apiTickets, setApiTickets] = useState<any[]>([]);
   const navigate = useNavigate();
 
@@ -51,6 +52,7 @@ export const DashboardPage = () => {
             priority: t.priority?.charAt(0).toUpperCase() + t.priority?.slice(1) || 'Medium',
             status: t.status ? normalizeStatus(t.status) : 'Open',
             date: t.createdAt || new Date().toISOString(),
+            slaDeadline: t.slaDeadline || t.sla_deadline,
           }));
           setApiTickets(transformed);
         }
@@ -100,9 +102,42 @@ export const DashboardPage = () => {
 
       // Multi-select owner match
       const matchesOwner = owner.includes("all") || owner.includes(ticket.owner);
-      return matchesTimeline && matchesCategory && matchesOwner;
+
+      // Past Due logic with Multi-select
+      // If "all" is selected or array is empty, we don't filter for past due specifically
+      // unless user selected specific past due options
+      let matchesPastDue = true;
+      const isPastDueSelected = pastDueOptions.length > 0 && !pastDueOptions.includes("all");
+
+      const isOverdue = ticket.slaDeadline && new Date(ticket.slaDeadline) < now;
+      if (isOverdue && ticket.status !== 'Closed') {
+        ticket.priority = 'Critical'; // Elevate priority dynamically
+      }
+
+      if (isPastDueSelected) {
+        // If any specific option is selected, ticket must match at least one
+        const matchesOption = pastDueOptions.some(option => {
+          if (option === 'past_due') return isOverdue && ticket.status !== 'Closed';
+          if (option === 'past_due_10') {
+            const tenDaysAgo = new Date(now.getTime() - 10 * 24 * 60 * 60 * 1000);
+            return ticket.slaDeadline && new Date(ticket.slaDeadline) < tenDaysAgo && ticket.status !== 'Closed';
+          }
+          if (option === 'past_due_30') {
+            const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+            return ticket.slaDeadline && new Date(ticket.slaDeadline) < thirtyDaysAgo && ticket.status !== 'Closed';
+          }
+          return false;
+        });
+        matchesPastDue = matchesOption;
+      }
+
+      // If any past due filter is active, we should show those tickets regardless of the timeline
+      // Otherwise, we strictly respect the timeline (creation date)
+      const effectiveMatchesTimeline = isPastDueSelected ? true : matchesTimeline;
+
+      return effectiveMatchesTimeline && matchesCategory && matchesOwner && matchesPastDue;
     });
-  }, [category, owner, timeline, ticketsToUse]);
+  }, [category, owner, timeline, pastDueOptions, ticketsToUse]);
 
   // Stats Calculation
   const stats = useMemo(() => {
@@ -222,13 +257,15 @@ export const DashboardPage = () => {
               setOwner={setOwner}
               timeline={timeline}
               setTimeline={setTimeline}
+              pastDueOptions={pastDueOptions}
+              setPastDueOptions={setPastDueOptions}
               categoryOptions={filterOptions.categories}
               ownerOptions={filterOptions.owners}
             />
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 xl:grid-cols-7 gap-3">
             {stats.map((stat) => (
-              <div key={stat.title} onClick={() => navigate('/home', { state: { statusFilter: stat.title, timeline: timeline, category: category, owner: owner } })} className="cursor-pointer transition-transform hover:scale-105">
+              <div key={stat.title} onClick={() => navigate('/home', { state: { statusFilter: stat.title, timeline: timeline, category: category, owner: owner, pastDueOptions: pastDueOptions } })} className="cursor-pointer transition-transform hover:scale-105">
                 <StatCard {...stat} />
               </div>
             ))}

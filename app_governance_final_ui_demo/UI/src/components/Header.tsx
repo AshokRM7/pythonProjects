@@ -1,5 +1,7 @@
 import React from 'react';
 import { Shield, LogOut, Bell, Settings, Search, LayoutGrid, HelpCircle } from 'lucide-react';
+import bofaFlag from '../assets/bofa-flag.png';
+
 
 interface HeaderProps {
   currentUser: string;
@@ -48,43 +50,27 @@ export default function Header({ currentUser, onSignOut, onSearch, searchValue }
   return (
     <header className="bg-white/95 backdrop-blur-md border-t-4 border-[#E31837] border-b border-gray-200 shadow-sm sticky top-0 z-50 transition-all duration-300">
       <div className="max-w-[95%] mx-auto px-4">
-        <div className="flex items-center justify-between h-16">
+        <div className="flex items-center justify-between h-20">
           {/* Logo and App Name */}
-          <div className="flex items-center gap-3 group cursor-pointer" onClick={() => window.location.href = '/'}>
-            <div className="flex items-center justify-center w-40 h-10 group-hover:scale-105 transition-transform duration-300">
-              {/* Inline SVGs for stability */}
-              <svg viewBox="0 0 300 50" className="h-full w-auto" aria-label="Bank of America">
-                {/* Flag Icon */}
-                <rect x="0" y="8" width="14" height="14" fill="#012169" />
-                <rect x="18" y="8" width="14" height="14" fill="#E31837" />
-                <rect x="0" y="26" width="14" height="14" fill="#E31837" />
-                <rect x="18" y="26" width="14" height="14" fill="#012169" />
-                <rect x="9" y="8" width="14" height="32" fill="white" transform="rotate(0)" opacity="0" />
-
-                {/* Simplified Text "Bank of America" */}
-                <text x="45" y="32" fontFamily="sans-serif" fontSize="24" fontWeight="bold" fill="#012169" letterSpacing="-0.5">Bank of America</text>
-              </svg>
-            </div>
-          </div>
-
-          {/* Search Bar - New "Other Option" */}
-          <div className="hidden md:flex flex-1 max-w-md mx-8">
-            <div className="relative w-full group">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <Search className="h-5 w-5 text-gray-400 group-hover:text-blue-500 transition-colors" />
-              </div>
-              <input
-                type="text"
-                value={searchValue || ''}
-                onChange={(e) => onSearch && onSearch(e.target.value)}
-                className="block w-full pl-10 pr-3 py-2 border border-gray-200 rounded-xl leading-5 bg-gray-50 text-gray-900 placeholder-gray-400 focus:outline-none focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-300"
-                placeholder="Search tickets, apps, or policy..."
+          <div className="flex items-center gap-6 group cursor-pointer" onClick={() => window.location.href = '/'}>
+            <div className="flex items-center justify-center group-hover:scale-105 transition-transform duration-300">
+              <img
+                src={bofaFlag}
+                alt="Bank of America"
+                className="h-16 w-auto object-contain"
               />
-              <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
-                <span className="text-gray-400 text-xs border border-gray-200 rounded px-1.5 py-0.5">⌘K</span>
-              </div>
+            </div>
+            <div className="hidden sm:block h-10 w-px bg-gray-200" />
+            <div className="hidden sm:flex flex-col text-left">
+              <span className="text-xl font-black text-[#012169] tracking-tight leading-none">
+                App Governance UI
+              </span>
+              <span className="text-[#E31837] font-bold text-[10px] uppercase tracking-[0.2em] mt-1">
+                Internal Access Portal
+              </span>
             </div>
           </div>
+
 
           {/* User Actions */}
           <div className="flex items-center gap-2 sm:gap-4 relative" ref={appsRef}>
@@ -237,12 +223,6 @@ export default function Header({ currentUser, onSignOut, onSearch, searchValue }
                   <div className="py-1">
                     <button className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600 transition-colors flex items-center gap-2">
                       <span>👤</span> Profile Settings
-                    </button>
-                    <button className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600 transition-colors flex items-center gap-2">
-                      <span>🛡️</span> Security & Data
-                    </button>
-                    <button className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600 transition-colors flex items-center gap-2">
-                      <span>🎨</span> Appearance
                     </button>
                   </div>
 

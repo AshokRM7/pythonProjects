@@ -1,5 +1,6 @@
 import React from 'react';
 import { Shield, Mail, Phone, MapPin } from 'lucide-react';
+import bofaLogo from '../assets/bofa-logo.png';
 
 export default function Footer() {
   const currentYear = new Date().getFullYear();
@@ -12,17 +13,11 @@ export default function Footer() {
           <div className="col-span-1 md:col-span-2">
             <div className="flex items-center gap-3 mb-4">
               <div className="flex items-center justify-center p-2 bg-white rounded-lg">
-                {/* Inline Mini Logo */}
-                <svg width="24" height="24" viewBox="0 0 32 32" aria-label="BofA Icon">
-                  <rect x="0" y="0" width="14" height="14" fill="#012169" />
-                  <rect x="18" y="0" width="14" height="14" fill="#E31837" />
-                  <rect x="0" y="18" width="14" height="14" fill="#E31837" />
-                  <rect x="18" y="18" width="14" height="14" fill="#012169" />
-                </svg>
+                <img src={bofaLogo} alt="Bank of America" className="w-8 h-auto object-contain" />
               </div>
               <div>
                 <h2 className="text-white font-bold text-lg">Bank of America</h2>
-                <p className="text-gray-300 text-sm">App Governance Portal</p>
+                <p className="text-gray-300 text-sm">App Governance UI</p>
               </div>
             </div>
             <p className="text-gray-300 text-sm max-w-md">

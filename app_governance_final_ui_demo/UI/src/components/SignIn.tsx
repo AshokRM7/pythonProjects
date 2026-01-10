@@ -1,5 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { UserPlus, LogIn, Shield, Lock, ChevronRight, CheckCircle2 } from 'lucide-react';
+import { UserPlus, LogIn, Lock, ChevronRight, CheckCircle, Loader2 } from 'lucide-react';
+import bofaFlag from '../assets/bofa-flag.png';
+
+
 
 interface SignInProps {
   onSignIn: (username: string) => void;
@@ -11,6 +14,7 @@ export default function SignIn({ onSignIn }: SignInProps) {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [isLoaded, setIsLoaded] = useState(false);
+  const [showRiseLoader, setShowRiseLoader] = useState(false);
 
   useEffect(() => {
     setIsLoaded(true);
@@ -45,12 +49,17 @@ export default function SignIn({ onSignIn }: SignInProps) {
         setError('User not found. Please create a new account.');
         return;
       }
-      onSignIn(username.trim());
+
+      // Trigger the RISE portal loading screen
+      setShowRiseLoader(true);
+      setTimeout(() => {
+        onSignIn(username.trim());
+      }, 5000);
     }
   };
 
   return (
-    <div className="min-h-screen bg-white flex flex-col font-sans selection:bg-[#012169] selection:text-white">
+    <div className="h-screen bg-white flex flex-col font-sans selection:bg-[#012169] selection:text-white overflow-hidden">
       {/* Top BofA Red Bar */}
       <div className="h-2 w-full bg-[#E31837] fixed top-0 z-50 shadow-sm" />
 
@@ -64,20 +73,14 @@ export default function SignIn({ onSignIn }: SignInProps) {
         <div className={`max-w-[440px] w-full transition-all duration-1000 transform ${isLoaded ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'}`}>
 
           {/* Brand Header */}
-          <div className="mb-10 text-center">
-            <div className="inline-flex items-center gap-3 mb-6 group cursor-default">
-              <div className="w-14 h-14 bg-[#012169] rounded-xl flex items-center justify-center shadow-lg transition-transform group-hover:scale-105 duration-300">
-                <Shield className="w-8 h-8 text-white" />
-              </div>
-              <div className="text-left border-l-2 border-gray-100 pl-4">
-                <h1 className="text-2xl font-black text-[#012169] tracking-tight leading-none">
-                  App Governance
-                </h1>
-                <p className="text-[#E31837] font-bold text-xs uppercase tracking-[0.2em] mt-1.5">
-                  Secure Access Management
-                </p>
-              </div>
+          <div className="mb-8 flex flex-col items-center">
+            <div className="group cursor-default mb-4">
+              <img src={bofaFlag} alt="Bank of America" className="h-24 w-auto object-contain mx-auto" />
             </div>
+            <div className="h-1 w-16 bg-[#E31837] mb-6 rounded-full" />
+            <h1 className="text-2xl font-black text-[#012169] tracking-tighter text-center uppercase leading-none">
+              App Governance <span className="text-[#E31837]">Portal</span>
+            </h1>
           </div>
 
           {/* Card Container */}
@@ -85,20 +88,20 @@ export default function SignIn({ onSignIn }: SignInProps) {
             <div className={`p-10 transition-all duration-500 ${isCreatingUser ? 'bg-gray-50/50' : 'bg-white'}`}>
               <div className="mb-8">
                 <h2 className="text-3xl font-bold text-gray-900 tracking-tight">
-                  {isCreatingUser ? 'Register Account' : 'Welcome Back'}
+                  {isCreatingUser ? 'Register Account' : 'Sign In'}
                 </h2>
                 <div className="h-1 w-12 bg-[#E31837] mt-3 rounded-full" />
-                <p className="text-gray-500 text-sm mt-4 font-medium">
+                <p className="text-gray-500 text-sm mt-4 font-medium leading-relaxed">
                   {isCreatingUser
                     ? 'Create an administrative profile to manage governance tickets.'
-                    : 'Securely sign into the governance portal.'}
+                    : 'Enter your User ID to get started.'}
                 </p>
               </div>
 
               <form onSubmit={handleSubmit} className="space-y-6">
                 <div className="space-y-2">
                   <label htmlFor="username" className="text-xs font-bold text-gray-500 uppercase tracking-widest block ml-1">
-                    Username
+                    User ID
                   </label>
                   <div className="relative group">
                     <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
@@ -124,7 +127,7 @@ export default function SignIn({ onSignIn }: SignInProps) {
 
                 {success && (
                   <div className="bg-green-50 border border-green-100 text-green-700 px-4 py-3 rounded-xl text-sm font-semibold flex items-center gap-2">
-                    <CheckCircle2 className="w-4 h-4" />
+                    <CheckCircle className="w-4 h-4" />
                     {success}
                   </div>
                 )}
@@ -133,7 +136,7 @@ export default function SignIn({ onSignIn }: SignInProps) {
                   type="submit"
                   className="w-full bg-[#012169] text-white py-4 rounded-2xl font-bold hover:bg-[#00174F] transition-all transform hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-2 shadow-xl shadow-blue-900/10 group"
                 >
-                  <span>{isCreatingUser ? 'Complete Registration' : 'Enter Portal'}</span>
+                  <span>{isCreatingUser ? 'Complete Registration' : 'Sign In'}</span>
                   {isCreatingUser ? <UserPlus className="w-5 h-5" /> : <LogIn className="w-5 h-5 group-hover:translate-x-1 transition-transform" />}
                 </button>
               </form>
@@ -160,17 +163,60 @@ export default function SignIn({ onSignIn }: SignInProps) {
         </div>
       </main>
 
-      {/* Footer Branding Area */}
-      <div className="p-8 text-center flex justify-center gap-8 border-t border-gray-50 opacity-50 grayscale transition-all hover:opacity-100 hover:grayscale-0">
-        <div className="flex items-center gap-2">
-          <Shield className="w-4 h-4 text-[#012169]" />
-          <span className="text-[10px] font-black tracking-widest text-gray-500">GDPR COMPLIANT</span>
+      {/* RISE Portal Loader Overlay */}
+      {showRiseLoader && (
+        <div className="fixed inset-0 z-[100] bg-[#012169] flex flex-col items-center justify-center text-white overflow-hidden">
+          {/* Animated Background Gradients */}
+          <div className="absolute inset-0 overflow-hidden">
+            <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-blue-400/10 rounded-full blur-[120px] -mr-64 -mt-64 animate-pulse" />
+            <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-red-400/10 rounded-full blur-[100px] -ml-32 -mb-32" />
+          </div>
+
+          <div className="relative z-10 flex flex-col items-center text-center px-6">
+            <div className="mb-12 relative">
+              <div className="p-8 bg-white rounded-[2.5rem] flex flex-col items-center justify-center shadow-2xl animate-bounce gap-4">
+                <img src={bofaFlag} alt="Bank of America" className="h-24 w-auto object-contain" />
+                <div className="h-0.5 w-12 bg-[#E31837] rounded-full" />
+                <span className="text-[#012169] font-black tracking-widest text-[10px] uppercase">App Governance UI</span>
+              </div>
+              <div className="absolute -inset-4 border-2 border-white/20 rounded-[3rem] animate-[spin_10s_linear_infinite]" />
+            </div>
+
+            <div className="space-y-4">
+              <h2 className="text-3xl font-black tracking-tight">Authenticating Session</h2>
+              <div className="flex items-center justify-center gap-3 text-blue-200">
+                <Loader2 className="w-5 h-5 animate-spin" />
+                <p className="text-lg font-medium animate-pulse">Tickets are loading from RISE portal...</p>
+              </div>
+            </div>
+
+            {/* Progress Bar */}
+            <div className="mt-12 w-64 h-1.5 bg-white/10 rounded-full overflow-hidden border border-white/5">
+              <div className="h-full bg-gradient-to-r from-blue-400 to-white animate-[progress_5s_ease-in-out_forwards]" />
+            </div>
+
+            <div className="mt-8 text-white/40 text-xs font-bold uppercase tracking-[0.3em]">
+              Bank of America Global Technology
+            </div>
+          </div>
+
+          <style dangerouslySetInnerHTML={{
+            __html: `
+            @keyframes progress {
+              0% { width: 0%; }
+              100% { width: 100%; }
+            }
+            @keyframes shake {
+              0%, 100% { transform: translateX(0); }
+              25% { transform: translateX(-4px); }
+              75% { transform: translateX(4px); }
+            }
+            .animate-shake {
+              animation: shake 0.4s ease-in-out infinite;
+            }
+          `}} />
         </div>
-        <div className="flex items-center gap-2 text-gray-500">
-          <div className="w-4 h-4 rounded-full bg-green-500" />
-          <span className="text-[10px] font-black tracking-widest">SYSTEMS ONLINE</span>
-        </div>
-      </div>
+      )}
     </div>
   );
 }

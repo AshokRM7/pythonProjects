@@ -93,13 +93,13 @@ class AppHQResolverAgent:
                     for stage in t.stages:
                         if "Ownership Enrichment" in stage.name:
                             stage.status = "completed"
-                            stage.message = f"Enriched: {t.application_name} (Owner: {t.application_owner})"
+                            stage.message = f"Ownership Enrichment Agent enriched ticket: {t.application_name} (Owner: {t.application_owner})"
                 else:
                     # ✅ Update Stage 4 Status (Fallback)
                     for stage in t.stages:
                         if "Ownership Enrichment" in stage.name:
                             stage.status = "completed"
-                            stage.message = f"Enriched: Using default ticket details (No AIT match)"
+                            stage.message = f"Ownership Enrichment Agent used fallback details (No AIT match)"
                 
                 t.currentStage = 3 # Move to Stage 4
                 enriched_tickets.append(t)

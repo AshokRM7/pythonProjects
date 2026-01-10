@@ -71,7 +71,7 @@ class EvidenceCollectorAgent:
             for stage in t.stages:
                 if "Evidence Collection" in stage.name:
                     stage.status = "completed"
-                    stage.message = f"✅ Evidence emails prepared for {len(emails)} recipients."
+                    stage.message = f"Evidence Collection Agent: Prepared evidence emails for {len(emails)} recipients."
             t.currentStage = 6 # Move to Stage 7
             
         return {"emails": emails}

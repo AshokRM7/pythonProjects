@@ -41,13 +41,7 @@ export default function App() {
         {/* Dashboard is the landing page. It is protected. */}
         <Route
           path="/"
-          element={
-            currentUser ? (
-              <DashboardPage />
-            ) : (
-              <Navigate to="/signin" replace />
-            )
-          }
+          element={<Navigate to="/signin" replace />}
         />
 
         <Route
@@ -76,7 +70,17 @@ export default function App() {
             !currentUser ? (
               <SignIn onSignIn={handleSignIn} />
             ) : (
-              <Navigate to="/" replace />
+              <Navigate to="/dashboard" replace />
+            )
+          }
+        />
+        <Route
+          path="/dashboard"
+          element={
+            currentUser ? (
+              <DashboardPage />
+            ) : (
+              <Navigate to="/signin" replace />
             )
           }
         />
