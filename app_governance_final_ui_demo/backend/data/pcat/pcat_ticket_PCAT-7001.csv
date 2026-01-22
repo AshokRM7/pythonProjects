@@ -2,8 +2,9 @@ row_id,application_name,permission_name,permission_description,platform_category
 1,ERP_SYSTEM,READ_ONLY_ACCESS,Read only access to ERP,WAN,CLOUD,Modify,Business,Public,Human,Local,IAM_TEAM,
 2,CRM_SYSTEM,ADMIN_ACCESS,Full administrative access,DATABASE,ON-PREM,Admin,IT,Confidential-NPI,Human Temporary or Shared,Local,AIT NOT SPECIFIED,
 3,HR_PORTAL,DELETE_RECORDS,Permission to delete records,APPLICATION,SAAS,Delete,Business,Proprietary,Human,Active Directory,HR_ADMIN,
-4,FINANCE_APP,WRITE_ACCESS,Write access to finance data,WAN,CLOUD,Modify,Business,Confidential-NTPI,Human,AD,IAM_TEAM,
+4,FINANCE_APP,WRITE_ACCESS,Write access to finance data,WAN,CLOUD,Modify,Business,Confidential-NTPI,Quarantined,AD,IAM_TEAM,
 5,NETWORK_TOOL,READ_ACCESS,,WAN,Not Specified,Read Only,Business,Public,Human,Local,NET_TEAM,
 6,DATA_PLATFORM,SUPER_USER,Super user with all perms,DATABASE,CLOUD,admin,IT,Confidential-NPI-Agent,Human Temporary or Shared,AD,DATA_OWNER,High priority
 7,LEGACY_SYSTEM,MOD_DATA,Modify existing records,APPLICATION,ON-PREM,Read Only,Business,Internal,Human,AD,LEGACY_TEAM,
 8,SECURE_VAULT,ACCESS_VALUT,Access to secure vault,APPLICATION,CLOUD,Admin,Security,Proprietary,Human Temporary or Shared,AD,SEC_TEAM,
+9,QUARANTINE_APP,QUARANTINE_ACCESS,Quarantined access test,APPLICATION,SAAS,Admin,IT,Internal,Quarantined,AD,IAM_TEAM,

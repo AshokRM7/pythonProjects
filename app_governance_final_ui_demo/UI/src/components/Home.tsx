@@ -37,6 +37,8 @@ interface Ticket {
   aitNumber?: string;
   deliverableType?: string;
   category?: string;
+  subcategory?: string; // For hierarchical categories (e.g., PCAT under IAM)
+  risk_level?: string;
   slaDeadline?: string;
   armId?: string;
   applicationName?: string;
@@ -71,11 +73,16 @@ const normalizeStatus = (apiStatus: string) => {
 // Centralized PCAT Identification Helper
 const isPCATTicket = (ticket: Ticket | null) => {
   if (!ticket) return false;
-  return (
-    ticket.ticket_type?.toUpperCase() === 'PCAT' ||
-    ticket.category?.toUpperCase() === 'PCAT' ||
-    ticket.deliverableType?.toUpperCase().includes('PCAT')
-  );
+  return ticket.subcategory?.toUpperCase() === 'PCAT';
+};
+
+// Get display name for category (supports hierarchical categories)
+const getCategoryDisplay = (ticket: Ticket | null) => {
+  if (!ticket) return 'Unknown';
+  if (ticket.subcategory) {
+    return `${ticket.category || 'Unknown'} -> ${ticket.subcategory}`;
+  }
+  return ticket.category || 'Unknown';
 };
 
 export default function Home({ currentUser, onSignOut }: HomeProps) {
@@ -147,19 +154,17 @@ export default function Home({ currentUser, onSignOut }: HomeProps) {
         const query = searchQuery.toLowerCase();
         const titleMatch = ticket.title.toLowerCase().includes(query);
         const idMatch = ticket.id.toLowerCase().includes(query);
-        const categoryMatch = (ticket.category || '').toLowerCase().includes(query);
+        const categoryMatch = (ticket.category || '').toLowerCase().includes(query) ||
+          (ticket.subcategory || '').toLowerCase().includes(query);
         const ownerMatch = (ticket.owner || '').toLowerCase().includes(query);
         if (!titleMatch && !idMatch && !categoryMatch && !ownerMatch) return false;
       }
 
       // Check Category
       if (categoryFilter !== 'all' && (!Array.isArray(categoryFilter) || !categoryFilter.includes('all'))) {
-        const tCat = ticket.category || 'IAM';
-        if (Array.isArray(categoryFilter)) {
-          if (!categoryFilter.includes(tCat)) return false;
-        } else {
-          if (tCat !== categoryFilter) return false;
-        }
+        const selected = Array.isArray(categoryFilter) ? categoryFilter : [categoryFilter];
+        const hasMatch = ticket.subcategory ? selected.includes(ticket.subcategory) : selected.includes(ticket.category || 'IAM');
+        if (!hasMatch) return false;
       }
 
       // Check Owner
@@ -356,7 +361,8 @@ export default function Home({ currentUser, onSignOut }: HomeProps) {
 
   // Show success toast when ticket is completed
   useEffect(() => {
-    if (selectedTicket?.status === 'completed') {
+    const s = (selectedTicket?.status || '').toLowerCase().replace(/-/g, ' ').trim();
+    if (s === 'completed' || s === 'closed') {
       setShowSuccessToast(true);
       const timer = setTimeout(() => setShowSuccessToast(false), 5000);
       return () => clearTimeout(timer);
@@ -679,7 +685,10 @@ export default function Home({ currentUser, onSignOut }: HomeProps) {
                 <div>
                   <p className="text-xs text-gray-500 font-medium uppercase tracking-wider">Completed</p>
                   <p className="text-lg font-bold text-gray-800 leading-none">
-                    {contextTickets.filter(t => (t.status as string) === 'completed' || (t.status as string) === 'closed').length}
+                    {contextTickets.filter(t => {
+                      const s = (t.status || '').toLowerCase().replace(/-/g, ' ').trim();
+                      return s === 'completed' || s === 'closed';
+                    }).length}
                   </p>
                 </div>
               </div>
@@ -690,7 +699,10 @@ export default function Home({ currentUser, onSignOut }: HomeProps) {
                 <div>
                   <p className="text-xs text-gray-500 font-medium uppercase tracking-wider">Active</p>
                   <p className="text-lg font-bold text-gray-800 leading-none">
-                    {contextTickets.filter(t => (t.status as string) !== 'completed' && (t.status as string) !== 'closed' && (t.status as string) !== 'not-started').length}
+                    {contextTickets.filter(t => {
+                      const s = (t.status || '').toLowerCase().replace(/-/g, ' ').trim();
+                      return s !== 'completed' && s !== 'closed' && s !== 'not started' && s !== 'not-started';
+                    }).length}
                   </p>
                 </div>
               </div>
@@ -815,12 +827,12 @@ export default function Home({ currentUser, onSignOut }: HomeProps) {
                           <span
                             onClick={(e) => { e.stopPropagation(); toggleTicketExpansion(ticket.id); }}
                             className={`px-2 py-1 rounded text-xs font-medium cursor-pointer hover:brightness-95 transition-all ${isPCATTicket(ticket)
-                                ? 'bg-purple-100 text-purple-700 border border-purple-200'
-                                : ticket.category?.toUpperCase() === 'IAM'
-                                  ? 'bg-blue-100 text-blue-700 border border-blue-200'
-                                  : 'bg-gray-100 text-gray-700 border border-gray-200'
+                              ? 'bg-purple-100 text-purple-700 border border-purple-200'
+                              : ticket.category?.toUpperCase() === 'IAM'
+                                ? 'bg-blue-100 text-blue-700 border border-blue-200'
+                                : 'bg-gray-100 text-gray-700 border border-gray-200'
                               }`}>
-                            {isPCATTicket(ticket) ? 'PCAT Module' : (ticket.category || 'Unknown')}
+                            {getCategoryDisplay(ticket)}
                           </span>
                           {ticket.priority === 'urgent' && (
                             <AlertCircle className="w-4 h-4 text-red-600" />
@@ -957,6 +969,8 @@ export default function Home({ currentUser, onSignOut }: HomeProps) {
                     {/* ACTION BUTTONS Container - Always Visible */}
                     <div className="mb-2">
                       {(() => {
+                        const currentStatus = (selectedTicket.status || '').toLowerCase().replace(/-/g, ' ').trim();
+
                         // 1. Priority Confirmation with Editable Dropdown
                         if (selectedTicket.waitingForPriorityConfirmation ||
                           (selectedTicket.stages[2].status === 'completed' &&
@@ -1007,7 +1021,7 @@ export default function Home({ currentUser, onSignOut }: HomeProps) {
                         }
 
                         // 4. Start Processing
-                        if (selectedTicket.status === 'not-started' || selectedTicket.status.toLowerCase() === 'open') {
+                        if (currentStatus === 'not started' || currentStatus === 'open') {
                           return (
                             <button
                               onClick={() => handleProcessTicket(selectedTicket.id)}
@@ -1020,12 +1034,15 @@ export default function Home({ currentUser, onSignOut }: HomeProps) {
                         }
 
                         // 5. Processing State
-                        if (selectedTicket.status === 'in-progress') {
+                        if (currentStatus === 'in progress') {
                           // Check if any stage has an error (meaning it halted)
                           const hasError = selectedTicket.stages.some(s => s.status === 'error');
 
                           // Check if all stages are completed within an 'in-progress' ticket
                           const isCompleted = selectedTicket.stages.every(s => s.status === 'completed');
+
+                          // Check if ticket is stuck (no stage is actively in-progress)
+                          const isActivelyProcessing = selectedTicket.stages.some(s => s.status === 'in-progress');
 
                           if (isCompleted) {
                             return (
@@ -1045,6 +1062,19 @@ export default function Home({ currentUser, onSignOut }: HomeProps) {
                             );
                           }
 
+                          // If ticket is stuck (in-progress status but no active stage), show continue button
+                          if (!isActivelyProcessing) {
+                            return (
+                              <button
+                                onClick={() => handleProcessTicket(selectedTicket.id)}
+                                className="w-full bg-orange-600 text-white border border-orange-700 py-3 rounded-lg hover:bg-orange-700 transition flex items-center justify-center gap-2 shadow-sm font-bold"
+                              >
+                                <Play className="w-5 h-5" />
+                                Continue Processing
+                              </button>
+                            );
+                          }
+
                           return (
                             <div className="w-full bg-blue-50 text-blue-700 py-3 rounded-lg flex items-center justify-center gap-2 border border-blue-100 font-medium shadow-sm">
                               <Loader2 className="w-5 h-5 animate-spin" />
@@ -1054,7 +1084,7 @@ export default function Home({ currentUser, onSignOut }: HomeProps) {
                         }
 
                         // 6. Completed State
-                        if (selectedTicket.status === 'completed' || selectedTicket.status === 'closed') {
+                        if (currentStatus === 'completed' || currentStatus === 'closed') {
                           return (
                             <div className="w-full bg-green-50 text-green-700 py-3 rounded-lg flex items-center justify-center gap-2 border border-green-100 font-medium">
                               <CheckCircle className="w-5 h-5" />
@@ -1067,7 +1097,7 @@ export default function Home({ currentUser, onSignOut }: HomeProps) {
                         return (
                           <div className="w-full bg-gray-50 text-gray-600 py-3 rounded-lg flex items-center justify-center gap-2 border border-gray-200 font-medium">
                             <Activity className="w-5 h-5" />
-                            {(selectedTicket.status as string).toUpperCase()}
+                            {currentStatus.toUpperCase()}
                           </div>
                         );
                       })()}
@@ -1123,11 +1153,13 @@ export default function Home({ currentUser, onSignOut }: HomeProps) {
                             <span className="text-gray-500 text-xs uppercase tracking-wider font-semibold flex items-center gap-1 mb-1">
                               <Tag className="w-3 h-3" /> Category
                             </span>
-                            <span className={`px-2 py-1 rounded text-xs font-bold ${selectedTicket.category.toUpperCase() === 'IAM'
-                              ? 'bg-blue-100 text-blue-700'
-                              : 'bg-gray-100 text-gray-700'
+                            <span className={`px-2 py-1 rounded text-xs font-bold ${isPCATTicket(selectedTicket)
+                              ? 'bg-purple-100 text-purple-700'
+                              : selectedTicket.category.toUpperCase() === 'IAM'
+                                ? 'bg-blue-100 text-blue-700'
+                                : 'bg-gray-100 text-gray-700'
                               }`}>
-                              {selectedTicket.category}
+                              {getCategoryDisplay(selectedTicket)}
                             </span>
                           </div>
                         )}

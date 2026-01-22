@@ -1,10 +1,5 @@
-import { MultiSelectDropdown } from './reusable/MultiSelectDropdown';
+import { MultiSelectDropdown, FilterOption } from './reusable/MultiSelectDropdown';
 import { TimelineSlider } from './TimelineSlider';
-
-interface FilterOption {
-    value: string;
-    label: string;
-}
 
 interface DashboardFiltersProps {
     category: string[];

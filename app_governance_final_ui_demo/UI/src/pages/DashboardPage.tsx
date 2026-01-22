@@ -8,7 +8,7 @@ import { DashboardFilters } from "../components/dashboard/DashboardFilter";
 import ChartContainer from "../components/dashboard/reusable/ChartContainer";
 import { StatCard } from "../components/dashboard/StatCard";
 import { TicketsTrendOverview } from "../components/dashboard/TicketsTrendOverview";
-import { mockAlerts, mockInsights, mockTickets as staticMockTickets } from "../data/mockData"; // Keep alerts/insights static for now
+import { mockAlerts, mockInsights, mockTickets as staticMockTickets } from "../data/mockData";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
 
@@ -24,8 +24,6 @@ const normalizeStatus = (apiStatus: string) => {
   if (s === 'recent issues') return 'Recent Issues';
   return 'Open';
 };
-
-// ... existing code ...
 
 
 export const DashboardPage = () => {
@@ -48,6 +46,7 @@ export const DashboardPage = () => {
             id: t.id,
             title: t.title,
             category: t.category || 'IAM', // Default fallback
+            subcategory: t.subcategory, // Include subcategory
             owner: t.owner || 'owner1',
             priority: t.priority?.charAt(0).toUpperCase() + t.priority?.slice(1) || 'Medium',
             status: t.status ? normalizeStatus(t.status) : 'Open',
@@ -73,11 +72,42 @@ export const DashboardPage = () => {
     const categories = Array.from(new Set(ticketsToUse.map(t => t.category).filter(Boolean)));
     const owners = Array.from(new Set(ticketsToUse.map(t => t.owner).filter(Boolean)));
 
+    // Build hierarchical category structure
+    const categoryOptions = [
+      { value: 'all', label: 'All Categories' }
+    ];
+
+    // Add categories with hierarchical structure
+    categories.forEach(cat => {
+      if (cat === 'IAM') {
+        const iamOption: any = {
+          value: 'IAM_GROUP',
+          label: 'IAM CATEGORY',
+          children: [
+            { value: 'IAM', label: 'IAM-PAST DUE' }
+          ]
+        };
+
+        // Add PCAT and Toxic Combination as children
+        iamOption.children.push({ value: 'PCAT', label: 'PCAT' });
+        iamOption.children.push({ value: 'TOXIC COMBINATION', label: 'TOXIC COMBINATION' });
+        iamOption.children.push({ value: 'ARM FORM', label: 'ARM FORM' });
+        iamOption.children.push({ value: 'NON-HUMAN ACCOUNTS', label: 'NON-HUMAN ACCOUNTS' });
+        iamOption.children.push({ value: 'DORMANCY ALERT', label: 'DORMANCY ALERT' });
+        iamOption.children.push({ value: 'INTRA AIT', label: 'INTRA AIT' });
+        iamOption.children.push({ value: 'EQ', label: 'EQ' });
+        iamOption.children.push({ value: 'PCAT-QUARANTINE', label: 'PCAT-QUARANTINE' });
+        iamOption.children.push({ value: 'PCAT-DUPLICATE', label: 'PCAT-DUPLICATE' });
+
+        categoryOptions.push(iamOption);
+      } else if (cat !== 'PCAT') {
+        // Add other categories normally (exclude individual PCAT from top level)
+        categoryOptions.push({ value: cat, label: cat });
+      }
+    });
+
     return {
-      categories: [
-        { value: 'all', label: 'All Categories' },
-        ...categories.map(c => ({ value: c, label: c }))
-      ],
+      categories: categoryOptions,
       owners: [
         { value: 'all', label: 'All Owners' },
         ...owners.map(o => ({ value: o, label: o }))
@@ -98,7 +128,10 @@ export const DashboardPage = () => {
       const matchesTimeline = isValidDate ? ticketDate >= limit : true;
 
       // Multi-select category match
-      const matchesCategory = category.includes("all") || category.includes(ticket.category);
+      // If IAM_GROUP is selected, we should include everything in it? Or just let children handle it?
+      // Let's assume selecting the parent select/deselects children in the UI logic later.
+      const matchesCategory = category.includes("all") ||
+        (ticket.subcategory ? category.includes(ticket.subcategory) : category.includes(ticket.category));
 
       // Multi-select owner match
       const matchesOwner = owner.includes("all") || owner.includes(ticket.owner);

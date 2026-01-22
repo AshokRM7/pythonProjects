@@ -92,5 +92,13 @@
         "predicate": {
             "description_and_info_not_empty": true
         }
+    },
+    {
+        "rule_id": "R9",
+        "severity": "ERROR",
+        "description": "User is Quarantined for access",
+        "predicate": {
+            "account_type": "Quarantined"
+        }
     }
 ]

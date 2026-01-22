@@ -110,6 +110,7 @@ def convert_ticket_to_frontend(ticket: Ticket) -> dict:
         "createdAt": ticket.created_on,
         "currentStage": ticket.currentStage,
         "category": ticket.category,
+        "subcategory": ticket.subcategory,
         "slaDeadline": ticket.sla_deadline,
         "aitNumber": ticket.ait_number,
         "deliverableType": ticket.deliverableType,
@@ -142,6 +143,7 @@ def convert_frontend_to_ticket(data: dict) -> Ticket:
         risk_level=data["priority"].upper(),
         created_on=data["createdAt"],
         category=data.get("category"),
+        subcategory=data.get("subcategory"),
         sla_deadline=data.get("slaDeadline"),
         ait_number=data.get("aitNumber"),
         deliverableType=data.get("deliverableType", "IAM Category"),
@@ -371,41 +373,70 @@ async def load_initial_tickets():
 
 
 def seed_pcat_demo_ticket():
-    ticket_id = "PCAT-7001"
-    if ticket_id not in current_tickets:
-        pcat_stages = [
-            {"id": 0, "name": "PCAT Intake Agent", "status": "pending", "message": ""},
-            {"id": 1, "name": "Schema & Required Fields Agent", "status": "pending", "message": ""},
-            {"id": 2, "name": "Validation Lists Check Agent", "status": "pending", "message": ""},
-            {"id": 3, "name": "Rules Engine Agent", "status": "pending", "message": ""},
-            {"id": 4, "name": "Conflict Detection Agent", "status": "pending", "message": ""},
-            {"id": 5, "name": "Recommendations Agent", "status": "pending", "message": ""},
-            {"id": 6, "name": "Evidence Pack Generation Agent", "status": "pending", "message": ""},
-            {"id": 7, "name": "Auto-Fix & Rebuild CSV Agent", "status": "pending", "message": ""},
-            {"id": 8, "name": "Upload to PCAT & RISE Agent", "status": "pending", "message": ""},
-        ]
-        
-        current_tickets[ticket_id] = {
-            "id": ticket_id,
+    pcat_stages = [
+        {"id": 0, "name": "PCAT Intake Agent", "status": "pending", "message": ""},
+        {"id": 1, "name": "Schema & Required Fields Agent", "status": "pending", "message": ""},
+        {"id": 2, "name": "Validation Lists Check Agent", "status": "pending", "message": ""},
+        {"id": 3, "name": "Rules Engine Agent", "status": "pending", "message": ""},
+        {"id": 4, "name": "Conflict Detection Agent", "status": "pending", "message": ""},
+        {"id": 5, "name": "Recommendations Agent", "status": "pending", "message": ""},
+        {"id": 6, "name": "Evidence Pack Generation Agent", "status": "pending", "message": ""},
+        {"id": 7, "name": "Auto-Fix & Rebuild CSV Agent", "status": "pending", "message": ""},
+        {"id": 8, "name": "Upload to PCAT & RISE Agent", "status": "pending", "message": ""},
+    ]
+
+    pcat_configs = [
+        {
+            "id": "PCAT-7001",
             "title": "Quarterly Metadata Validation - ERP & CRM",
-            "description": "Validation of classification metadata for legacy ERP and CRM permission structures.",
-            "customer": "compliance.owner@company.com",
-            "priority": "high",
-            "status": "Open",
-            "owner": "Compliance Team",
-            "createdAt": datetime.now().strftime("%Y-%m-%d"),
-            "currentStage": 0,
-            "category": "PCAT",
-            "ticket_type": "PCAT",
-            "aitNumber": "AIT-7001",
-            "deliverableType": "PCAT Validation",
-            "applicationName": "Mixed (ERP/CRM)",
-            "pcat_csv_path": "backend/data/pcat/pcat_ticket_PCAT-7001.csv",
-            "stages": pcat_stages,
-            "final_csv_ready": False,
-            "final_csv_path": None
+            "subcategory": "PCAT",
+            "ait": "AIT-7001"
+        },
+        {
+            "id": "EQ-7002",
+            "title": "EQ Validation - Financial Systems",
+            "subcategory": "EQ",
+            "ait": "AIT-7002"
+        },
+        {
+            "id": "PCAT-QUARANTINE-7003",
+            "title": "Quarantine Review - Access Control",
+            "subcategory": "PCAT-QUARANTINE",
+            "ait": "AIT-7003"
+        },
+        {
+            "id": "PCAT-DUPLICATE-7004",
+            "title": "Duplicate Account Cleanup - Global Directory",
+            "subcategory": "PCAT-DUPLICATE",
+            "ait": "AIT-7004"
         }
-        print(f"Seeded PCAT Demo Ticket: {ticket_id}")
+    ]
+
+    for config in pcat_configs:
+        ticket_id = config["id"]
+        if ticket_id not in current_tickets:
+            current_tickets[ticket_id] = {
+                "id": ticket_id,
+                "title": config["title"],
+                "description": f"Validation for {config['subcategory']} structures.",
+                "customer": "compliance.owner@company.com",
+                "priority": "high",
+                "status": "Open",
+                "owner": "Compliance Team",
+                "createdAt": datetime.now().strftime("%Y-%m-%d"),
+                "currentStage": 0,
+                "category": "IAM",
+                "subcategory": config["subcategory"],
+                "ticket_type": "PCAT",
+                "aitNumber": config["ait"],
+                "deliverableType": f"{config['subcategory']} Validation",
+                "applicationName": "Compliance Systems",
+                "pcat_csv_path": "backend/data/pcat/pcat_ticket_PCAT-7001.csv",
+                "stages": [s.copy() for s in pcat_stages],
+                "final_csv_ready": False,
+                "final_csv_path": None
+            }
+            print(f"Seeded PCAT-type Ticket: {ticket_id}")
 
 @app.get("/api/pcat/demo/reset")
 async def reset_pcat_demo():

@@ -56,7 +56,7 @@ async def download_template():
 async def get_pcat_tickets():
     if not is_pcat_enabled():
         return JSONResponse(status_code=403, content={"error": "PCAT is disabled"})
-    pcat_tickets = [t for t in current_tickets_ref.values() if t.get("ticket_type") == "PCAT" or t.get("category") == "PCAT"]
+    pcat_tickets = [t for t in current_tickets_ref.values() if t.get("ticket_type") == "PCAT"]
     return {"tickets": pcat_tickets, "count": len(pcat_tickets)}
 
 @router.get("/tickets/{ticket_id}/csv/download")

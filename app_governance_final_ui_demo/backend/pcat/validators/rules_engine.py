@@ -44,7 +44,10 @@ class RulesEngine:
                     elif rule_id == "R8": # desc and additional empty
                         if not row.permission_description and not row.additional_info:
                             triggered = True
-
+                    elif rule_id == "R9": # Quarantine
+                        if row.account_type == "Quarantined":
+                            triggered = True
+                        
                     if triggered:
                         findings.append(Finding(
                             row_id=row.row_id,

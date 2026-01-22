@@ -12,6 +12,7 @@ class Ticket(BaseModel):
     ait_number: str
     deliverableType: str
     category: str
+    subcategory: Optional[str] = None  # For hierarchical categories (e.g., PCAT under IAM)
     risk_level: str
     sla_deadline: str
     created_on: str

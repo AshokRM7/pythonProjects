@@ -1,6 +1,7 @@
 from typing import List, Tuple
 from .models import PCATRow, Finding, AppliedFix
 import copy
+import re
 
 class PCATFixEngine:
     @staticmethod
@@ -71,15 +72,26 @@ class PCATFixEngine:
             )
 
         # Rule R3 / R6: permission_name vs capability mismatch
-        if finding.rule_id in ["|R3", "R6"]:
+        if finding.rule_id in ["R3", "R6"]:
             # R3: name has 'read' but cap not 'Read Only'
-            if "read" in row.permission_name.lower() and row.capability != "Read Only":
+            if finding.rule_id == "R3" and "read" in row.permission_name.lower() and row.capability != "Read Only":
                 return AppliedFix(
                     fix_id=f"{fix_id_prefix}_capability",
                     row_id=row.row_id,
                     field="capability",
                     old_value=row.capability,
                     new_value="Read Only",
+                    reason=f"{finding.rule_id} (Syncing capability with permission name)"
+                )
+            
+            # R6: name has 'delete/modify/write' but cap not 'Modify/Admin'
+            if finding.rule_id == "R6" and re.search(r"delete|modify|write", row.permission_name, re.I) and row.capability not in ["Modify", "Admin"]:
+                return AppliedFix(
+                    fix_id=f"{fix_id_prefix}_capability",
+                    row_id=row.row_id,
+                    field="capability",
+                    old_value=row.capability,
+                    new_value="Modify",
                     reason=f"{finding.rule_id} (Syncing capability with permission name)"
                 )
 
@@ -110,5 +122,16 @@ class PCATFixEngine:
         if finding.rule_id == "L1" and "Choose a value" not in finding.message:
              # Add generic list fix if we can infer (skipped for now as ambiguous per requirements)
              pass
+
+        # Rule R9: Quarantine
+        if finding.rule_id == "R9" and row.account_type == "Quarantined":
+            return AppliedFix(
+                fix_id=f"{fix_id_prefix}_account_type",
+                row_id=row.row_id,
+                field="account_type",
+                old_value=row.account_type,
+                new_value="Human",
+                reason="R9 (Removing quarantine status for access)"
+            )
 
         return None
