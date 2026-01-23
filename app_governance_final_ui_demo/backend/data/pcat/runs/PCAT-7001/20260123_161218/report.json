@@ -1,6 +1,6 @@
 {
   "ticket_id": "PCAT-7001",
-  "timestamp": "2026-01-23T17:44:35.532077",
+  "timestamp": "2026-01-23T16:12:18.536981",
   "total_rows": 9,
   "error_count": 10,
   "warning_count": 8,
@@ -12,7 +12,7 @@
       "severity": "WARNING",
       "rule_id": "L1",
       "message": "Value 'AIT NOT SPECIFIED' is not in the allowed list for provided_by.",
-      "recommendation": "Ensure that the value for 'provided_by' is selected from the allowed list of options."
+      "recommendation": "Ensure that the value for 'provided_by' is selected from the specified list of options."
     },
     {
       "row_id": 4,
@@ -57,7 +57,7 @@
       "severity": "WARNING",
       "rule_id": "R3",
       "message": "If permission_name contains read, capability should be Read Only",
-      "recommendation": "Update the capability to \"Read Only\" if the permission_name contains \"read\"."
+      "recommendation": "Update the capability to be Read Only if the permission_name contains read."
     },
     {
       "row_id": 2,
@@ -102,7 +102,7 @@
       "severity": "ERROR",
       "rule_id": "R9",
       "message": "User is Quarantined for access",
-      "recommendation": "Grant the user access to the necessary capabilities while in quarantine to ensure continued productivity."
+      "recommendation": "Grant temporary access to necessary resources for the quarantined user to ensure continuity of work."
     },
     {
       "row_id": 5,
@@ -138,7 +138,7 @@
       "severity": "ERROR",
       "rule_id": "R2",
       "message": "If capability contains admin, account_type cannot be Human Temporary or Shared",
-      "recommendation": "Update the account_type to a different option if capability contains admin to ensure it is not Human Temporary or Shared."
+      "recommendation": "Update the account_type to a different option if the capability contains admin."
     },
     {
       "row_id": 8,
@@ -156,7 +156,7 @@
       "severity": "ERROR",
       "rule_id": "R9",
       "message": "User is Quarantined for access",
-      "recommendation": "Grant the user temporary access to necessary capabilities during the quarantine period."
+      "recommendation": "Grant temporary access to necessary resources for the quarantined user to ensure business continuity."
     },
     {
       "row_id": 8,
@@ -176,7 +176,7 @@
       "severity": "WARNING",
       "rule_id": "L1",
       "message": "Value 'AIT NOT SPECIFIED' is not in the allowed list for provided_by.",
-      "recommendation": "Ensure that the value for 'provided_by' is selected from the allowed list of options."
+      "recommendation": "Ensure that the value for 'provided_by' is selected from the specified list of options."
     },
     {
       "row_id": 4,
@@ -221,7 +221,7 @@
       "severity": "WARNING",
       "rule_id": "R3",
       "message": "If permission_name contains read, capability should be Read Only",
-      "recommendation": "Update the capability to \"Read Only\" if the permission_name contains \"read\"."
+      "recommendation": "Update the capability to be Read Only if the permission_name contains read."
     },
     {
       "row_id": 2,

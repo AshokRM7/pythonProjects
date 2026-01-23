@@ -33,6 +33,7 @@ class AppliedFix(BaseModel):
     old_value: Any
     new_value: Any
     reason: str # rule_id or recommendation context
+    permission_name: Optional[str] = None
     user_decision: Optional[str] = "ACCEPTED" # ACCEPTED, REJECTED
 
 class PCATReportSummary(BaseModel):

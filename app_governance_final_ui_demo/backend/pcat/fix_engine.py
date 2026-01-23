@@ -68,7 +68,8 @@ class PCATFixEngine:
                 field="provided_by",
                 old_value=row.provided_by,
                 new_value="IAM_TEAM",
-                reason="R5 (Standardizing missing AIT provider)"
+                reason="R5 (Standardizing missing AIT provider)",
+                permission_name=row.permission_name
             )
 
         # Rule R3 / R6: permission_name vs capability mismatch
@@ -81,7 +82,8 @@ class PCATFixEngine:
                     field="capability",
                     old_value=row.capability,
                     new_value="Read Only",
-                    reason=f"{finding.rule_id} (Syncing capability with permission name)"
+                    reason=f"{finding.rule_id} (Syncing capability with permission name)",
+                    permission_name=row.permission_name
                 )
             
             # R6: name has 'delete/modify/write' but cap not 'Modify/Admin'
@@ -92,7 +94,8 @@ class PCATFixEngine:
                     field="capability",
                     old_value=row.capability,
                     new_value="Modify",
-                    reason=f"{finding.rule_id} (Syncing capability with permission name)"
+                    reason=f"{finding.rule_id} (Syncing capability with permission name)",
+                    permission_name=row.permission_name
                 )
 
         # Rule R1: managed_by for WAN
@@ -104,7 +107,8 @@ class PCATFixEngine:
                     field="managed_by",
                     old_value=row.managed_by,
                     new_value="Active Directory",
-                    reason="R1 (WAN must be AD managed)"
+                    reason="R1 (WAN must be AD managed)",
+                    permission_name=row.permission_name
                 )
 
         # Rule R7: platform_type missing
@@ -115,7 +119,8 @@ class PCATFixEngine:
                 field="platform_type",
                 old_value=row.platform_type,
                 new_value="ON-PREM",
-                reason="R7 (Defaulting unspecified platform type)"
+                reason="R7 (Defaulting unspecified platform type)",
+                permission_name=row.permission_name
             )
 
         # List Validator L1 - only fix if recommendation exists and is clear (mock logic)
@@ -131,7 +136,8 @@ class PCATFixEngine:
                 field="account_type",
                 old_value=row.account_type,
                 new_value="Human",
-                reason="R9 (Removing quarantine status for access)"
+                reason="R9 (Removing quarantine status for access)",
+                permission_name=row.permission_name
             )
 
         return None

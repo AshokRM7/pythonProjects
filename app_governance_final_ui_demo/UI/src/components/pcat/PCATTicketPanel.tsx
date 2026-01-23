@@ -280,6 +280,7 @@ export const PCATTicketPanel: React.FC<PCATTicketPanelProps> = ({ ticket, onRefr
                                     <tr>
                                         <th className="px-6 py-2">Row</th>
                                         <th className="px-6 py-2">Field</th>
+                                        <th className="px-6 py-2">Permission Name</th>
                                         <th className="px-6 py-2">Proposed Correction</th>
                                         <th className="px-6 py-2">Reasoning</th>
                                         <th className="px-6 py-2 text-center">Decision</th>
@@ -293,6 +294,14 @@ export const PCATTicketPanel: React.FC<PCATTicketPanelProps> = ({ ticket, onRefr
                                                 <td className="px-6 py-5 rounded-l-2xl border-y border-l border-gray-100 font-mono text-sm text-gray-500">{fix.row_id}</td>
                                                 <td className="px-6 py-5 border-y border-gray-100">
                                                     <span className="px-3 py-1 bg-blue-50 text-blue-700 rounded-lg text-[10px] font-black uppercase tracking-wider">{fix.field}</span>
+                                                </td>
+                                                <td className="px-6 py-5 border-y border-gray-100">
+                                                    <span
+                                                        className="text-gray-900 font-bold text-xs truncate max-w-[120px] block"
+                                                        title={fix.permission_name || '—'}
+                                                    >
+                                                        {fix.permission_name || '—'}
+                                                    </span>
                                                 </td>
                                                 <td className="px-6 py-5 border-y border-gray-100 whitespace-pre">
                                                     <div className="flex flex-col gap-1.5">

@@ -1,6 +1,6 @@
 {
   "ticket_id": "PCAT-7001",
-  "timestamp": "2026-01-23T17:44:35.532077",
+  "timestamp": "2026-01-23T10:33:03.956870",
   "total_rows": 9,
   "error_count": 10,
   "warning_count": 8,
@@ -48,7 +48,7 @@
       "severity": "ERROR",
       "rule_id": "R1",
       "message": "If platform_category is WAN, managed_by must contain Active Directory or AD",
-      "recommendation": "Ensure that the platform_category is set to WAN only if managed_by contains Active Directory or AD."
+      "recommendation": "Ensure that the platform_category is set to WAN and that managed_by contains Active Directory or AD."
     },
     {
       "row_id": 1,
@@ -57,7 +57,7 @@
       "severity": "WARNING",
       "rule_id": "R3",
       "message": "If permission_name contains read, capability should be Read Only",
-      "recommendation": "Update the capability to \"Read Only\" if the permission_name contains \"read\"."
+      "recommendation": "Update the capability to be Read Only if the permission_name contains read."
     },
     {
       "row_id": 2,
@@ -102,7 +102,7 @@
       "severity": "ERROR",
       "rule_id": "R9",
       "message": "User is Quarantined for access",
-      "recommendation": "Grant the user access to the necessary capabilities while in quarantine to ensure continued productivity."
+      "recommendation": "Grant the user temporary access to necessary capabilities during the quarantine period."
     },
     {
       "row_id": 5,
@@ -129,7 +129,7 @@
       "severity": "WARNING",
       "rule_id": "R8",
       "message": "Permission description and additional info both empty",
-      "recommendation": "Ensure that the permission description and additional information are filled out for all relevant fields."
+      "recommendation": "Please provide a clear description and additional information for the permission."
     },
     {
       "row_id": 6,
@@ -138,7 +138,7 @@
       "severity": "ERROR",
       "rule_id": "R2",
       "message": "If capability contains admin, account_type cannot be Human Temporary or Shared",
-      "recommendation": "Update the account_type to a different option if capability contains admin to ensure it is not Human Temporary or Shared."
+      "recommendation": "Update the account_type to a different option if the capability contains admin."
     },
     {
       "row_id": 8,
@@ -147,7 +147,7 @@
       "severity": "ERROR",
       "rule_id": "R2",
       "message": "If capability contains admin, account_type cannot be Human Temporary or Shared",
-      "recommendation": "Update the account_type to a different option if the capability contains admin."
+      "recommendation": "Update the account_type to a different option if capability contains admin."
     },
     {
       "row_id": 9,
@@ -156,7 +156,7 @@
       "severity": "ERROR",
       "rule_id": "R9",
       "message": "User is Quarantined for access",
-      "recommendation": "Grant the user temporary access to necessary capabilities during the quarantine period."
+      "recommendation": "Grant temporary access to necessary resources for the quarantined user to ensure business continuity."
     },
     {
       "row_id": 8,
@@ -212,7 +212,7 @@
       "severity": "ERROR",
       "rule_id": "R1",
       "message": "If platform_category is WAN, managed_by must contain Active Directory or AD",
-      "recommendation": "Ensure that the platform_category is set to WAN only if managed_by contains Active Directory or AD."
+      "recommendation": "Ensure that the platform_category is set to WAN and that managed_by contains Active Directory or AD."
     },
     {
       "row_id": 1,
@@ -221,7 +221,7 @@
       "severity": "WARNING",
       "rule_id": "R3",
       "message": "If permission_name contains read, capability should be Read Only",
-      "recommendation": "Update the capability to \"Read Only\" if the permission_name contains \"read\"."
+      "recommendation": "Update the capability to be Read Only if the permission_name contains read."
     },
     {
       "row_id": 2,
