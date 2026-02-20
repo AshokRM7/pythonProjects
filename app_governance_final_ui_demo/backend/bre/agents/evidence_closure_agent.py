@@ -1,0 +1,262 @@
+"""
+Evidence & Closure Agent - Step 5
+Takes screenshot, attaches to RISE ticket, adds closing comments, closes deliverable
+"""
+import json
+from typing import Dict, Any, Optional
+from datetime import datetime
+from langchain.agents import create_agent
+from langchain.tools import tool
+from langchain_openai import ChatOpenAI
+from pathlib import Path
+
+
+SYSTEM_PROMPT = """You are an Evidence & Closure Agent for the BRE Rule Certification Process.
+
+Your task is to:
+1. Capture screenshot of the certification
+2. Attach screenshot to RISE ticket
+3. Generate comprehensive closing comments
+4. Close the deliverable
+5. Create audit record for compliance
+
+Always use the available tools to complete the workflow end-to-end.
+Return a concise final response with:
+- screenshot details
+- attachment confirmation
+- closure status
+- audit record ID
+"""
+
+
+class EvidenceClosureAgent:
+    """Agent to collect evidence and close deliverable"""
+
+    def __init__(self, llm: Optional[ChatOpenAI] = None):
+        self.llm = llm
+        self.evidence_path = Path(__file__).resolve().parent.parent / "data" / "evidence"
+        self.evidence_path.mkdir(parents=True, exist_ok=True)
+        self.tools = self._create_tools()
+
+        self.agent = None
+        if self.llm is not None:
+            self.agent = create_agent(
+                model=self.llm,
+                tools=self.tools,
+                system_prompt=SYSTEM_PROMPT,
+            )
+    
+    def _create_tools(self):
+        """Create tools for evidence collection and closure"""
+
+        evidence_path = self.evidence_path  # capture for closures
+
+        @tool("CaptureCertificationScreenshot")
+        def capture_certification_screenshot(certification_data: str) -> str:
+            """Capture screenshot of certification. Input should be JSON with certification details."""
+            try:
+                cert = json.loads(certification_data)
+
+                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                screenshot_filename = f"certification_{cert.get('ait_number')}_{timestamp}.png"
+                screenshot_path = evidence_path / screenshot_filename
+
+                with open(screenshot_path, "w", encoding="utf-8") as f:
+                    f.write(f"Screenshot metadata: {json.dumps(cert, indent=2)}")
+                
+                return json.dumps({
+                    "screenshot_captured": True,
+                    "filename": screenshot_filename,
+                    "path": str(screenshot_path),
+                    "timestamp": timestamp,
+                    "certification_details": cert
+                }, indent=2)
+            except Exception as e:
+                return f"Error capturing screenshot: {str(e)}"
+        
+        @tool("AttachToRISETicket")
+        def attach_to_rise_ticket(attachment_data: str) -> str:
+            """Attach screenshot to RISE ticket. Input should be JSON with rise_ticket_id, filename, and path."""
+            try:
+                data = json.loads(attachment_data)
+                
+                # Simulate attachment to RISE
+                attachment_result = {
+                    "attachment_id": f"ATT-{datetime.now().strftime('%Y%m%d%H%M%S')}",
+                    "rise_ticket_id": data.get("rise_ticket_id"),
+                    "filename": data.get("filename"),
+                    "file_path": data.get("path"),
+                    "attached_at": datetime.now().isoformat(),
+                    "status": "attached"
+                }
+                
+                return json.dumps(attachment_result, indent=2)
+            except Exception as e:
+                return f"Error attaching to RISE: {str(e)}"
+        
+        @tool("GenerateClosingComments")
+        def generate_closing_comments(closure_data: str) -> str:
+            """Generate comprehensive closing comments. Input should be JSON with all closure details."""
+            try:
+                data = json.loads(closure_data)
+                
+                comments = {
+                    "summary": f"BRE Rule Certification completed for AIT {data.get('ait_number')}",
+                    "details": {
+                        "total_rules_certified": data.get("rules_certified", 0),
+                        "certification_status": data.get("certification_status", "approved"),
+                        "certified_by": data.get("certified_by", "N/A"),
+                        "certification_date": data.get("certification_date", "N/A"),
+                        "app_owner_comments": data.get("app_owner_comments", "N/A")
+                    },
+                    "actions_taken": [
+                        "Deliverable received from RISE portal",
+                        "BRE Portal checked for pending rules",
+                        "Soft review completed by App Governance",
+                        "Certification request sent to Application Owner",
+                        "Certification completed by Application Owner",
+                        "Evidence screenshot captured and attached"
+                    ],
+                    "outcome": "Successfully certified and closed",
+                    "next_steps": "Rules are now active. Next review scheduled for Q3 2026.",
+                    "closed_by": "App Governance Team",
+                    "closure_timestamp": datetime.now().isoformat()
+                }
+                
+                return json.dumps(comments, indent=2)
+            except Exception as e:
+                return f"Error generating comments: {str(e)}"
+        
+        @tool("CloseDeliverable")
+        def close_deliverable(closing_package: str) -> str:
+            """Close the BRE deliverable in RISE. Input should be JSON with deliverable_id, rise_ticket_id, closing_comments, and evidence_attached."""
+            try:
+                package = json.loads(closing_package)
+                
+                closure_result = {
+                    "deliverable_id": package.get("deliverable_id"),
+                    "rise_ticket_id": package.get("rise_ticket_id"),
+                    "status": "closed",
+                    "closed_at": datetime.now().isoformat(),
+                    "closing_comments": package.get("closing_comments"),
+                    "evidence_attached": package.get("evidence_attached", False),
+                    "final_status": "completed_successfully",
+                    "sla_met": True,
+                    "resolution_time_days": package.get("resolution_time", 4)
+                }
+                
+                return json.dumps(closure_result, indent=2)
+            except Exception as e:
+                return f"Error closing deliverable: {str(e)}"
+        
+        @tool("CreateAuditRecord")
+        def create_audit_record(closure_result: str) -> str:
+            """Create comprehensive audit record. Input should be the closure result JSON."""
+            try:
+                result = json.loads(closure_result)
+                
+                audit_record = {
+                    "audit_id": f"AUDIT-{datetime.now().strftime('%Y%m%d%H%M%S')}",
+                    "deliverable_id": result.get("deliverable_id"),
+                    "process": "BRE_Rule_Certification",
+                    "status": result.get("final_status"),
+                    "completed_at": result.get("closed_at"),
+                    "metrics": {
+                        "sla_met": result.get("sla_met"),
+                        "resolution_time_days": result.get("resolution_time_days"),
+                        "evidence_captured": result.get("evidence_attached")
+                    },
+                    "compliance": "Fully compliant with governance policies",
+                    "archived_at": datetime.now().isoformat()
+                }
+                
+                return json.dumps(audit_record, indent=2)
+            except Exception as e:
+                return f"Error creating audit record: {str(e)}"
+        
+        return [
+            capture_certification_screenshot,
+            attach_to_rise_ticket,
+            generate_closing_comments,
+            close_deliverable,
+            create_audit_record,
+        ]
+    
+    def process(self, deliverable_id: str, rise_ticket_id: str, certification_response: dict) -> Dict[str, Any]:
+        """Process evidence collection and closure"""
+
+        # ---- Fallback without LLM (deterministic workflow) ----
+        if self.agent is None:
+            result: Dict[str, Any] = {
+                "success": False,
+                "deliverable_id": deliverable_id,
+                "rise_ticket_id": rise_ticket_id,
+            }
+
+            # Capture screenshot
+            cert_json = json.dumps(certification_response)
+            screenshot_data = self.tools[0].invoke(cert_json)
+            screenshot_info = json.loads(screenshot_data)
+            result["screenshot"] = screenshot_info
+
+            # Attach to RISE
+            attach_data = json.dumps({
+                "rise_ticket_id": rise_ticket_id,
+                "filename": screenshot_info["filename"],
+                "path": screenshot_info["path"],
+            })
+            result["attachment"] = json.loads(self.tools[1].invoke(attach_data))
+
+            # Generate closing comments
+            closing_data = json.dumps({**certification_response, "deliverable_id": deliverable_id})
+            result["closing_comments"] = json.loads(self.tools[2].invoke(closing_data))
+
+            # Close deliverable
+            closure_package = json.dumps({
+                "deliverable_id": deliverable_id,
+                "rise_ticket_id": rise_ticket_id,
+                "closing_comments": result["closing_comments"],
+                "evidence_attached": True,
+                "resolution_time": 4,
+            })
+            result["closure"] = json.loads(self.tools[3].invoke(closure_package))
+
+            # Create audit record
+            result["audit"] = json.loads(self.tools[4].invoke(json.dumps(result["closure"])))
+            result["success"] = True
+            return result
+
+        # ---- LLM Agent path (tool-using agent) ----
+        user_msg = (
+            "Process evidence and close the BRE deliverable using all available tools.\n\n"
+            "Workflow:\n"
+            "1) Call CaptureCertificationScreenshot(certification_json)\n"
+            "2) Call AttachToRISETicket(attachment_data)\n"
+            "3) Call GenerateClosingComments(closure_data)\n"
+            "4) Call CloseDeliverable(closure_package)\n"
+            "5) Call CreateAuditRecord(closure_result)\n\n"
+            f"Deliverable ID: {deliverable_id}\n"
+            f"RISE Ticket ID: {rise_ticket_id}\n"
+            f"Certification Response: {json.dumps(certification_response)}"
+        )
+
+        state = self.agent.invoke(
+            {
+                "messages": [
+                    {"role": "user", "content": user_msg},
+                ]
+            }
+        )
+
+        final_text = ""
+        try:
+            messages = state.get("messages", [])
+            if messages:
+                last = messages[-1]
+                final_text = getattr(last, "content", "") or (
+                    last.get("content") if isinstance(last, dict) else ""
+                )
+        except Exception:
+            final_text = str(state)
+
+        return {"success": True, "result": final_text, "state": state}

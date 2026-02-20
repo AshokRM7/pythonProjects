@@ -1,0 +1,53 @@
+{
+  "responses": {
+    "BRE-2026-001": {
+      "deliverable_id": "BRE-2026-001",
+      "ait_number": "AIT-67890",
+      "certified_by": "john.smith@company.com",
+      "certification_date": "2026-02-20T10:30:00",
+      "rules_certified": [
+        "RULE-67890-001",
+        "RULE-67890-002",
+        "RULE-67890-003"
+      ],
+      "status": "approved",
+      "comments": "All permission and admin role rules have been reviewed and approved. The changes to sensitive resource access controls are appropriate and justified for the Financial Management System. Security team has also confirmed alignment with corporate policy.",
+      "screenshot_path": "evidence/BRE-2026-001_certification.png"
+    },
+    "BRE-2026-002": {
+      "deliverable_id": "BRE-2026-002",
+      "ait_number": "AIT-11223",
+      "certified_by": "mike.johnson@company.com",
+      "certification_date": "2026-02-20T14:15:00",
+      "rules_certified": [
+        "RULE-11223-001",
+        "RULE-11223-002"
+      ],
+      "status": "approved_with_conditions",
+      "comments": "Business rules for data validation have been reviewed. Input validation rules are approved. However, country code logic rule (RULE-11223-002) requires additional testing in QA environment before production deployment. Please coordinate with QA team before final implementation.",
+      "screenshot_path": "evidence/BRE-2026-002_certification.png"
+    },
+    "BRE-2026-003": {
+      "deliverable_id": "BRE-2026-003",
+      "ait_number": "AIT-44556",
+      "certified_by": "sarah.williams@company.com",
+      "certification_date": "2026-02-20T16:45:00",
+      "rules_certified": [
+        "RULE-44556-001"
+      ],
+      "status": "approved",
+      "comments": "Report Access Control rule has been reviewed and approved. The updated access level changes for the service account are necessary and align with the principle of least privilege. All stakeholders have been notified of the changes.",
+      "screenshot_path": "evidence/BRE-2026-003_certification.png"
+    },
+    "BRE-2026-004": {
+      "deliverable_id": "BRE-2026-004",
+      "ait_number": "AIT-88999",
+      "certified_by": "admin.user@company.com",
+      "certification_date": "2026-02-19T09:00:00",
+      "rules_certified": [],
+      "status": "rejected",
+      "comments": "Cannot certify these rules at this time. The proposed changes conflict with recently updated compliance requirements. Please revise the rules to address the new compliance standards and resubmit for certification.",
+      "screenshot_path": null
+    }
+  }
+}

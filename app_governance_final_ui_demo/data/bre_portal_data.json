@@ -1,0 +1,119 @@
+{
+  "ait_rules": {
+    "AIT-67890": {
+      "ait_number": "AIT-67890",
+      "application_name": "Financial Management System",
+      "pending_rules": [
+        {
+          "rule_id": "RULE-001",
+          "rule_name": "Sensitive_Data_Access",
+          "rule_type": "permission",
+          "description": "Access to PII and financial data",
+          "current_state": "pending_certification",
+          "last_modified": "2026-02-10T10:30:00Z",
+          "changes_from_last_et": [
+            "Added read access to customer_financial_records",
+            "Removed write access to audit_logs"
+          ],
+          "risk_level": "high"
+        },
+        {
+          "rule_id": "RULE-002",
+          "rule_name": "Admin_Role_Assignment",
+          "rule_type": "permission",
+          "description": "Administrative privileges for system operations",
+          "current_state": "pending_certification",
+          "last_modified": "2026-02-12T15:45:00Z",
+          "changes_from_last_et": [
+            "Elevated permissions for deployment account",
+            "Added database admin rights"
+          ],
+          "risk_level": "critical"
+        }
+      ],
+      "certification_history": [
+        {
+          "certification_date": "2025-11-15T09:00:00Z",
+          "certified_by": "john.smith@company.com",
+          "rules_certified": 5,
+          "status": "approved",
+          "comments": "All rules reviewed and approved for Q4 2025"
+        },
+        {
+          "certification_date": "2025-08-20T14:30:00Z",
+          "certified_by": "jane.doe@company.com",
+          "rules_certified": 3,
+          "status": "approved_with_conditions",
+          "comments": "Approved with monitoring requirements"
+        }
+      ]
+    },
+    "AIT-11223": {
+      "ait_number": "AIT-11223",
+      "application_name": "Customer Portal",
+      "pending_rules": [
+        {
+          "rule_id": "RULE-101",
+          "rule_name": "Data_Validation_Rules",
+          "rule_type": "business_rule",
+          "description": "Input validation and data integrity checks",
+          "current_state": "pending_certification",
+          "last_modified": "2026-02-14T11:20:00Z",
+          "changes_from_last_et": [
+            "Updated validation logic for email format",
+            "Added country code validation"
+          ],
+          "risk_level": "medium"
+        }
+      ],
+      "certification_history": [
+        {
+          "certification_date": "2025-12-01T10:15:00Z",
+          "certified_by": "mike.johnson@company.com",
+          "rules_certified": 4,
+          "status": "approved",
+          "comments": "Standard quarterly certification completed"
+        }
+      ]
+    },
+    "AIT-44556": {
+      "ait_number": "AIT-44556",
+      "application_name": "Reporting Dashboard",
+      "pending_rules": [
+        {
+          "rule_id": "RULE-201",
+          "rule_name": "Report_Access_Control",
+          "rule_type": "permission",
+          "description": "Access controls for sensitive reports",
+          "current_state": "pending_certification",
+          "last_modified": "2026-02-16T08:00:00Z",
+          "changes_from_last_et": [
+            "Minor update to access levels"
+          ],
+          "risk_level": "low"
+        }
+      ],
+      "certification_history": []
+    }
+  },
+  "app_owners": {
+    "APP-12345": {
+      "name": "John Smith",
+      "email": "john.smith@company.com",
+      "department": "Finance",
+      "phone": "+1-555-0101"
+    },
+    "APP-54321": {
+      "name": "Mike Johnson",
+      "email": "mike.johnson@company.com",
+      "department": "Customer Operations",
+      "phone": "+1-555-0202"
+    },
+    "APP-99887": {
+      "name": "Sarah Williams",
+      "email": "sarah.williams@company.com",
+      "department": "IT Infrastructure",
+      "phone": "+1-555-0303"
+    }
+  }
+}

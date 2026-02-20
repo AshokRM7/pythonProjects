@@ -12,6 +12,7 @@ from backend.models.ticket_context import Ticket, TicketResponse, Stage
 from datetime import datetime
 import time
 from backend.pcat.api import router as pcat_router, init_pcat_api
+from backend.bre.api import router as bre_router, init_bre_api, load_bre_tickets_into_store
 
 load_dotenv()
 
@@ -37,7 +38,12 @@ async def lifespan(app: FastAPI):
     
     # Initialize PCAT API
     init_pcat_api(current_tickets, manager.broadcast)
-    
+
+    # Initialize BRE API (inject shared store + broadcast)
+    init_bre_api(current_tickets, manager.broadcast)
+    # Load BRE tickets from ticket_data.json into shared store
+    load_bre_tickets_into_store()
+
     # Seed PCAT Demo Ticket
     if os.getenv("ENABLE_PCAT", "true").lower() == "true":
         seed_pcat_demo_ticket()
@@ -56,6 +62,9 @@ app.add_middleware(
 
 # PCAT Implementation
 app.include_router(pcat_router)
+
+# BRE Rule Certification
+app.include_router(bre_router)
 
 # WebSocket connection manager
 class ConnectionManager:

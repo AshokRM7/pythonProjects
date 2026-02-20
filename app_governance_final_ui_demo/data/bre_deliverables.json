@@ -1,0 +1,26 @@
+{
+  "_comment": "BRE deliverable cross-reference index. Full ticket data is in ticket_data.json (category=BRE). App owner details are in apphq_data.json. BRE portal rules are in bre_portal_data.json.",
+  "deliverables": [
+    {
+      "deliverable_id": "BRE-2026-001",
+      "ticket_id": "BRE-2026-001",
+      "rise_ticket_id": "RISE-8901",
+      "ait_number": "AIT-67890",
+      "application_id": "APP-12345"
+    },
+    {
+      "deliverable_id": "BRE-2026-002",
+      "ticket_id": "BRE-2026-002",
+      "rise_ticket_id": "RISE-8902",
+      "ait_number": "AIT-11223",
+      "application_id": "APP-54321"
+    },
+    {
+      "deliverable_id": "BRE-2026-003",
+      "ticket_id": "BRE-2026-003",
+      "rise_ticket_id": "RISE-8903",
+      "ait_number": "AIT-44556",
+      "application_id": "APP-99887"
+    }
+  ]
+}

@@ -1427,5 +1427,50 @@
       "finn@example.com",
       "gina@example.com"
     ]
+  },
+  {
+    "ait_number": "AIT-67890",
+    "arm_id": "ARM-BRE-001",
+    "application_name": "Financial Management System",
+    "application_id": "APP-12345",
+    "application_owner": "john.smith@company.com",
+    "ait_owner": "jane.doe@company.com",
+    "lob_owner": "Finance",
+    "department": "Finance",
+    "phone": "+1-555-0101",
+    "contacts": [
+      "john.smith@company.com",
+      "jane.doe@company.com"
+    ]
+  },
+  {
+    "ait_number": "AIT-11223",
+    "arm_id": "ARM-BRE-002",
+    "application_name": "Customer Portal",
+    "application_id": "APP-54321",
+    "application_owner": "mike.johnson@company.com",
+    "ait_owner": "sarah.wilson@company.com",
+    "lob_owner": "Customer Operations",
+    "department": "Customer Operations",
+    "phone": "+1-555-0202",
+    "contacts": [
+      "mike.johnson@company.com",
+      "sarah.wilson@company.com"
+    ]
+  },
+  {
+    "ait_number": "AIT-44556",
+    "arm_id": "ARM-BRE-003",
+    "application_name": "Reporting Dashboard",
+    "application_id": "APP-99887",
+    "application_owner": "sarah.williams@company.com",
+    "ait_owner": "compliance.team@company.com",
+    "lob_owner": "IT Infrastructure",
+    "department": "IT Infrastructure",
+    "phone": "+1-555-0303",
+    "contacts": [
+      "sarah.williams@company.com",
+      "compliance.team@company.com"
+    ]
   }
 ]
