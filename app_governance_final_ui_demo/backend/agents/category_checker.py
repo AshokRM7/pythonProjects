@@ -65,7 +65,8 @@ class CategoryCheckerAgent:
             iam_tickets = []
             for t in tickets.tickets:
                 if t.category and t.category.upper() == "IAM":
-                    t.deliverableType = "IAM Category"
+                    if not t.deliverableType or t.deliverableType.upper() == "IAM":
+                        t.deliverableType = "IAM Category"
                     # Update Stage 2
                     for stage in t.stages:
                         if "Category Check" in stage.name:

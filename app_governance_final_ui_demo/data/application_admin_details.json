@@ -1,0 +1,32 @@
+[
+  {
+    "ait_number": "AIT-5001",
+    "application_name": "Payments Gateway",
+    "app_owner_name": "Abid Shaikh",
+    "app_owner_email": "abidshaikh@example.com",
+    "primary_admin_name": "",
+    "primary_nbkid": "",
+    "secondary_admin_name": "",
+    "secondary_nbkid": ""
+  },
+  {
+    "ait_number": "AIT-5002",
+    "application_name": "RMS",
+    "app_owner_name": "John Wreck",
+    "app_owner_email": "johnwreck@example.com",
+    "primary_admin_name": "Ganesh Murthy",
+    "primary_nbkid": "ID99001",
+    "secondary_admin_name": "Vikram Singh",
+    "secondary_nbkid": "ID99002"
+  },
+  {
+    "ait_number": "AIT-5003",
+    "application_name": "Employee Portal",
+    "app_owner_email": "johnmichael@example.com",
+    "app_owner_name": "John Michael",
+    "primary_admin_name": "Ganesh Murthy",
+    "primary_nbkid": "ID99001",
+    "secondary_admin_name": "Suresh Raina",
+    "secondary_nbkid": "ID00202"
+  }
+]

@@ -194,7 +194,7 @@ export const MultiSelectDropdown: React.FC<MultiSelectDropdownProps> = ({
 
                     {/* Label */}
                     <span
-                        className={`text-xs truncate flex-1 ${isSelected ? 'font-medium' : ''}`}
+                        className={`text-xs flex-1 ${isSelected ? 'font-medium' : ''}`}
                         title={option.label}
                         onClick={() => handleToggle(option.value)}
                     >
@@ -232,7 +232,7 @@ export const MultiSelectDropdown: React.FC<MultiSelectDropdownProps> = ({
             </button>
 
             {isOpen && (
-                <div className="absolute z-50 mt-2 w-[450px] bg-white rounded-xl shadow-xl border border-gray-100 p-4 animate-in fade-in zoom-in-95 duration-100 origin-top-left">
+                <div className="absolute z-50 mt-2 w-[500px] bg-white rounded-xl shadow-xl border border-gray-100 p-4 animate-in fade-in zoom-in-95 duration-100 origin-top-left">
                     {/* Search */}
                     <div className="relative mb-3">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />

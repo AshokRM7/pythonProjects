@@ -58,7 +58,8 @@ class DeliverableIntakeAgent:
                     tickets = json.load(f)
 
                 for ticket in tickets:
-                    if ticket.get("ticket_id") == deliverable_id and ticket.get("category", "").upper() == "BRE":
+                    is_bre = ticket.get("category", "").upper() == "BRE" or (ticket.get("category", "").upper() == "IAM" and ticket.get("subcategory", "").upper() == "BRE")
+                    if ticket.get("ticket_id") == deliverable_id and is_bre:
                         # Map ticket fields to BREDeliverable-compatible format
                         status_raw = ticket.get("status", "open").lower().replace(" ", "_")
                         status_map = {

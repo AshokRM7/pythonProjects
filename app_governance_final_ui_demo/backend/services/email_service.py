@@ -13,8 +13,9 @@ def validate_emails(email_list):
     regex = r'^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$'
     valid_emails = []
     for email in email_list:
-        if re.match(regex, email.strip().lower()):
-            valid_emails.append(email.strip())
+        e = email.strip().lower()
+        if re.match(regex, e):
+            valid_emails.append(e)
     return valid_emails
 
 def send_email(to: list[str], subject: str, body: str) -> dict:
@@ -29,6 +30,7 @@ def send_email(to: list[str], subject: str, body: str) -> dict:
     smtp_from = os.getenv("SMTP_FROM", smtp_username)
     
     valid_to = validate_emails(to)
+
     if not valid_to:
         return {"sent": False, "error": "No valid recipient email addresses found."}
 
@@ -55,7 +57,8 @@ def send_email(to: list[str], subject: str, body: str) -> dict:
         server = smtplib.SMTP(smtp_host, smtp_port)
         server.starttls()
         server.login(smtp_username, smtp_password)
-        server.send_message(msg)
+        
+        server.sendmail(smtp_from, valid_to, msg.as_string())
         server.quit()
 
         return {

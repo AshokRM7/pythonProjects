@@ -62,14 +62,22 @@ class CertificationSubmissionAgent:
 
                 for entry in apphq_data:
                     if entry.get("ait_number") == ait_number:
+                        # Determine email: prioritize contacts list first
+                        contacts = entry.get("contacts", [])
+                        email = ""
+                        if contacts:
+                            email = contacts[0]
+                        if not email:
+                            email = entry.get("application_owner", "")
+                            
                         app_owner = {
-                            "name": entry.get("application_owner", "").split("@")[0].replace(".", " ").title(),
-                            "email": entry.get("application_owner", ""),
+                            "name": entry.get("application_owner", "").split("@")[0].replace(".", " ").title() if "@" in entry.get("application_owner", "") else entry.get("application_owner", ""),
+                            "email": email,
                             "department": entry.get("lob_owner", entry.get("department", "N/A")),
                             "phone": entry.get("phone", "N/A"),
                             "ait_owner": entry.get("ait_owner", ""),
                             "application_name": entry.get("application_name", ""),
-                            "contacts": entry.get("contacts", []),
+                            "contacts": contacts,
                         }
                         return json.dumps(app_owner, indent=2)
 

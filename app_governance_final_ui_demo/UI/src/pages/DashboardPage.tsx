@@ -79,19 +79,20 @@ export const DashboardPage = () => {
 
     // Add categories with hierarchical structure
     categories.forEach(cat => {
-      if (cat === 'IAM') {
+      if (cat === 'IAM' || cat === 'BRE') {
         const iamOption: any = {
           value: 'IAM_GROUP',
           label: 'IAM CATEGORY',
           children: [
-            { value: 'IAM', label: 'IAM-PAST DUE' }
+            { value: 'IAM', label: 'IAM-PAST DUE' },
+            { value: 'BRE', label: 'BRE' }
           ]
         };
 
         // Add PCAT and Toxic Combination as children
         iamOption.children.push({ value: 'PCAT', label: 'PCAT' });
         iamOption.children.push({ value: 'TOXIC COMBINATION', label: 'TOXIC COMBINATION' });
-        iamOption.children.push({ value: 'ARM FORM', label: 'ARM FORM' });
+        iamOption.children.push({ value: 'ARM FORMS NO ADMIN', label: 'ARM FORMS NO ADMIN' });
         iamOption.children.push({ value: 'NON-HUMAN ACCOUNTS', label: 'NON-HUMAN ACCOUNTS' });
         iamOption.children.push({ value: 'DORMANCY ALERT', label: 'DORMANCY ALERT' });
         iamOption.children.push({ value: 'INTRA AIT', label: 'INTRA AIT' });
@@ -99,7 +100,12 @@ export const DashboardPage = () => {
         iamOption.children.push({ value: 'PCAT-QUARANTINE', label: 'PCAT-QUARANTINE' });
         iamOption.children.push({ value: 'PCAT-DUPLICATE', label: 'PCAT-DUPLICATE' });
 
-        categoryOptions.push(iamOption);
+        // If IAM_GROUP already exists in categoryOptions, just skip or merge?
+        // Actually, the categories.forEach will run for each unique category.
+        // We only want to push iamOption ONCE.
+        if (!categoryOptions.find(o => o.value === 'IAM_GROUP')) {
+          categoryOptions.push(iamOption);
+        }
       } else if (cat !== 'PCAT') {
         // Add other categories normally (exclude individual PCAT from top level)
         categoryOptions.push({ value: cat, label: cat });

@@ -4,7 +4,7 @@
     "jira_story": "JIRA-BRE-001",
     "ait_number": "AIT-67890",
     "deliverableType": "BRE Rule Certification",
-    "category": "BRE",
+    "category": "IAM",
     "ticket_type": "BRE",
     "risk_level": "High",
     "sla_deadline": "2026-03-01",
@@ -16,20 +16,24 @@
     "application_owner": "john.smith@company.com",
     "lob_owner": "Finance",
     "ait_owner": "jane.doe@company.com",
-    "contacts": ["john.smith@company.com", "jane.doe@company.com"],
+    "contacts": [
+      "john.smith@company.com",
+      "jane.doe@company.com"
+    ],
     "status": "Open",
     "priority": "High",
     "owner": "Unassigned",
     "rise_ticket_id": "RISE-8901",
     "violation_type": "permission_violation",
-    "assigned_to": "app_governance_team"
+    "assigned_to": "app_governance_team",
+    "subcategory": "BRE"
   },
   {
     "ticket_id": "BRE-2026-002",
     "jira_story": "JIRA-BRE-002",
     "ait_number": "AIT-11223",
     "deliverableType": "BRE Rule Certification",
-    "category": "BRE",
+    "category": "IAM",
     "ticket_type": "BRE",
     "risk_level": "Medium",
     "sla_deadline": "2026-03-08",
@@ -41,20 +45,24 @@
     "application_owner": "mike.johnson@company.com",
     "lob_owner": "Customer Operations",
     "ait_owner": "sarah.wilson@company.com",
-    "contacts": ["mike.johnson@company.com", "sarah.wilson@company.com"],
+    "contacts": [
+      "mike.johnson@company.com",
+      "sarah.wilson@company.com"
+    ],
     "status": "Open",
     "priority": "Medium",
     "owner": "Unassigned",
     "rise_ticket_id": "RISE-8902",
     "violation_type": "rule_violation",
-    "assigned_to": "app_governance_team"
+    "assigned_to": "app_governance_team",
+    "subcategory": "BRE"
   },
   {
     "ticket_id": "BRE-2026-003",
     "jira_story": "JIRA-BRE-003",
     "ait_number": "AIT-44556",
     "deliverableType": "BRE Rule Certification",
-    "category": "BRE",
+    "category": "IAM",
     "ticket_type": "BRE",
     "risk_level": "Low",
     "sla_deadline": "2026-03-15",
@@ -66,13 +74,17 @@
     "application_owner": "sarah.williams@company.com",
     "lob_owner": "IT Infrastructure",
     "ait_owner": "compliance.team@company.com",
-    "contacts": ["sarah.williams@company.com", "compliance.team@company.com"],
+    "contacts": [
+      "sarah.williams@company.com",
+      "compliance.team@company.com"
+    ],
     "status": "In Review",
     "priority": "Low",
     "owner": "Unassigned",
     "rise_ticket_id": "RISE-8903",
     "violation_type": "permission_violation",
-    "assigned_to": "app_governance_team"
+    "assigned_to": "app_governance_team",
+    "subcategory": "BRE"
   },
   {
     "ticket_id": "REQ9999",
@@ -98,7 +110,8 @@
     "employee_id": "E1023",
     "user_email": "leaver.crm@example.com",
     "target_system": "CRM_DB",
-    "requested_action": "REVOKE_DB_ACCESS"
+    "requested_action": "REVOKE_DB_ACCESS",
+    "subcategory": "IAM"
   },
   {
     "ticket_id": "REQ1000",
@@ -122,7 +135,8 @@
     ],
     "status": "Waiting for Evidence",
     "priority": "Medium",
-    "owner": "paul@example.com"
+    "owner": "paul@example.com",
+    "subcategory": "TOXIC COMBINATION"
   },
   {
     "ticket_id": "REQ1001",
@@ -146,31 +160,8 @@
     ],
     "status": "In Progress",
     "priority": "High",
-    "owner": "ben@example.com"
-  },
-  {
-    "ticket_id": "REQ1002",
-    "jira_story": "JIRA-69404",
-    "ait_number": "AIT-6860",
-    "deliverableType": "DATA Category",
-    "category": "DATA",
-    "risk_level": "Low",
-    "sla_deadline": "2025-12-28",
-    "created_on": "2025-12-21",
-    "description": "Automated ticket generation for DATA issue in Cloud Services Platform.",
-    "arm_id": "ARM-4110",
-    "application_name": "Cloud Services Platform",
-    "application_owner": "yara@example.com",
-    "lob_owner": "IT LOB",
-    "ait_owner": "Manager Name",
-    "contacts": [
-      "yara@example.com",
-      "zack@example.com",
-      "amy@example.com"
-    ],
-    "status": "Open",
-    "priority": "Low",
-    "owner": "yara@example.com"
+    "owner": "ben@example.com",
+    "subcategory": "TOXIC COMBINATION"
   },
   {
     "ticket_id": "REQ1003",
@@ -194,7 +185,8 @@
     ],
     "status": "Open",
     "priority": "Critical",
-    "owner": "david@example.com"
+    "owner": "david@example.com",
+    "subcategory": "IAM"
   },
   {
     "ticket_id": "REQ1004",
@@ -242,55 +234,8 @@
     ],
     "status": "Open",
     "priority": "Critical",
-    "owner": "victor@example.com"
-  },
-  {
-    "ticket_id": "REQ1006",
-    "jira_story": "JIRA-97679",
-    "ait_number": "AIT-6460",
-    "deliverableType": "APP Category",
-    "category": "APP",
-    "risk_level": "Low",
-    "sla_deadline": "2025-12-11",
-    "created_on": "2025-12-03",
-    "description": "Automated ticket generation for APP issue in Database Management System.",
-    "arm_id": "ARM-7148",
-    "application_name": "Database Management System",
-    "application_owner": "emma@example.com",
-    "lob_owner": "IT LOB",
-    "ait_owner": "Manager Name",
-    "contacts": [
-      "emma@example.com",
-      "finn@example.com",
-      "gina@example.com"
-    ],
-    "status": "Closed",
-    "priority": "Low",
-    "owner": "emma@example.com"
-  },
-  {
-    "ticket_id": "REQ1007",
-    "jira_story": "JIRA-35972",
-    "ait_number": "AIT-5515",
-    "deliverableType": "APP Category",
-    "category": "APP",
-    "risk_level": "High",
-    "sla_deadline": "2025-12-28",
-    "created_on": "2025-12-16",
-    "description": "Automated ticket generation for APP issue in Customer Portal.",
-    "arm_id": "ARM-3845",
-    "application_name": "Customer Portal",
-    "application_owner": "paul@example.com",
-    "lob_owner": "IT LOB",
-    "ait_owner": "Manager Name",
-    "contacts": [
-      "paul@example.com",
-      "quinn@example.com",
-      "rachel@example.com"
-    ],
-    "status": "Open",
-    "priority": "High",
-    "owner": "paul@example.com"
+    "owner": "victor@example.com",
+    "subcategory": "IAM"
   },
   {
     "ticket_id": "REQ1008",
@@ -314,7 +259,8 @@
     ],
     "status": "Open",
     "priority": "Medium",
-    "owner": "paul@example.com"
+    "owner": "paul@example.com",
+    "subcategory": "IAM"
   },
   {
     "ticket_id": "REQ1009",
@@ -328,7 +274,7 @@
     "description": "Automated ticket generation for IAM issue in Sales CRM.",
     "arm_id": "ARM-8899",
     "application_name": "Sales CRM",
-    "application_owner": "ashns200@gmail.com",
+    "application_owner": "ashns200@example.com",
     "lob_owner": "IT LOB",
     "ait_owner": "Manager Name",
     "contacts": [
@@ -338,7 +284,8 @@
     ],
     "status": "Open",
     "priority": "Medium",
-    "owner": "ashns200@gmail.com"
+    "owner": "ashns200@gmail.com",
+    "subcategory": "IAM"
   },
   {
     "ticket_id": "REQ1010",
@@ -362,7 +309,8 @@
     ],
     "status": "Waiting for Evidence",
     "priority": "Low",
-    "owner": "paul@example.com"
+    "owner": "paul@example.com",
+    "subcategory": "IAM"
   },
   {
     "ticket_id": "REQ1011",
@@ -386,7 +334,8 @@
     ],
     "status": "Pending",
     "priority": "Low",
-    "owner": "sam@example.com"
+    "owner": "sam@example.com",
+    "subcategory": "IAM"
   },
   {
     "ticket_id": "REQ1012",
@@ -410,79 +359,8 @@
     ],
     "status": "Pending",
     "priority": "Critical",
-    "owner": "grace@example.com"
-  },
-  {
-    "ticket_id": "REQ1013",
-    "jira_story": "JIRA-15256",
-    "ait_number": "AIT-2247",
-    "deliverableType": "APP Category",
-    "category": "APP",
-    "risk_level": "Low",
-    "sla_deadline": "2025-12-30",
-    "created_on": "2025-12-18",
-    "description": "Automated ticket generation for APP issue in Employee Directory.",
-    "arm_id": "ARM-7356",
-    "application_name": "Employee Directory",
-    "application_owner": "victor@example.com",
-    "lob_owner": "IT LOB",
-    "ait_owner": "Manager Name",
-    "contacts": [
-      "victor@example.com",
-      "wendy@example.com",
-      "xavier@example.com"
-    ],
-    "status": "Open",
-    "priority": "Low",
-    "owner": "victor@example.com"
-  },
-  {
-    "ticket_id": "REQ1014",
-    "jira_story": "JIRA-47870",
-    "ait_number": "AIT-6807",
-    "deliverableType": "APP Category",
-    "category": "APP",
-    "risk_level": "Medium",
-    "sla_deadline": "2025-12-24",
-    "created_on": "2025-12-20",
-    "description": "Automated ticket generation for APP issue in Sales CRM.",
-    "arm_id": "ARM-2953",
-    "application_name": "Sales CRM",
-    "application_owner": "ben@example.com",
-    "lob_owner": "IT LOB",
-    "ait_owner": "Manager Name",
-    "contacts": [
-      "ben@example.com",
-      "clara@example.com",
-      "dan@example.com"
-    ],
-    "status": "Closed",
-    "priority": "Medium",
-    "owner": "ben@example.com"
-  },
-  {
-    "ticket_id": "REQ1015",
-    "jira_story": "JIRA-53305",
-    "ait_number": "AIT-1889",
-    "deliverableType": "DATA Category",
-    "category": "DATA",
-    "risk_level": "Low",
-    "sla_deadline": "2025-12-20",
-    "created_on": "2025-12-17",
-    "description": "Automated ticket generation for DATA issue in Cloud Services Platform.",
-    "arm_id": "ARM-2463",
-    "application_name": "Cloud Services Platform",
-    "application_owner": "yara@example.com",
-    "lob_owner": "IT LOB",
-    "ait_owner": "Manager Name",
-    "contacts": [
-      "yara@example.com",
-      "zack@example.com",
-      "amy@example.com"
-    ],
-    "status": "Waiting for Evidence",
-    "priority": "Low",
-    "owner": "yara@example.com"
+    "owner": "grace@example.com",
+    "subcategory": "IAM"
   },
   {
     "ticket_id": "REQ1016",
@@ -506,7 +384,8 @@
     ],
     "status": "Closed",
     "priority": "High",
-    "owner": "david@example.com"
+    "owner": "david@example.com",
+    "subcategory": "IAM"
   },
   {
     "ticket_id": "REQ1017",
@@ -554,7 +433,8 @@
     ],
     "status": "Open",
     "priority": "Medium",
-    "owner": "mary@example.com"
+    "owner": "mary@example.com",
+    "subcategory": "IAM"
   },
   {
     "ticket_id": "REQ1019",
@@ -578,7 +458,8 @@
     ],
     "status": "Open",
     "priority": "Medium",
-    "owner": "jack@example.com"
+    "owner": "jack@example.com",
+    "subcategory": "IAM"
   },
   {
     "ticket_id": "REQ1020",
@@ -602,7 +483,8 @@
     ],
     "status": "Recent Issues",
     "priority": "Medium",
-    "owner": "yara@example.com"
+    "owner": "yara@example.com",
+    "subcategory": "IAM"
   },
   {
     "ticket_id": "REQ1021",
@@ -626,7 +508,8 @@
     ],
     "status": "Open",
     "priority": "Low",
-    "owner": "paul@example.com"
+    "owner": "paul@example.com",
+    "subcategory": "IAM"
   },
   {
     "ticket_id": "REQ1022",
@@ -650,31 +533,8 @@
     ],
     "status": "Pending",
     "priority": "Low",
-    "owner": "alice@example.com"
-  },
-  {
-    "ticket_id": "REQ1023",
-    "jira_story": "JIRA-90007",
-    "ait_number": "AIT-9938",
-    "deliverableType": "DATA Category",
-    "category": "DATA",
-    "risk_level": "Medium",
-    "sla_deadline": "2025-12-31",
-    "created_on": "2025-12-22",
-    "description": "Automated ticket generation for DATA issue in Authentication Service.",
-    "arm_id": "ARM-3540",
-    "application_name": "Authentication Service",
-    "application_owner": "jack@example.com",
-    "lob_owner": "IT LOB",
-    "ait_owner": "Manager Name",
-    "contacts": [
-      "jack@example.com",
-      "kate@example.com",
-      "leo@example.com"
-    ],
-    "status": "Recent Issues",
-    "priority": "Medium",
-    "owner": "jack@example.com"
+    "owner": "alice@example.com",
+    "subcategory": "IAM"
   },
   {
     "ticket_id": "REQ1024",
@@ -722,31 +582,8 @@
     ],
     "status": "Open",
     "priority": "Critical",
-    "owner": "yara@example.com"
-  },
-  {
-    "ticket_id": "REQ1026",
-    "jira_story": "JIRA-65339",
-    "ait_number": "AIT-5006",
-    "deliverableType": "APP Category",
-    "category": "APP",
-    "risk_level": "Critical",
-    "sla_deadline": "2025-12-27",
-    "created_on": "2025-12-14",
-    "description": "Automated ticket generation for APP issue in CRM Database.",
-    "arm_id": "ARM-7341",
-    "application_name": "CRM Database",
-    "application_owner": "grace@example.com",
-    "lob_owner": "IT LOB",
-    "ait_owner": "Manager Name",
-    "contacts": [
-      "grace@example.com",
-      "henry@example.com",
-      "iris@example.com"
-    ],
-    "status": "In Progress",
-    "priority": "Critical",
-    "owner": "grace@example.com"
+    "owner": "yara@example.com",
+    "subcategory": "IAM"
   },
   {
     "ticket_id": "REQ1027",
@@ -794,7 +631,8 @@
     ],
     "status": "Waiting for Evidence",
     "priority": "High",
-    "owner": "victor@example.com"
+    "owner": "victor@example.com",
+    "subcategory": "IAM"
   },
   {
     "ticket_id": "REQ1029",
@@ -818,31 +656,8 @@
     ],
     "status": "Waiting for Evidence",
     "priority": "Medium",
-    "owner": "paul@example.com"
-  },
-  {
-    "ticket_id": "REQ1030",
-    "jira_story": "JIRA-77620",
-    "ait_number": "AIT-5444",
-    "deliverableType": "APP Category",
-    "category": "APP",
-    "risk_level": "High",
-    "sla_deadline": "2025-12-24",
-    "created_on": "2025-12-19",
-    "description": "Automated ticket generation for APP issue in Authentication Service.",
-    "arm_id": "ARM-2803",
-    "application_name": "Authentication Service",
-    "application_owner": "jack@example.com",
-    "lob_owner": "IT LOB",
-    "ait_owner": "Manager Name",
-    "contacts": [
-      "jack@example.com",
-      "kate@example.com",
-      "leo@example.com"
-    ],
-    "status": "Open",
-    "priority": "High",
-    "owner": "jack@example.com"
+    "owner": "paul@example.com",
+    "subcategory": "IAM"
   },
   {
     "ticket_id": "REQ1031",
@@ -866,31 +681,8 @@
     ],
     "status": "Open",
     "priority": "Low",
-    "owner": "emma@example.com"
-  },
-  {
-    "ticket_id": "REQ1032",
-    "jira_story": "JIRA-37226",
-    "ait_number": "AIT-3155",
-    "deliverableType": "DATA Category",
-    "category": "DATA",
-    "risk_level": "High",
-    "sla_deadline": "2025-12-31",
-    "created_on": "2025-12-19",
-    "description": "Automated ticket generation for DATA issue in Marketing Platform.",
-    "arm_id": "ARM-8246",
-    "application_name": "Marketing Platform",
-    "application_owner": "mary@example.com",
-    "lob_owner": "IT LOB",
-    "ait_owner": "Manager Name",
-    "contacts": [
-      "mary@example.com",
-      "nathan@example.com",
-      "olivia@example.com"
-    ],
-    "status": "Pending",
-    "priority": "High",
-    "owner": "mary@example.com"
+    "owner": "emma@example.com",
+    "subcategory": "IAM"
   },
   {
     "ticket_id": "REQ1033",
@@ -914,7 +706,8 @@
     ],
     "status": "Pending",
     "priority": "High",
-    "owner": "emma@example.com"
+    "owner": "emma@example.com",
+    "subcategory": "IAM"
   },
   {
     "ticket_id": "REQ1034",
@@ -938,7 +731,8 @@
     ],
     "status": "Open",
     "priority": "Low",
-    "owner": "alice@example.com"
+    "owner": "alice@example.com",
+    "subcategory": "IAM"
   },
   {
     "ticket_id": "REQ1035",
@@ -962,31 +756,8 @@
     ],
     "status": "Open",
     "priority": "High",
-    "owner": "yara@example.com"
-  },
-  {
-    "ticket_id": "REQ1036",
-    "jira_story": "JIRA-76562",
-    "ait_number": "AIT-8649",
-    "deliverableType": "DATA Category",
-    "category": "DATA",
-    "risk_level": "Medium",
-    "sla_deadline": "2025-12-15",
-    "created_on": "2025-12-11",
-    "description": "Automated ticket generation for DATA issue in Sales CRM.",
-    "arm_id": "ARM-6934",
-    "application_name": "Sales CRM",
-    "application_owner": "ben@example.com",
-    "lob_owner": "IT LOB",
-    "ait_owner": "Manager Name",
-    "contacts": [
-      "ben@example.com",
-      "clara@example.com",
-      "dan@example.com"
-    ],
-    "status": "Waiting for Evidence",
-    "priority": "Medium",
-    "owner": "ben@example.com"
+    "owner": "yara@example.com",
+    "subcategory": "IAM"
   },
   {
     "ticket_id": "REQ1037",
@@ -1010,7 +781,8 @@
     ],
     "status": "Recent Issues",
     "priority": "High",
-    "owner": "victor@example.com"
+    "owner": "victor@example.com",
+    "subcategory": "IAM"
   },
   {
     "ticket_id": "REQ1038",
@@ -1034,7 +806,8 @@
     ],
     "status": "Open",
     "priority": "Low",
-    "owner": "david@example.com"
+    "owner": "david@example.com",
+    "subcategory": "IAM"
   },
   {
     "ticket_id": "REQ1039",
@@ -1058,31 +831,8 @@
     ],
     "status": "In Progress",
     "priority": "High",
-    "owner": "grace@example.com"
-  },
-  {
-    "ticket_id": "REQ1040",
-    "jira_story": "JIRA-72441",
-    "ait_number": "AIT-8611",
-    "deliverableType": "DATA Category",
-    "category": "DATA",
-    "risk_level": "Low",
-    "sla_deadline": "2025-12-17",
-    "created_on": "2025-12-13",
-    "description": "Automated ticket generation for DATA issue in HR System.",
-    "arm_id": "ARM-1993",
-    "application_name": "HR System",
-    "application_owner": "david@example.com",
-    "lob_owner": "IT LOB",
-    "ait_owner": "Manager Name",
-    "contacts": [
-      "david@example.com",
-      "eva@example.com",
-      "frank@example.com"
-    ],
-    "status": "Pending",
-    "priority": "Low",
-    "owner": "david@example.com"
+    "owner": "grace@example.com",
+    "subcategory": "IAM"
   },
   {
     "ticket_id": "REQ1041",
@@ -1106,7 +856,8 @@
     ],
     "status": "In Progress",
     "priority": "High",
-    "owner": "yara@example.com"
+    "owner": "yara@example.com",
+    "subcategory": "IAM"
   },
   {
     "ticket_id": "REQ1042",
@@ -1154,7 +905,8 @@
     ],
     "status": "Recent Issues",
     "priority": "Critical",
-    "owner": "alice@example.com"
+    "owner": "alice@example.com",
+    "subcategory": "IAM"
   },
   {
     "ticket_id": "REQ1044",
@@ -1178,7 +930,8 @@
     ],
     "status": "Open",
     "priority": "Low",
-    "owner": "ben@example.com"
+    "owner": "ben@example.com",
+    "subcategory": "IAM"
   },
   {
     "ticket_id": "REQ1045",
@@ -1202,31 +955,8 @@
     ],
     "status": "Waiting for Evidence",
     "priority": "Medium",
-    "owner": "yara@example.com"
-  },
-  {
-    "ticket_id": "REQ1046",
-    "jira_story": "JIRA-62632",
-    "ait_number": "AIT-6354",
-    "deliverableType": "APP Category",
-    "category": "APP",
-    "risk_level": "High",
-    "sla_deadline": "2025-12-26",
-    "created_on": "2025-12-21",
-    "description": "Automated ticket generation for APP issue in Employee Directory.",
-    "arm_id": "ARM-2533",
-    "application_name": "Employee Directory",
-    "application_owner": "victor@example.com",
-    "lob_owner": "IT LOB",
-    "ait_owner": "Manager Name",
-    "contacts": [
-      "victor@example.com",
-      "wendy@example.com",
-      "xavier@example.com"
-    ],
-    "status": "Recent Issues",
-    "priority": "High",
-    "owner": "victor@example.com"
+    "owner": "yara@example.com",
+    "subcategory": "IAM"
   },
   {
     "ticket_id": "REQ1047",
@@ -1250,7 +980,8 @@
     ],
     "status": "Open",
     "priority": "High",
-    "owner": "sam@example.com"
+    "owner": "sam@example.com",
+    "subcategory": "IAM"
   },
   {
     "ticket_id": "REQ1048",
@@ -1298,7 +1029,8 @@
     ],
     "status": "Open",
     "priority": "Critical",
-    "owner": "alice@example.com"
+    "owner": "alice@example.com",
+    "subcategory": "IAM"
   },
   {
     "ticket_id": "REQ1050",
@@ -1346,7 +1078,8 @@
     ],
     "status": "In Progress",
     "priority": "High",
-    "owner": "jack@example.com"
+    "owner": "jack@example.com",
+    "subcategory": "IAM"
   },
   {
     "ticket_id": "REQ1052",
@@ -1370,7 +1103,8 @@
     ],
     "status": "Pending",
     "priority": "Medium",
-    "owner": "yara@example.com"
+    "owner": "yara@example.com",
+    "subcategory": "IAM"
   },
   {
     "ticket_id": "REQ1053",
@@ -1394,7 +1128,8 @@
     ],
     "status": "Pending",
     "priority": "Critical",
-    "owner": "victor@example.com"
+    "owner": "victor@example.com",
+    "subcategory": "IAM"
   },
   {
     "ticket_id": "REQ1054",
@@ -1418,31 +1153,8 @@
     ],
     "status": "In Progress",
     "priority": "Low",
-    "owner": "ben@example.com"
-  },
-  {
-    "ticket_id": "REQ1055",
-    "jira_story": "JIRA-69660",
-    "ait_number": "AIT-1145",
-    "deliverableType": "APP Category",
-    "category": "APP",
-    "risk_level": "Critical",
-    "sla_deadline": "2025-11-28",
-    "created_on": "2025-11-25",
-    "description": "Automated ticket generation for APP issue in CRM Database.",
-    "arm_id": "ARM-4850",
-    "application_name": "CRM Database",
-    "application_owner": "grace@example.com",
-    "lob_owner": "IT LOB",
-    "ait_owner": "Manager Name",
-    "contacts": [
-      "grace@example.com",
-      "henry@example.com",
-      "iris@example.com"
-    ],
-    "status": "Closed",
-    "priority": "Critical",
-    "owner": "grace@example.com"
+    "owner": "ben@example.com",
+    "subcategory": "IAM"
   },
   {
     "ticket_id": "REQ1056",
@@ -1466,31 +1178,8 @@
     ],
     "status": "Closed",
     "priority": "Critical",
-    "owner": "grace@example.com"
-  },
-  {
-    "ticket_id": "REQ1057",
-    "jira_story": "JIRA-55275",
-    "ait_number": "AIT-2637",
-    "deliverableType": "DATA Category",
-    "category": "DATA",
-    "risk_level": "Critical",
-    "sla_deadline": "2026-01-04",
-    "created_on": "2025-12-22",
-    "description": "Automated ticket generation for DATA issue in ERP System.",
-    "arm_id": "ARM-9696",
-    "application_name": "ERP System",
-    "application_owner": "sam@example.com",
-    "lob_owner": "IT LOB",
-    "ait_owner": "Manager Name",
-    "contacts": [
-      "sam@example.com",
-      "tina@example.com",
-      "uma@example.com"
-    ],
-    "status": "Recent Issues",
-    "priority": "Critical",
-    "owner": "sam@example.com"
+    "owner": "grace@example.com",
+    "subcategory": "IAM"
   },
   {
     "ticket_id": "REQ1058",
@@ -1514,7 +1203,8 @@
     ],
     "status": "Recent Issues",
     "priority": "Medium",
-    "owner": "ben@example.com"
+    "owner": "ben@example.com",
+    "subcategory": "IAM"
   },
   {
     "ticket_id": "REQ1059",
@@ -1538,31 +1228,8 @@
     ],
     "status": "Open",
     "priority": "Low",
-    "owner": "paul@example.com"
-  },
-  {
-    "ticket_id": "REQ1060",
-    "jira_story": "JIRA-99139",
-    "ait_number": "AIT-1617",
-    "deliverableType": "DATA Category",
-    "category": "DATA",
-    "risk_level": "High",
-    "sla_deadline": "2025-12-27",
-    "created_on": "2025-12-16",
-    "description": "Automated ticket generation for DATA issue in HR System.",
-    "arm_id": "ARM-5190",
-    "application_name": "HR System",
-    "application_owner": "david@example.com",
-    "lob_owner": "IT LOB",
-    "ait_owner": "Manager Name",
-    "contacts": [
-      "david@example.com",
-      "eva@example.com",
-      "frank@example.com"
-    ],
-    "status": "In Progress",
-    "priority": "High",
-    "owner": "david@example.com"
+    "owner": "paul@example.com",
+    "subcategory": "IAM"
   },
   {
     "ticket_id": "REQ1061",
@@ -1586,31 +1253,8 @@
     ],
     "status": "Open",
     "priority": "Medium",
-    "owner": "alice@example.com"
-  },
-  {
-    "ticket_id": "REQ1062",
-    "jira_story": "JIRA-51198",
-    "ait_number": "AIT-1805",
-    "deliverableType": "DATA Category",
-    "category": "DATA",
-    "risk_level": "Critical",
-    "sla_deadline": "2025-12-24",
-    "created_on": "2025-12-16",
-    "description": "Automated ticket generation for DATA issue in Customer Portal.",
-    "arm_id": "ARM-9611",
-    "application_name": "Customer Portal",
-    "application_owner": "paul@example.com",
-    "lob_owner": "IT LOB",
-    "ait_owner": "Manager Name",
-    "contacts": [
-      "paul@example.com",
-      "quinn@example.com",
-      "rachel@example.com"
-    ],
-    "status": "Closed",
-    "priority": "Critical",
-    "owner": "paul@example.com"
+    "owner": "alice@example.com",
+    "subcategory": "IAM"
   },
   {
     "ticket_id": "REQ1063",
@@ -1634,7 +1278,8 @@
     ],
     "status": "Recent Issues",
     "priority": "Medium",
-    "owner": "paul@example.com"
+    "owner": "paul@example.com",
+    "subcategory": "IAM"
   },
   {
     "ticket_id": "REQ1064",
@@ -1658,7 +1303,8 @@
     ],
     "status": "Closed",
     "priority": "High",
-    "owner": "grace@example.com"
+    "owner": "grace@example.com",
+    "subcategory": "IAM"
   },
   {
     "ticket_id": "REQ1065",
@@ -1682,7 +1328,8 @@
     ],
     "status": "Pending",
     "priority": "Critical",
-    "owner": "yara@example.com"
+    "owner": "yara@example.com",
+    "subcategory": "IAM"
   },
   {
     "ticket_id": "REQ1066",
@@ -1706,7 +1353,8 @@
     ],
     "status": "Pending",
     "priority": "Medium",
-    "owner": "sam@example.com"
+    "owner": "sam@example.com",
+    "subcategory": "IAM"
   },
   {
     "ticket_id": "REQ1067",
@@ -1730,7 +1378,8 @@
     ],
     "status": "In Progress",
     "priority": "Critical",
-    "owner": "mary@example.com"
+    "owner": "mary@example.com",
+    "subcategory": "IAM"
   },
   {
     "ticket_id": "REQ1068",
@@ -1754,31 +1403,8 @@
     ],
     "status": "In Progress",
     "priority": "Low",
-    "owner": "emma@example.com"
-  },
-  {
-    "ticket_id": "REQ1069",
-    "jira_story": "JIRA-79298",
-    "ait_number": "AIT-3652",
-    "deliverableType": "APP Category",
-    "category": "APP",
-    "risk_level": "High",
-    "sla_deadline": "2025-12-26",
-    "created_on": "2025-12-21",
-    "description": "Automated ticket generation for APP issue in CRM Database.",
-    "arm_id": "ARM-1021",
-    "application_name": "CRM Database",
-    "application_owner": "grace@example.com",
-    "lob_owner": "IT LOB",
-    "ait_owner": "Manager Name",
-    "contacts": [
-      "grace@example.com",
-      "henry@example.com",
-      "iris@example.com"
-    ],
-    "status": "Recent Issues",
-    "priority": "High",
-    "owner": "grace@example.com"
+    "owner": "emma@example.com",
+    "subcategory": "IAM"
   },
   {
     "ticket_id": "REQ1070",
@@ -1802,31 +1428,8 @@
     ],
     "status": "In Progress",
     "priority": "High",
-    "owner": "jack@example.com"
-  },
-  {
-    "ticket_id": "REQ1071",
-    "jira_story": "JIRA-44460",
-    "ait_number": "AIT-6572",
-    "deliverableType": "APP Category",
-    "category": "APP",
-    "risk_level": "High",
-    "sla_deadline": "2025-12-18",
-    "created_on": "2025-12-15",
-    "description": "Automated ticket generation for APP issue in Cloud Services Platform.",
-    "arm_id": "ARM-7460",
-    "application_name": "Cloud Services Platform",
-    "application_owner": "yara@example.com",
-    "lob_owner": "IT LOB",
-    "ait_owner": "Manager Name",
-    "contacts": [
-      "yara@example.com",
-      "zack@example.com",
-      "amy@example.com"
-    ],
-    "status": "Open",
-    "priority": "High",
-    "owner": "yara@example.com"
+    "owner": "jack@example.com",
+    "subcategory": "IAM"
   },
   {
     "ticket_id": "REQ1072",
@@ -1850,55 +1453,8 @@
     ],
     "status": "In Progress",
     "priority": "Critical",
-    "owner": "victor@example.com"
-  },
-  {
-    "ticket_id": "REQ1073",
-    "jira_story": "JIRA-56017",
-    "ait_number": "AIT-2403",
-    "deliverableType": "APP Category",
-    "category": "APP",
-    "risk_level": "Medium",
-    "sla_deadline": "2025-12-30",
-    "created_on": "2025-12-22",
-    "description": "Automated ticket generation for APP issue in Cloud Services Platform.",
-    "arm_id": "ARM-8467",
-    "application_name": "Cloud Services Platform",
-    "application_owner": "yara@example.com",
-    "lob_owner": "IT LOB",
-    "ait_owner": "Manager Name",
-    "contacts": [
-      "yara@example.com",
-      "zack@example.com",
-      "amy@example.com"
-    ],
-    "status": "Recent Issues",
-    "priority": "Medium",
-    "owner": "yara@example.com"
-  },
-  {
-    "ticket_id": "REQ1074",
-    "jira_story": "JIRA-28542",
-    "ait_number": "AIT-1613",
-    "deliverableType": "APP Category",
-    "category": "APP",
-    "risk_level": "Low",
-    "sla_deadline": "2025-12-26",
-    "created_on": "2025-12-17",
-    "description": "Automated ticket generation for APP issue in Authentication Service.",
-    "arm_id": "ARM-8733",
-    "application_name": "Authentication Service",
-    "application_owner": "jack@example.com",
-    "lob_owner": "IT LOB",
-    "ait_owner": "Manager Name",
-    "contacts": [
-      "jack@example.com",
-      "kate@example.com",
-      "leo@example.com"
-    ],
-    "status": "Waiting for Evidence",
-    "priority": "Low",
-    "owner": "jack@example.com"
+    "owner": "victor@example.com",
+    "subcategory": "IAM"
   },
   {
     "ticket_id": "REQ1075",
@@ -1946,7 +1502,8 @@
     ],
     "status": "Waiting for Evidence",
     "priority": "High",
-    "owner": "paul@example.com"
+    "owner": "paul@example.com",
+    "subcategory": "IAM"
   },
   {
     "ticket_id": "REQ1077",
@@ -1970,7 +1527,8 @@
     ],
     "status": "In Progress",
     "priority": "High",
-    "owner": "ben@example.com"
+    "owner": "ben@example.com",
+    "subcategory": "IAM"
   },
   {
     "ticket_id": "REQ1078",
@@ -1994,7 +1552,8 @@
     ],
     "status": "Waiting for Evidence",
     "priority": "Low",
-    "owner": "sam@example.com"
+    "owner": "sam@example.com",
+    "subcategory": "IAM"
   },
   {
     "ticket_id": "REQ1079",
@@ -2021,483 +1580,141 @@
     "owner": "alice@example.com"
   },
   {
-    "ticket_id": "REQ1080",
-    "jira_story": "JIRA-74513",
-    "ait_number": "AIT-5292",
-    "deliverableType": "APP Category",
-    "category": "APP",
-    "risk_level": "Medium",
-    "sla_deadline": "2025-12-31",
-    "created_on": "2025-12-19",
-    "description": "Automated ticket generation for APP issue in Sales CRM.",
-    "arm_id": "ARM-2476",
-    "application_name": "Sales CRM",
-    "application_owner": "ben@example.com",
-    "lob_owner": "IT LOB",
-    "ait_owner": "Manager Name",
-    "contacts": [
-      "ben@example.com",
-      "clara@example.com",
-      "dan@example.com"
-    ],
-    "status": "Open",
-    "priority": "Medium",
-    "owner": "ben@example.com"
-  },
-  {
-    "ticket_id": "REQ1081",
-    "jira_story": "JIRA-26341",
-    "ait_number": "AIT-4929",
-    "deliverableType": "IAM Category",
+    "ticket_id": "REQ3002",
+    "jira_story": "JIRA-NHA-001",
+    "ait_number": "AIT-3002",
+    "deliverableType": "NON-HUMAN ACCOUNTS",
     "category": "IAM",
-    "risk_level": "Low",
-    "sla_deadline": "2025-12-23",
-    "created_on": "2025-12-16",
-    "description": "Automated ticket generation for IAM issue in HR System.",
-    "arm_id": "ARM-4431",
-    "application_name": "HR System",
-    "application_owner": "david@example.com",
-    "lob_owner": "IT LOB",
-    "ait_owner": "Manager Name",
-    "contacts": [
-      "david@example.com",
-      "eva@example.com",
-      "frank@example.com"
-    ],
-    "status": "Pending",
-    "priority": "Low",
-    "owner": "david@example.com"
-  },
-  {
-    "ticket_id": "REQ1082",
-    "jira_story": "JIRA-76507",
-    "ait_number": "AIT-3207",
-    "deliverableType": "IAM Category",
-    "category": "IAM",
-    "risk_level": "Critical",
-    "sla_deadline": "2025-12-30",
-    "created_on": "2025-12-17",
-    "description": "Automated ticket generation for IAM issue in Database Management System.",
-    "arm_id": "ARM-4479",
-    "application_name": "Database Management System",
-    "application_owner": "emma@example.com",
-    "lob_owner": "IT LOB",
-    "ait_owner": "Manager Name",
-    "contacts": [
-      "emma@example.com",
-      "finn@example.com",
-      "gina@example.com"
-    ],
-    "status": "Open",
-    "priority": "Critical",
-    "owner": "emma@example.com"
-  },
-  {
-    "ticket_id": "REQ1083",
-    "jira_story": "JIRA-78565",
-    "ait_number": "AIT-4763",
-    "deliverableType": "IAM Category",
-    "category": "IAM",
-    "risk_level": "Medium",
-    "sla_deadline": "2025-12-25",
-    "created_on": "2025-12-18",
-    "description": "Automated ticket generation for IAM issue in Customer Portal.",
-    "arm_id": "ARM-1690",
-    "application_name": "Customer Portal",
-    "application_owner": "paul@example.com",
-    "lob_owner": "IT LOB",
-    "ait_owner": "Manager Name",
-    "contacts": [
-      "paul@example.com",
-      "quinn@example.com",
-      "rachel@example.com"
-    ],
-    "status": "Open",
-    "priority": "Medium",
-    "owner": "paul@example.com"
-  },
-  {
-    "ticket_id": "REQ1084",
-    "jira_story": "JIRA-65439",
-    "ait_number": "AIT-5293",
-    "deliverableType": "IAM Category",
-    "category": "IAM",
-    "risk_level": "Medium",
-    "sla_deadline": "2025-12-29",
-    "created_on": "2025-12-16",
-    "description": "Automated ticket generation for IAM issue in Sales CRM.",
-    "arm_id": "ARM-2669",
-    "application_name": "Sales CRM",
-    "application_owner": "ben@example.com",
-    "lob_owner": "IT LOB",
-    "ait_owner": "Manager Name",
-    "contacts": [
-      "ben@example.com",
-      "clara@example.com",
-      "dan@example.com"
-    ],
-    "status": "Pending",
-    "priority": "Medium",
-    "owner": "ben@example.com"
-  },
-  {
-    "ticket_id": "REQ1085",
-    "jira_story": "JIRA-20014",
-    "ait_number": "AIT-3849",
-    "deliverableType": "APP Category",
-    "category": "APP",
-    "risk_level": "Low",
-    "sla_deadline": "2025-12-28",
-    "created_on": "2025-12-21",
-    "description": "Automated ticket generation for APP issue in Employee Directory.",
-    "arm_id": "ARM-6878",
-    "application_name": "Employee Directory",
-    "application_owner": "victor@example.com",
-    "lob_owner": "IT LOB",
-    "ait_owner": "Manager Name",
-    "contacts": [
-      "victor@example.com",
-      "wendy@example.com",
-      "xavier@example.com"
-    ],
-    "status": "Open",
-    "priority": "Low",
-    "owner": "victor@example.com"
-  },
-  {
-    "ticket_id": "REQ1086",
-    "jira_story": "JIRA-12856",
-    "ait_number": "AIT-6793",
-    "deliverableType": "IAM Category",
-    "category": "IAM",
-    "risk_level": "Low",
-    "sla_deadline": "2026-01-01",
-    "created_on": "2025-12-21",
-    "description": "Automated ticket generation for IAM issue in Finance Portal.",
-    "arm_id": "ARM-3680",
-    "application_name": "Finance Portal",
-    "application_owner": "alice@example.com",
-    "lob_owner": "IT LOB",
-    "ait_owner": "Manager Name",
-    "contacts": [
-      "alice@example.com",
-      "bob@example.com",
-      "carol@example.com"
-    ],
-    "status": "Recent Issues",
-    "priority": "Low",
-    "owner": "alice@example.com"
-  },
-  {
-    "ticket_id": "REQ1087",
-    "jira_story": "JIRA-60356",
-    "ait_number": "AIT-9752",
-    "deliverableType": "IAM Category",
-    "category": "IAM",
-    "risk_level": "Low",
-    "sla_deadline": "2026-01-01",
-    "created_on": "2025-12-22",
-    "description": "Automated ticket generation for IAM issue in Employee Directory.",
-    "arm_id": "ARM-1269",
-    "application_name": "Employee Directory",
-    "application_owner": "victor@example.com",
-    "lob_owner": "IT LOB",
-    "ait_owner": "Manager Name",
-    "contacts": [
-      "victor@example.com",
-      "wendy@example.com",
-      "xavier@example.com"
-    ],
-    "status": "Recent Issues",
-    "priority": "Low",
-    "owner": "victor@example.com"
-  },
-  {
-    "ticket_id": "REQ1088",
-    "jira_story": "JIRA-31387",
-    "ait_number": "AIT-9124",
-    "deliverableType": "IAM Category",
-    "category": "IAM",
-    "risk_level": "Medium",
-    "sla_deadline": "2025-12-16",
-    "created_on": "2025-12-10",
-    "description": "Automated ticket generation for IAM issue in Authentication Service.",
-    "arm_id": "ARM-9992",
-    "application_name": "Authentication Service",
-    "application_owner": "jack@example.com",
-    "lob_owner": "IT LOB",
-    "ait_owner": "Manager Name",
-    "contacts": [
-      "jack@example.com",
-      "kate@example.com",
-      "leo@example.com"
-    ],
-    "status": "Waiting for Evidence",
-    "priority": "Medium",
-    "owner": "jack@example.com"
-  },
-  {
-    "ticket_id": "REQ1089",
-    "jira_story": "JIRA-59742",
-    "ait_number": "AIT-5263",
-    "deliverableType": "DATA Category",
-    "category": "DATA",
-    "risk_level": "Critical",
-    "sla_deadline": "2025-12-18",
-    "created_on": "2025-12-08",
-    "description": "Automated ticket generation for DATA issue in Cloud Services Platform.",
-    "arm_id": "ARM-1001",
-    "application_name": "Cloud Services Platform",
-    "application_owner": "yara@example.com",
-    "lob_owner": "IT LOB",
-    "ait_owner": "Manager Name",
-    "contacts": [
-      "yara@example.com",
-      "zack@example.com",
-      "amy@example.com"
-    ],
-    "status": "Closed",
-    "priority": "Critical",
-    "owner": "yara@example.com"
-  },
-  {
-    "ticket_id": "REQ1090",
-    "jira_story": "JIRA-44499",
-    "ait_number": "AIT-9433",
-    "deliverableType": "IAM Category",
-    "category": "IAM",
+    "subcategory": "NON-HUMAN ACCOUNTS",
     "risk_level": "High",
-    "sla_deadline": "2025-12-16",
-    "created_on": "2025-12-10",
-    "description": "Automated ticket generation for IAM issue in HR System.",
-    "arm_id": "ARM-4186",
-    "application_name": "HR System",
-    "application_owner": "david@example.com",
-    "lob_owner": "IT LOB",
-    "ait_owner": "Manager Name",
+    "sla_deadline": "2026-03-05",
+    "created_on": "2026-01-20",
+    "description": "Review of non-human service accounts for Batch Processor.",
+    "arm_id": "ARM-3002",
+    "application_name": "Batch Processor",
+    "application_owner": "owner2@example.com",
+    "lob_owner": "Operations",
+    "ait_owner": "IAM Team",
     "contacts": [
-      "david@example.com",
-      "eva@example.com",
-      "frank@example.com"
-    ],
-    "status": "Pending",
-    "priority": "High",
-    "owner": "david@example.com"
-  },
-  {
-    "ticket_id": "REQ1091",
-    "jira_story": "JIRA-18747",
-    "ait_number": "AIT-5681",
-    "deliverableType": "SECURITY Category",
-    "category": "SECURITY",
-    "risk_level": "Medium",
-    "sla_deadline": "2026-01-01",
-    "created_on": "2025-12-19",
-    "description": "Automated ticket generation for SECURITY issue in Finance Portal.",
-    "arm_id": "ARM-9269",
-    "application_name": "Finance Portal",
-    "application_owner": "alice@example.com",
-    "lob_owner": "IT LOB",
-    "ait_owner": "Manager Name",
-    "contacts": [
-      "alice@example.com",
-      "bob@example.com",
-      "carol@example.com"
-    ],
-    "status": "Pending",
-    "priority": "Medium",
-    "owner": "alice@example.com"
-  },
-  {
-    "ticket_id": "REQ1092",
-    "jira_story": "JIRA-79820",
-    "ait_number": "AIT-1059",
-    "deliverableType": "IAM Category",
-    "category": "IAM",
-    "risk_level": "Medium",
-    "sla_deadline": "2025-12-25",
-    "created_on": "2025-12-21",
-    "description": "Automated ticket generation for IAM issue in Finance Portal.",
-    "arm_id": "ARM-1562",
-    "application_name": "Finance Portal",
-    "application_owner": "alice@example.com",
-    "lob_owner": "IT LOB",
-    "ait_owner": "Manager Name",
-    "contacts": [
-      "alice@example.com",
-      "bob@example.com",
-      "carol@example.com"
-    ],
-    "status": "Recent Issues",
-    "priority": "Medium",
-    "owner": "alice@example.com"
-  },
-  {
-    "ticket_id": "REQ1093",
-    "jira_story": "JIRA-21697",
-    "ait_number": "AIT-6495",
-    "deliverableType": "IAM Category",
-    "category": "IAM",
-    "risk_level": "Critical",
-    "sla_deadline": "2025-12-18",
-    "created_on": "2025-12-08",
-    "description": "Automated ticket generation for IAM issue in Marketing Platform.",
-    "arm_id": "ARM-2830",
-    "application_name": "Marketing Platform",
-    "application_owner": "mary@example.com",
-    "lob_owner": "IT LOB",
-    "ait_owner": "Manager Name",
-    "contacts": [
-      "mary@example.com",
-      "nathan@example.com",
-      "olivia@example.com"
-    ],
-    "status": "In Progress",
-    "priority": "Critical",
-    "owner": "mary@example.com"
-  },
-  {
-    "ticket_id": "REQ1094",
-    "jira_story": "JIRA-24772",
-    "ait_number": "AIT-1285",
-    "deliverableType": "IAM Category",
-    "category": "IAM",
-    "risk_level": "High",
-    "sla_deadline": "2025-12-30",
-    "created_on": "2025-12-20",
-    "description": "Automated ticket generation for IAM issue in CRM Database.",
-    "arm_id": "ARM-8635",
-    "application_name": "CRM Database",
-    "application_owner": "grace@example.com",
-    "lob_owner": "IT LOB",
-    "ait_owner": "Manager Name",
-    "contacts": [
-      "grace@example.com",
-      "henry@example.com",
-      "iris@example.com"
+      "owner2@example.com"
     ],
     "status": "In Progress",
     "priority": "High",
-    "owner": "grace@example.com"
+    "owner": "owner2@example.com"
   },
   {
-    "ticket_id": "REQ1095",
-    "jira_story": "JIRA-97692",
-    "ait_number": "AIT-6044",
-    "deliverableType": "IAM Category",
+    "ticket_id": "REQ3003",
+    "jira_story": "JIRA-DORM-001",
+    "ait_number": "AIT-3003",
+    "deliverableType": "DORMANCY ALERT",
     "category": "IAM",
-    "risk_level": "Critical",
-    "sla_deadline": "2025-12-17",
-    "created_on": "2025-12-12",
-    "description": "Automated ticket generation for IAM issue in Cloud Services Platform.",
-    "arm_id": "ARM-8525",
-    "application_name": "Cloud Services Platform",
-    "application_owner": "yara@example.com",
-    "lob_owner": "IT LOB",
-    "ait_owner": "Manager Name",
+    "subcategory": "DORMANCY ALERT",
+    "risk_level": "Low",
+    "sla_deadline": "2026-03-10",
+    "created_on": "2026-01-20",
+    "description": "Dormancy alert for accounts inactive for over 90 days.",
+    "arm_id": "ARM-3003",
+    "application_name": "Legacy Archive",
+    "application_owner": "owner3@example.com",
+    "lob_owner": "Compliance",
+    "ait_owner": "IAM Team",
     "contacts": [
-      "yara@example.com",
-      "zack@example.com",
-      "amy@example.com"
+      "owner3@example.com"
     ],
     "status": "Waiting for Evidence",
-    "priority": "Critical",
-    "owner": "yara@example.com"
-  },
-  {
-    "ticket_id": "REQ1096",
-    "jira_story": "JIRA-67740",
-    "ait_number": "AIT-9074",
-    "deliverableType": "APP Category",
-    "category": "APP",
-    "risk_level": "Low",
-    "sla_deadline": "2025-12-19",
-    "created_on": "2025-12-13",
-    "description": "Automated ticket generation for APP issue in Finance Portal.",
-    "arm_id": "ARM-8654",
-    "application_name": "Finance Portal",
-    "application_owner": "alice@example.com",
-    "lob_owner": "IT LOB",
-    "ait_owner": "Manager Name",
-    "contacts": [
-      "alice@example.com",
-      "bob@example.com",
-      "carol@example.com"
-    ],
-    "status": "Pending",
     "priority": "Low",
-    "owner": "alice@example.com"
+    "owner": "owner3@example.com"
   },
   {
-    "ticket_id": "REQ1097",
-    "jira_story": "JIRA-30359",
-    "ait_number": "AIT-3612",
-    "deliverableType": "SECURITY Category",
-    "category": "SECURITY",
-    "risk_level": "Critical",
-    "sla_deadline": "2025-12-27",
-    "created_on": "2025-12-15",
-    "description": "Automated ticket generation for SECURITY issue in Marketing Platform.",
-    "arm_id": "ARM-7090",
-    "application_name": "Marketing Platform",
-    "application_owner": "mary@example.com",
-    "lob_owner": "IT LOB",
-    "ait_owner": "Manager Name",
-    "contacts": [
-      "mary@example.com",
-      "nathan@example.com",
-      "olivia@example.com"
-    ],
-    "status": "Pending",
-    "priority": "Critical",
-    "owner": "mary@example.com"
-  },
-  {
-    "ticket_id": "REQ1098",
-    "jira_story": "JIRA-72988",
-    "ait_number": "AIT-5175",
-    "deliverableType": "IAM Category",
+    "ticket_id": "REQ3004",
+    "jira_story": "JIRA-INTRA-001",
+    "ait_number": "AIT-3004",
+    "deliverableType": "INTRA AIT",
     "category": "IAM",
-    "risk_level": "Low",
-    "sla_deadline": "2025-12-24",
-    "created_on": "2025-12-18",
-    "description": "Automated ticket generation for IAM issue in Finance Portal.",
-    "arm_id": "ARM-3791",
-    "application_name": "Finance Portal",
-    "application_owner": "alice@example.com",
-    "lob_owner": "IT LOB",
-    "ait_owner": "Manager Name",
+    "subcategory": "INTRA AIT",
+    "risk_level": "Medium",
+    "sla_deadline": "2026-03-15",
+    "created_on": "2026-01-20",
+    "description": "Intra-AIT access transfer request for project migration.",
+    "arm_id": "ARM-3004",
+    "application_name": "Migration Tool",
+    "application_owner": "owner4@example.com",
+    "lob_owner": "IT",
+    "ait_owner": "IAM Team",
     "contacts": [
-      "alice@example.com",
-      "bob@example.com",
-      "carol@example.com"
+      "owner4@example.com"
     ],
-    "status": "Pending",
-    "priority": "Low",
-    "owner": "alice@example.com"
+    "status": "Open",
+    "priority": "Medium",
+    "owner": "Unassigned"
   },
   {
-    "ticket_id": "REQ1099",
-    "jira_story": "JIRA-19665",
-    "ait_number": "AIT-5338",
-    "deliverableType": "APP Category",
-    "category": "APP",
+    "ticket_id": "REQ5001",
+    "jira_story": "JIRA-ARM-NA-001",
+    "ait_number": "AIT-5001",
+    "deliverableType": "ARM FORMS NO ADMIN",
+    "category": "IAM",
+    "subcategory": "ARM FORMS NO ADMIN",
     "risk_level": "High",
-    "sla_deadline": "2025-12-25",
-    "created_on": "2025-12-15",
-    "description": "Automated ticket generation for APP issue in Database Management System.",
-    "arm_id": "ARM-1934",
-    "application_name": "Database Management System",
-    "application_owner": "emma@example.com",
-    "lob_owner": "IT LOB",
-    "ait_owner": "Manager Name",
+    "sla_deadline": "2026-03-20",
+    "created_on": "2026-02-10",
+    "description": "ARM Form review - No admin names configured for Payments Gateway (AIT-5001). Requires admin assignment.",
+    "arm_id": "ARM-5001",
+    "application_name": "Payments Gateway",
+    "application_owner": "Abid Shaikh",
+    "lob_owner": "FINANCE",
+    "ait_owner": "IAM Team",
     "contacts": [
-      "emma@example.com",
-      "finn@example.com",
-      "gina@example.com"
+      "abidshaikh@example.com"
     ],
     "status": "Open",
     "priority": "High",
-    "owner": "emma@example.com"
+    "owner": "Unassigned"
+  },
+  {
+    "ticket_id": "REQ5002",
+    "jira_story": "JIRA-ARM-NA-002",
+    "ait_number": "AIT-5002",
+    "deliverableType": "ARM FORMS NO ADMIN",
+    "category": "IAM",
+    "subcategory": "ARM FORMS NO ADMIN",
+    "risk_level": "Medium",
+    "sla_deadline": "2026-03-25",
+    "created_on": "2026-02-12",
+    "description": "ARM Form review - Secondary admin missing for Risk Analytics (AIT-5002). Requires secondary admin assignment.",
+    "arm_id": "ARM-5002",
+    "application_name": "RMS",
+    "application_owner": "John Wreck",
+    "lob_owner": "RISK",
+    "ait_owner": "IAM Team",
+    "contacts": [
+      "johnwreck@example.com"
+    ],
+    "status": "Open",
+    "priority": "Medium",
+    "owner": "Unassigned"
+  },
+  {
+    "ticket_id": "REQ5003",
+    "jira_story": "JIRA-ARM-NA-003",
+    "ait_number": "AIT-5003",
+    "deliverableType": "ARM FORMS NO ADMIN",
+    "category": "IAM",
+    "subcategory": "ARM FORMS NO ADMIN",
+    "risk_level": "Low",
+    "sla_deadline": "2026-04-01",
+    "created_on": "2026-02-15",
+    "description": "ARM Form review - Admin names verified for Trade Platform (AIT-5003). Both admins configured.",
+    "arm_id": "ARM-5003",
+    "application_name": "Employee Portal",
+    "application_owner": "John Michael",
+    "lob_owner": "TRADING",
+    "ait_owner": "IAM Team",
+    "contacts": [
+      "johnmichael@example.com"
+    ],
+    "status": "Open",
+    "priority": "Low",
+    "owner": "Unassigned"
   }
 ]

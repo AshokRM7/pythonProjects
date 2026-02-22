@@ -20,10 +20,12 @@ class EvidenceCollectorAgent:
     def prepare_email(self, ticket) -> MIMEMultipart:
         msg = MIMEMultipart()
         msg["From"] = self.smtp_config["user"]
-        # Determine recipient: prefer application_owner, then first contact, then default
-        recipient = ticket.application_owner
-        if not recipient and ticket.contacts:
+        # Determine recipient: prefer contacts first, then application_owner, then default
+        recipient = None
+        if ticket.contacts:
             recipient = ticket.contacts[0]
+        if not recipient:
+            recipient = ticket.application_owner
         
         msg["To"] = recipient or "app_owner@example.com"
         msg["Subject"] = f"IAM Deliverable {ticket.ticket_id} – Evidence Required"

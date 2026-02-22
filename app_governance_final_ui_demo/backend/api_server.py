@@ -1,12 +1,16 @@
+import os
+from dotenv import load_dotenv
+load_dotenv()
+
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from typing import List, Dict, Any, Optional
 import asyncio
 import json
-import os
-from dotenv import load_dotenv
 from backend.core.orchestrator import IAMOrchestrator
+from backend.agents.arm_admin_remediation import ARMAdminRemediationAgent
+
 from backend.core.logger_utils import AgentLogger, AgentTimer
 from backend.models.ticket_context import Ticket, TicketResponse, Stage
 from datetime import datetime
@@ -14,7 +18,7 @@ import time
 from backend.pcat.api import router as pcat_router, init_pcat_api
 from backend.bre.api import router as bre_router, init_bre_api, load_bre_tickets_into_store
 
-load_dotenv()
+from contextlib import asynccontextmanager
 
 from pydantic import BaseModel
 
@@ -25,6 +29,14 @@ class EmailRequest(BaseModel):
     to: List[str]
     subject: str
     body: str
+
+
+class AdminUpdateRequest(BaseModel):
+    primary_admin_name: Optional[str] = None
+    primary_nbkid: Optional[str] = None
+    secondary_admin_name: Optional[str] = None
+    secondary_nbkid: Optional[str] = None
+
 
 from contextlib import asynccontextmanager
 
@@ -91,6 +103,7 @@ manager = ConnectionManager()
 # Global state
 current_tickets: Dict[str, Any] = {}
 orchestrator: Optional[IAMOrchestrator] = None
+arm_admin_agent = ARMAdminRemediationAgent()
 
 def get_orchestrator():
     global orchestrator
@@ -108,13 +121,20 @@ def get_orchestrator():
 
 def convert_ticket_to_frontend(ticket: Ticket) -> dict:
     """Convert Pydantic Ticket model to frontend dictionary format"""
+    raw_status = ticket.status.lower() if ticket.status else "not-started"
+    # Status Defense: If we have progressed stages but status is still 'open' or 'not-started',
+    # it means an agent clobbered the status. Promote to 'in-progress'.
+    status = raw_status
+    if (ticket.currentStage > 0 or any(s.status == 'completed' for s in (ticket.stages or []) if s.id > 1)) and raw_status in ["open", "not-started", "not started"]:
+        status = "in-progress"
+
     return {
         "id": ticket.ticket_id,
         "title": ticket.description[:50] + "..." if len(ticket.description) > 50 else ticket.description,
         "description": ticket.description,
         "customer": ticket.application_owner or "Unknown",
         "priority": ticket.risk_level.lower() if ticket.risk_level else "medium",
-        "status": ticket.status.lower() if ticket.status else "not-started",
+        "status": status,
         "owner": ticket.owner,
         "createdAt": ticket.created_on,
         "currentStage": ticket.currentStage,
@@ -186,6 +206,9 @@ async def update_stage_progress(ticket_id: str, stage_index: int, status: str, m
             current_tickets[ticket_id]["status"] = "in-progress"
         elif status == "completed" and stage_index == 7:
             current_tickets[ticket_id]["status"] = "completed"
+        elif status == "completed" and stage_index < 7:
+            # Maintain in-progress if we haven't reached the final stage
+            current_tickets[ticket_id]["status"] = "in-progress"
         
         await manager.broadcast({
             "type": "ticket_update",
@@ -273,17 +296,49 @@ async def process_individual_ticket(ticket_id: str):
                     AgentLogger.log_agent_success("AppOwnerCheckerAgent", 0, "App owner space verified")
             current_stage = 4
             
-        # Stage 5: IAM Remediation
+        # Stage 5: IAM Remediation (routes based on subcategory)
         if current_stage < 5:
-            with AgentTimer("IAMRemediationAgent", ticket_id, "Executing IAM Remediation"):
-                await update_stage_progress(ticket_id, 5, "in-progress", "IAM Remediation Agent: Executing remediation journey...")
-                ticket_context.tickets = [ticket_obj]
-                result = await asyncio.to_thread(orch.remediation.invoke, ticket_context)
-                if result.tickets:
-                    ticket_obj = result.tickets[0]
-                    current_tickets[ticket_id] = convert_ticket_to_frontend(ticket_obj)
-                    AgentLogger.log_agent_success("IAMRemediationAgent", 0, "Remediation journey completed")
-            current_stage = 5
+            is_arm_no_admin = (
+                ticket_data.get("subcategory", "") == "ARM FORMS NO ADMIN" or
+                ticket_data.get("deliverableType", "") == "ARM FORMS NO ADMIN"
+            )
+            
+            if is_arm_no_admin:
+                # ARM FORMS NO ADMIN: Use ARM Admin Remediation Agent
+                with AgentTimer("ARMAdminRemediationAgent", ticket_id, "Checking ARM Admin Details"):
+                    await update_stage_progress(ticket_id, 5, "in-progress", "ARM Admin Remediation Agent: Checking admin details...")
+                    ticket_context.tickets = [ticket_obj]
+                    result = await asyncio.to_thread(arm_admin_agent.invoke, ticket_context)
+                    if result.tickets:
+                        ticket_obj = result.tickets[0]
+                        current_tickets[ticket_id] = convert_ticket_to_frontend(ticket_obj)
+                        
+                        # Check if waiting for admin input or policy violation
+                        rem_stage = next((s for s in ticket_obj.stages if "IAM Remediation" in s.name), None)
+                        is_waiting = any(x in (rem_stage.message or "") for x in ["WAITING_FOR_ADMIN_INPUT", "POLICY VIOLATION", "ALERT"])
+                        
+                        if rem_stage and rem_stage.status == "in-progress" and is_waiting:
+                            current_tickets[ticket_id]["waitingForAdminUpdate"] = True
+                            AgentLogger.log_agent_success("ARMAdminRemediationAgent", 0, "Policy violation or missing details, waiting for user input")
+                            await manager.broadcast({
+                                "type": "ticket_update",
+                                "ticket": current_tickets[ticket_id]
+                            })
+                            return
+                        
+                        AgentLogger.log_agent_success("ARMAdminRemediationAgent", 0, "ARM Admin check completed")
+                current_stage = 5
+            else:
+                # Standard IAM Remediation
+                with AgentTimer("IAMRemediationAgent", ticket_id, "Executing IAM Remediation"):
+                    await update_stage_progress(ticket_id, 5, "in-progress", "IAM Remediation Agent: Executing remediation journey...")
+                    ticket_context.tickets = [ticket_obj]
+                    result = await asyncio.to_thread(orch.remediation.invoke, ticket_context)
+                    if result.tickets:
+                        ticket_obj = result.tickets[0]
+                        current_tickets[ticket_id] = convert_ticket_to_frontend(ticket_obj)
+                        AgentLogger.log_agent_success("IAMRemediationAgent", 0, "Remediation journey completed")
+                current_stage = 5
 
         # Stage 6: Evidence Collection (Pause)
         if current_stage < 6:
@@ -559,6 +614,239 @@ async def confirm_priority(ticket_id: str, update: PriorityUpdate = None):
     except Exception as e:
         return JSONResponse(status_code=500, content={"error": str(e)})
 
+# ─── ARM Admin Details Endpoints ───
+
+@app.get("/api/admin-details/{ait_number}")
+async def get_admin_details(ait_number: str):
+    """Get admin details for a given AIT number."""
+    entry = arm_admin_agent.get_admin_for_ait(ait_number)
+    if not entry:
+        return JSONResponse(status_code=404, content={"error": f"No admin details found for {ait_number}"})
+    return JSONResponse(content=entry)
+
+
+@app.post("/api/admin-details/{ait_number}/update")
+async def update_admin_details(ait_number: str, req: AdminUpdateRequest):
+    """Update admin names for an AIT. Returns action type (NEW/MODIFY) and any warnings."""
+    result = arm_admin_agent.update_admin_names(
+        ait_number,
+        primary_name=req.primary_admin_name or None,
+        primary_nbkid=req.primary_nbkid or None,
+        secondary_name=req.secondary_admin_name or None,
+        secondary_nbkid=req.secondary_nbkid or None
+    )
+    return JSONResponse(content=result)
+
+
+# Globally track simulation stages for the demo
+simulation_stages = {} # ait -> attempt_count
+
+@app.post("/api/admin-details/{ait_number}/simulate-response")
+async def simulate_admin_response(ait_number: str):
+    """Simulates multi-stage App Owner responses for demo purposes."""
+    try:
+        attempt = simulation_stages.get(ait_number, 0)
+        
+        # Scenario Configuration
+        if ait_number == "AIT-5001":
+            if attempt == 0:
+                # Scenario 1: Policy Violation (Owner as Admin)
+                data = {
+                    "primary_admin_name": "Abid Shaikh", # Application Owner
+                    "primary_nbkid": "NBK1010",
+                    "secondary_admin_name": "John Michael",
+                    "secondary_nbkid": "NBK2020"
+                }
+                simulation_stages[ait_number] = 1
+                msg = "⚠️ [POLICY] App Owner provided their own name as admin."
+            else:
+                # Stage 2: Success (NEW names)
+                data = {
+                    "primary_admin_name": "Saravanan", 
+                    "primary_nbkid": "ID88888",
+                    "secondary_admin_name": "Rajesh Kumar",
+                    "secondary_nbkid": "ID77777"
+                }
+                simulation_stages[ait_number] = 0 # Reset for next demo loop
+                msg = "✅ [SUCCESS] App Owner provided valid new admin names."
+        
+        elif ait_number == "AIT-5002":
+            # Scenario 2: Pure NEW (Directly providing names never seen before)
+            data = {
+                "primary_admin_name": "Ganesh Murthy",
+                "primary_nbkid": "ID99001",
+                "secondary_admin_name": "Vikram Singh",
+                "secondary_nbkid": "ID99002"
+            }
+            msg = "✅ [NEW] App Owner provided new admin names for this asset."
+            
+        elif ait_number == "AIT-5003":
+            # Scenario 3: Intelligent MODIFY (Providing a name that exists in another AIT)
+            # 'Ganesh Murthy' exists in AIT-5002.
+            data = {
+                "primary_admin_name": "Ganesh Murthy", # Already exists in AIT-5002
+                "primary_nbkid": "ID99001",
+                "secondary_admin_name": "Suresh Raina",
+                "secondary_nbkid": "ID00202"
+            }
+            msg = "✅ [MODIFY] App Owner provided names. Validation detected existing roles in AIT-5002."
+        
+        else:
+            data = {
+                "primary_admin_name": "Magesh",
+                "primary_nbkid": "ID00101",
+                "secondary_admin_name": "Suresh",
+                "secondary_nbkid": "ID00202"
+            }
+            msg = "✅ [SUCCESS] Mock response received."
+
+        result = arm_admin_agent.update_admin_names(
+            ait_number,
+            primary_name=data["primary_admin_name"],
+            primary_nbkid=data["primary_nbkid"],
+            secondary_name=data["secondary_admin_name"],
+            secondary_nbkid=data["secondary_nbkid"]
+        )
+        
+        # Add the custom message to the result for the frontend toast
+        if result and isinstance(result, dict):
+            result["simulation_message"] = msg
+            # Also update the locally cached ticket state if needed
+            print(f"DEBUG: Simulation successful for {ait_number}: {msg}")
+            return JSONResponse(content=result)
+        else:
+            print(f"ERROR: Simulation failed - result not a dict for {ait_number}")
+            return JSONResponse(status_code=500, content={"error": "Invalid result from agent"})
+    except Exception as e:
+        print(f"CRITICAL ERROR in simulation: {e}")
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
+@app.post("/api/tickets/{ticket_id}/confirm-admin-update")
+async def confirm_admin_update(ticket_id: str):
+    """Confirm admin update and continue the pipeline past Stage 5."""
+    try:
+        if ticket_id not in current_tickets:
+            return JSONResponse(status_code=404, content={"error": f"Ticket {ticket_id} not found"})
+
+        ticket = current_tickets[ticket_id]
+
+        if not ticket.get("waitingForAdminUpdate", False):
+            if ticket.get("currentStage", 0) >= 5:
+                return JSONResponse(content={"status": "success", "message": "Admin update already confirmed"})
+            return JSONResponse(status_code=400, content={"error": "Ticket is not waiting for admin update"})
+
+        # Clear the waiting flag
+        current_tickets[ticket_id]["waitingForAdminUpdate"] = False
+
+        # Re-invoke the agent with the updated data to get the SUCCESS message and NEW/MODIFY determination
+        ticket_obj = convert_frontend_to_ticket(ticket)
+        ticket_context = TicketResponse(tickets=[ticket_obj])
+        result = arm_admin_agent.invoke(ticket_context)
+        
+        if result.tickets:
+            ticket_obj = result.tickets[0]
+            current_tickets[ticket_id] = convert_ticket_to_frontend(ticket_obj)
+            
+            # Fetch the final message from the agent
+            rem_stage = next((s for s in ticket_obj.stages if "IAM Remediation" in s.name), None)
+            if rem_stage:
+                await update_stage_progress(ticket_id, 5, rem_stage.status, rem_stage.message)
+
+        # Continue processing from stage 6
+        asyncio.create_task(process_individual_ticket(ticket_id))
+
+        return JSONResponse(content={
+            "status": "success",
+            "message": f"Admin update confirmed for ticket {ticket_id}"
+        })
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
+@app.post("/api/tickets/{ticket_id}/reset-admin")
+async def reset_admin_ticket(ticket_id: str):
+    """Reset ARM Admin ticket and data to baseline state"""
+    try:
+        if ticket_id not in current_tickets:
+            return JSONResponse(status_code=404, content={"error": f"Ticket {ticket_id} not found"})
+        
+        ticket = current_tickets[ticket_id]
+        
+        # Safety Check: Only allow reset for ARM tickets
+        is_arm_admin = (
+            ticket.get("subcategory") == "ARM FORMS NO ADMIN" or 
+            ticket.get("deliverableType") == "ARM FORMS NO ADMIN"
+        )
+        if not is_arm_admin:
+            return JSONResponse(status_code=400, content={"error": "Reset only supported for ARM Admin tickets"})
+
+        ait_number = ticket.get("aitNumber") or ticket.get("ait_number")
+        
+        # Reset simulation stage for this AIT
+        if ait_number in simulation_stages:
+            simulation_stages[ait_number] = 0
+        
+        # 1. Reset admin data in internal database
+        if ait_number:
+            admin_list = arm_admin_agent.load_admin_details()
+            updated = False
+            for entry in admin_list:
+                if entry["ait_number"] == ait_number:
+                    if ait_number == "AIT-5001":
+                        entry["primary_admin_name"] = ""
+                        entry["primary_nbkid"] = ""
+                        entry["secondary_admin_name"] = ""
+                        entry["secondary_nbkid"] = ""
+                        updated = True
+                    elif ait_number == "AIT-5002":
+                        entry["primary_admin_name"] = ""
+                        entry["primary_nbkid"] = ""
+                        entry["secondary_admin_name"] = ""
+                        entry["secondary_nbkid"] = ""
+                        updated = True
+                    elif ait_number == "AIT-5003":
+                        entry["primary_admin_name"] = ""
+                        entry["primary_nbkid"] = ""
+                        entry["secondary_admin_name"] = ""
+                        entry["secondary_nbkid"] = ""
+                        updated = True
+            
+            if updated:
+                arm_admin_agent.save_admin_details(admin_list)
+
+        # 2. Reset ticket state
+        ticket["status"] = "Open"
+        ticket["currentStage"] = 0
+        ticket["waitingForAdminUpdate"] = False
+        ticket["waitingForReview"] = False
+        ticket["waitingForPriorityConfirmation"] = False
+        ticket["waitingForClosureConfirmation"] = False
+        # Restore basic contacts if it's an ARM ticket
+        if ait_number == "AIT-5001":
+            ticket["contacts"] = ["abidshaikh@example.com"]
+        elif ait_number == "AIT-5002":
+            ticket["contacts"] = ["johnwreck@example.com"]
+        elif ait_number == "AIT-5003":
+            ticket["contacts"] = ["johnmichael@example.com"]
+        else:
+            ticket["contacts"] = []
+        
+        for idx, stage in enumerate(ticket["stages"]):
+            if idx == 0:
+                stage["status"] = "completed"
+                stage["message"] = "Ticket fetched successfully"
+            else:
+                stage["status"] = "pending"
+                stage["message"] = ""
+            
+        await manager.broadcast({
+            "type": "ticket_update",
+            "ticket": ticket
+        })
+        
+        return JSONResponse(content={"status": "success", "message": f"Ticket {ticket_id} and admin data reset to baseline"})
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
 @app.post("/api/tickets/{ticket_id}/confirm-closure")
 async def confirm_closure(ticket_id: str):
     """Confirm closure and complete processing"""
@@ -638,7 +926,8 @@ async def send_ticket_email(ticket_id: str, email_req: EmailRequest):
         mode = result.get("mode", "smtp")
         
         if status == "completed":
-            msg = f"✅ Email sent successfully ({mode})\nRecipients: {recipients}\nTimestamp: {timestamp}"
+            msg = f"✅ Email sent successfully ({mode})\nRecipients: {recipients}"
+            msg += f"\nTimestamp: {timestamp}"
         else:
             msg = f"❌ Email failed: {result.get('error', 'Unknown error')}"
 

@@ -123,8 +123,8 @@ npm install
 
 **Terminal 1 - Backend:**
 ```bash
-cd backend
-python api_server.py
+# Run from project root directory
+python -m backend.api_server
 # Server will start on http://localhost:8000
 ```
 
@@ -254,11 +254,10 @@ SMTP_FROM=your-email@gmail.com
 This is a proof-of-concept application for demonstration purposes.
 
 #DEMO Mode: (if dont have an API key)
-  - python demo_api_server.py
-  - npm run dev
+  - python -m backend.demo_api_server
+  - cd UI && npm run dev
 
 #Real mode with Agents (have API key)
-
-  - python api_server.py
-  - npm run dev
+  - python -m backend.api_server
+  - cd UI && npm run dev
 

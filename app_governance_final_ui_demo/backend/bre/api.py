@@ -63,7 +63,8 @@ def _seed_bre_ticket(ticket_id: str, ticket_data: dict):
         **ticket_data,
         "id": ticket_id,
         "ticket_type": "BRE",
-        "category": "BRE",
+        "category": "IAM",
+        "subcategory": "BRE",
         "currentStage": 0,
         "status": ticket_data.get("status", "Open"),
         "stages": stages,
@@ -83,7 +84,8 @@ def load_bre_tickets_into_store():
             tickets = json.load(f)
         count = 0
         for t in tickets:
-            if t.get("category", "").upper() == "BRE":
+            is_bre = t.get("category", "").upper() == "BRE" or (t.get("category", "").upper() == "IAM" and t.get("subcategory", "").upper() == "BRE")
+            if is_bre:
                 tid = t["ticket_id"]
                 if tid not in _current_tickets:
                     _seed_bre_ticket(tid, t)
@@ -181,7 +183,7 @@ async def list_deliverables() -> Dict[str, Any]:
 
         deliverables = [
             t for t in tickets
-            if t.get("category", "").upper() == "BRE"
+            if t.get("category", "").upper() == "BRE" or (t.get("category", "").upper() == "IAM" and t.get("subcategory", "").upper() == "BRE")
         ]
         return {
             "success": True,
@@ -201,7 +203,9 @@ async def get_deliverable(deliverable_id: str) -> Dict[str, Any]:
             tickets = json.load(f)
 
         for t in tickets:
-            if t.get("ticket_id") == deliverable_id and t.get("category", "").upper() == "BRE":
+            is_match = t.get("ticket_id") == deliverable_id
+            is_bre = t.get("category", "").upper() == "BRE" or (t.get("category", "").upper() == "IAM" and t.get("subcategory", "").upper() == "BRE")
+            if is_match and is_bre:
                 return {"success": True, "deliverable": t}
 
         raise HTTPException(status_code=404, detail=f"BRE deliverable not found: {deliverable_id}")
@@ -260,7 +264,8 @@ async def process_bre_deliverable_async(deliverable_id: str) -> Dict[str, Any]:
             with open(data_path, "r", encoding="utf-8") as f:
                 tickets = json.load(f)
             for t in tickets:
-                if t.get("ticket_id") == deliverable_id and t.get("category", "").upper() == "BRE":
+                is_bre = t.get("category", "").upper() == "BRE" or (t.get("category", "").upper() == "IAM" and t.get("subcategory", "").upper() == "BRE")
+                if t.get("ticket_id") == deliverable_id and is_bre:
                     _seed_bre_ticket(deliverable_id, t)
                     break
         except Exception:
@@ -303,7 +308,7 @@ async def run_demo_workflow() -> Dict[str, Any]:
         with open(data_path, "r", encoding="utf-8") as f:
             tickets = json.load(f)
 
-        bre_tickets = [t for t in tickets if t.get("category", "").upper() == "BRE"]
+        bre_tickets = [t for t in tickets if t.get("category", "").upper() == "BRE" or (t.get("category", "").upper() == "IAM" and t.get("subcategory", "").upper() == "BRE")]
         if not bre_tickets:
             raise HTTPException(status_code=404, detail="No BRE deliverables found in ticket_data.json")
 
@@ -392,7 +397,8 @@ async def reset_bre_ticket(deliverable_id: str) -> Dict[str, Any]:
         # Find the BRE ticket
         original_ticket = None
         for t in tickets:
-            if t.get("ticket_id") == deliverable_id and t.get("category", "").upper() == "BRE":
+            is_bre = t.get("category", "").upper() == "BRE" or (t.get("category", "").upper() == "IAM" and t.get("subcategory", "").upper() == "BRE")
+            if t.get("ticket_id") == deliverable_id and is_bre:
                 original_ticket = t
                 break
         
@@ -409,7 +415,8 @@ async def reset_bre_ticket(deliverable_id: str) -> Dict[str, Any]:
                 **original_ticket,
                 "id": deliverable_id,
                 "ticket_type": "BRE",
-                "category": "BRE",
+                "category": "IAM",
+                "subcategory": "BRE",
                 "currentStage": 0,
                 "status": "Open",
                 "stages": stages,
@@ -454,7 +461,7 @@ async def get_bre_tickets() -> Dict[str, Any]:
     List BRE tickets from the shared in-memory ticket store (with live stage status).
     """
     if _current_tickets is not None:
-        bre = [t for t in _current_tickets.values() if t.get("category", "").upper() == "BRE"]
+        bre = [t for t in _current_tickets.values() if t.get("category", "").upper() == "BRE" or (t.get("category", "").upper() == "IAM" and t.get("subcategory", "").upper() == "BRE")]
         return {"success": True, "tickets": bre, "count": len(bre)}
     return {"success": True, "tickets": [], "count": 0}
 
@@ -464,7 +471,8 @@ async def get_bre_ticket(deliverable_id: str) -> Dict[str, Any]:
     """Get live BRE ticket state (including stage progress)."""
     if _current_tickets and deliverable_id in _current_tickets:
         t = _current_tickets[deliverable_id]
-        if t.get("category", "").upper() == "BRE":
+        is_bre = t.get("category", "").upper() == "BRE" or (t.get("category", "").upper() == "IAM" and t.get("subcategory", "").upper() == "BRE")
+        if is_bre:
             return {"success": True, "ticket": t}
     raise HTTPException(status_code=404, detail=f"BRE ticket not found: {deliverable_id}")
 
