@@ -1773,7 +1773,7 @@ export default function Home({ currentUser, onSignOut }: HomeProps) {
             className="absolute inset-0 bg-[#012169]/60 backdrop-blur-md animate-in fade-in duration-500"
             onClick={() => setShowRemediationModal(false)}
           />
-          <div className="relative bg-white w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden border border-gray-200 animate-in zoom-in-95 slide-in-from-bottom-5 duration-500">
+          <div className="relative bg-white w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden border border-gray-200 animate-in zoom-in-95 slide-in-from-bottom-5 duration-500 max-h-[90vh] flex flex-col">
             {/* Header */}
             <div className="bg-[#012169] p-8 text-white relative">
               <button
@@ -1832,7 +1832,7 @@ export default function Home({ currentUser, onSignOut }: HomeProps) {
         <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 overflow-hidden">
           <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300" onClick={() => setShowAdminModal(false)} />
 
-          <div className="relative w-full max-w-2xl bg-white shadow-2xl rounded-2xl overflow-hidden animate-in zoom-in-95 duration-300 ease-out border border-slate-200">
+          <div className="relative w-full max-w-2xl bg-white shadow-2xl rounded-2xl overflow-hidden animate-in zoom-in-95 duration-300 ease-out border border-slate-200 max-h-[90vh] flex flex-col">
 
             {/* Header */}
             <div className="px-6 py-6 bg-[#012169] text-white">
@@ -2415,7 +2415,7 @@ export default function Home({ currentUser, onSignOut }: HomeProps) {
       {
         showARMPortal && armPortalData && createPortal(
           <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-slate-100/90 backdrop-blur-md animate-in fade-in duration-500">
-            <div className="w-full max-w-4xl bg-white shadow-2xl rounded-3xl overflow-hidden border border-slate-200 animate-in zoom-in-95 duration-500">
+            <div className="w-full max-w-4xl bg-white shadow-2xl rounded-3xl overflow-hidden border border-slate-200 animate-in zoom-in-95 duration-500 max-h-[95vh] flex flex-col">
               {/* ARM Brand Header */}
               <div className="bg-[#003366] px-10 py-6 flex items-center justify-between">
                 <div className="flex items-center gap-4">
@@ -2437,7 +2437,7 @@ export default function Home({ currentUser, onSignOut }: HomeProps) {
               </div>
 
               {/* Portal Content */}
-              <div className="p-12">
+              <div className="p-12 flex-1 overflow-y-auto">
                 <div className="flex items-start justify-between mb-12">
                   <div>
                     <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-[10px] font-black uppercase tracking-widest mb-4 inline-block">
