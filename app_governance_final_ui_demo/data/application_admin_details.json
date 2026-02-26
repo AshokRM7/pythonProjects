@@ -4,10 +4,10 @@
     "application_name": "Payments Gateway",
     "app_owner_name": "Abid Shaikh",
     "app_owner_email": "abidshaikh@example.com",
-    "primary_admin_name": "",
-    "primary_nbkid": "",
-    "secondary_admin_name": "",
-    "secondary_nbkid": ""
+    "primary_admin_name": "Saravanan",
+    "primary_nbkid": "ID88888",
+    "secondary_admin_name": "Rajesh Kumar",
+    "secondary_nbkid": "ID77777"
   },
   {
     "ait_number": "AIT-5002",

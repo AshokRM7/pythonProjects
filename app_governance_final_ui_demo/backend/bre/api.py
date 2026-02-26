@@ -282,18 +282,18 @@ async def process_bre_deliverable_async(deliverable_id: str) -> Dict[str, Any]:
 @router.post("/verify/{deliverable_id}")
 async def verify_deliverable(deliverable_id: str, auto_certify: bool = False) -> Dict[str, Any]:
     """
-    Confirm app owner certification and trigger Evidence & Closure (Stage 5) step.
-    Call this after the app owner has provided certification.
+    Verify App Owner's certification response and trigger Evidence & Closure (Stage 5) step.
+    Call this after the App Owner has provided their certification response.
     
     Args:
-        deliverable_id: ID of the deliverable to certify and close
-        auto_certify: If True, generates a simulated certification response.
-                     If False (default), loads actual app owner response from data file.
+        deliverable_id: ID of the deliverable to verify and close
+        auto_certify: If True, simulates an App Owner certification response for demo.
+                     If False (default), loads actual App Owner response from data file.
     """
     asyncio.create_task(orchestrator.verify_and_close_async(deliverable_id, auto_certify))
     return {
         "status": "success",
-        "message": f"Certification confirmed for {deliverable_id}. Closing deliverable...",
+        "message": f"Verifying App Owner certification for {deliverable_id}. Closing deliverable...",
         "auto_certify": auto_certify
     }
 

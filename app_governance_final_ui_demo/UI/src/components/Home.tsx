@@ -4,6 +4,7 @@ import { createPortal } from 'react-dom';
 import { Play, Activity, Clock, User, Calendar, Tag, FileText, Bot, ShieldCheck, AlertCircle, X, CheckCheck, Loader2, CheckCircle, ChevronRight, Download, Layers, RotateCcw, PlayCircle, ArrowLeft, ArrowRight, Info, Settings, Key, Mail } from 'lucide-react';
 import { PCATTicketPanel } from './pcat/PCATTicketPanel';
 import { pcatApi } from './pcat/pcatApi';
+import { BRETicketPanel } from './bre/BRETicketPanel';
 import Header from './Header';
 import Footer from './Footer';
 import { TicketStagesAccordion } from './TicketStagesAccordion';
@@ -76,6 +77,14 @@ const isPCATTicket = (ticket: Ticket | null) => {
   return ticket.subcategory?.toUpperCase() === 'PCAT';
 };
 
+// Centralized BRE Identification Helper
+const isBRETicket = (ticket: Ticket | null) => {
+  if (!ticket) return false;
+  return ticket.subcategory?.toUpperCase() === 'BRE' || 
+         (ticket.category?.toUpperCase() === 'BRE') ||
+         (ticket.category?.toUpperCase() === 'IAM' && ticket.subcategory?.toUpperCase() === 'BRE');
+};
+
 // Get display name for category (supports hierarchical categories)
 const getCategoryDisplay = (ticket: Ticket | null) => {
   if (!ticket) return 'Unknown';
@@ -96,6 +105,7 @@ export default function Home({ currentUser, onSignOut }: HomeProps) {
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
   const [statusMessage, setStatusMessage] = useState('');
   const [showAllTickets, setShowAllTickets] = useState(true); // Default to show all to match Dashboard
+  const [breWorkflowStates, setBreWorkflowStates] = useState<Record<string, any>>({}); // Store BRE workflow states
 
   const [showEmailModal, setShowEmailModal] = useState(false);
   const [showClosureModal, setShowClosureModal] = useState(false);
@@ -333,6 +343,64 @@ export default function Home({ currentUser, onSignOut }: HomeProps) {
               setStatusMessage(data.message);
             }
             break;
+
+          case 'bre_stage_update':
+          case 'bre_complete':
+          case 'bre_completed':
+          case 'bre_waiting_certification':
+          case 'bre_certification_received':
+            // Update BRE ticket with live updates
+            if (data.ticket) {
+              setTickets(prev => prev.map(t =>
+                t.id === data.deliverable_id ? { ...t, ...data.ticket } : t
+              ));
+              if (selectedTicketRef.current?.id === data.deliverable_id) {
+                setSelectedTicket(prev => prev ? { ...prev, ...data.ticket } : null);
+              }
+            }
+            // Store workflow state for BRE tickets
+            if (data.workflow_state && data.deliverable_id) {
+              setBreWorkflowStates(prev => ({
+                ...prev,
+                [data.deliverable_id]: data.workflow_state
+              }));
+            }
+            // For bre_certification_received: merge the top-level certification_response
+            // into the stored workflow state so BREMetricsCards can display it immediately
+            if (data.type === 'bre_certification_received' && data.certification_response && data.deliverable_id) {
+              setBreWorkflowStates(prev => ({
+                ...prev,
+                [data.deliverable_id]: {
+                  ...(prev[data.deliverable_id] || data.workflow_state || {}),
+                  certification_response: data.certification_response,
+                }
+              }));
+            }
+            if (data.message) {
+              setStatusMessage(data.message);
+            }
+            break;
+
+          case 'bre_reset':
+          case 'ticket_reset':
+            // Handle ticket reset
+            if (data.ticket) {
+              setTickets(prev => prev.map(t =>
+                t.id === data.ticket.id ? data.ticket : t
+              ));
+              if (selectedTicketRef.current?.id === data.ticket.id) {
+                setSelectedTicket(data.ticket);
+              }
+            }
+            break;
+
+          case 'bre_error':
+            if (data.message) {
+              setStatusMessage(`BRE Error: ${data.message}`);
+              setTimeout(() => setStatusMessage(''), 5000);
+            }
+            break;
+
           case 'processing_complete':
             setStatusMessage(data.message || 'Processing complete');
 
@@ -1013,6 +1081,62 @@ export default function Home({ currentUser, onSignOut }: HomeProps) {
             </div>
           )}
 
+          {/* BRE Global Dashboard Widget - Conditionally shown if only BRE tickets are viewed */}
+          {filteredTickets.length > 0 && filteredTickets.every(isBRETicket) && (
+            <div className="mb-8">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
+                  <ShieldCheck className="w-6 h-6 text-green-600" />
+                  BRE Certification Dashboard
+                </h2>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex items-center gap-4">
+                  <div className="p-3 bg-green-100 text-green-600 rounded-lg font-bold">
+                    {tickets.filter(isBRETicket).length}
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500 font-medium uppercase tracking-wider">BRE Deliverables</p>
+                    <p className="text-lg font-bold text-gray-900 leading-none">Total Active</p>
+                  </div>
+                </div>
+                <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex items-center gap-4">
+                  <div className="p-3 bg-blue-100 text-blue-600 rounded-lg">
+                    <Clock className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500 font-medium uppercase tracking-wider">In Progress</p>
+                    <p className="text-lg font-bold text-gray-900 leading-none">
+                      {tickets.filter(t => isBRETicket(t) && t.status.toLowerCase().includes('progress')).length}
+                    </p>
+                  </div>
+                </div>
+                <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex items-center gap-4">
+                  <div className="p-3 bg-green-100 text-green-600 rounded-lg">
+                    <CheckCircle className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500 font-medium uppercase tracking-wider">Certified</p>
+                    <p className="text-lg font-bold text-gray-900 leading-none">
+                      {tickets.filter(t => isBRETicket(t) && (t.status.toLowerCase().includes('closed') || t.status.toLowerCase().includes('completed'))).length}
+                    </p>
+                  </div>
+                </div>
+                <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex items-center gap-4">
+                  <div className="p-3 bg-yellow-100 text-yellow-600 rounded-lg">
+                    <AlertCircle className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500 font-medium uppercase tracking-wider">Awaiting Response</p>
+                    <p className="text-lg font-bold text-gray-900 leading-none">
+                      {tickets.filter(t => isBRETicket(t) && t.currentStage === 4).length}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Status Message */}
           {statusMessage && (
             <div
@@ -1068,9 +1192,12 @@ export default function Home({ currentUser, onSignOut }: HomeProps) {
                           {/* Category Badge */}
                           <span
                             onClick={(e) => { e.stopPropagation(); toggleTicketExpansion(ticket.id); }}
-                            className={`px-2 py-1 rounded text-xs font-medium cursor-pointer hover:brightness-95 transition-all ${isPCATTicket(ticket)
-                              ? 'bg-purple-100 text-purple-700 border border-purple-200'
-                              : ticket.category?.toUpperCase() === 'IAM'
+                            className={`px-2 py-1 rounded text-xs font-medium cursor-pointer hover:brightness-95 transition-all ${
+                              isPCATTicket(ticket)
+                                ? 'bg-purple-100 text-purple-700 border border-purple-200'
+                                : isBRETicket(ticket)
+                                ? 'bg-green-100 text-green-700 border border-green-200'
+                                : ticket.category?.toUpperCase() === 'IAM'
                                 ? 'bg-blue-100 text-blue-700 border border-blue-200'
                                 : 'bg-gray-100 text-gray-700 border border-gray-200'
                               }`}>
@@ -1133,7 +1260,7 @@ export default function Home({ currentUser, onSignOut }: HomeProps) {
                           </span>
                         </div>
                         <div className="flex gap-1">
-                          {ticket.stages.slice(0, 9).map((stage, idx) => {
+                          {ticket.stages.map((stage, idx) => {
                             const isDone = (ticket.status === 'completed' || ticket.status === 'closed');
                             const isStatusOpen = (ticket.status || '').toLowerCase().replace(/-/g, '').trim() === 'open';
 
@@ -1200,6 +1327,29 @@ export default function Home({ currentUser, onSignOut }: HomeProps) {
                   <PCATTicketPanel
                     ticket={selectedTicket}
                     onRefresh={() => fetchTickets()}
+                  />
+                </div>
+              ) : isBRETicket(selectedTicket) ? (
+                <div className="flex flex-col h-full bg-white">
+                  <div className="p-6 pb-2 border-b border-gray-100 bg-white z-20">
+                    <div className="flex items-start justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <h2 className="text-gray-900 font-bold">{selectedTicket.id}</h2>
+                        <span className="px-2 py-0.5 bg-green-100 text-green-700 rounded text-xs font-bold uppercase">BRE Certification</span>
+                      </div>
+                      <button
+                        onClick={handleCloseTicket}
+                        className="text-gray-400 hover:text-gray-600 text-2xl leading-none"
+                      >
+                        ×
+                      </button>
+                    </div>
+                    <p className="text-sm text-gray-600 font-medium mb-2">{selectedTicket.title}</p>
+                  </div>
+                  <BRETicketPanel
+                    ticket={selectedTicket}
+                    onRefresh={() => fetchTickets()}
+                    workflowStateFromWS={breWorkflowStates[selectedTicket.id]}
                   />
                 </div>
               ) : (
@@ -1428,9 +1578,12 @@ export default function Home({ currentUser, onSignOut }: HomeProps) {
                             <span className="text-gray-500 text-xs uppercase tracking-wider font-semibold flex items-center gap-1 mb-1">
                               <Tag className="w-3 h-3" /> Category
                             </span>
-                            <span className={`px-2 py-1 rounded text-xs font-bold ${isPCATTicket(selectedTicket)
-                              ? 'bg-purple-100 text-purple-700'
-                              : selectedTicket.category.toUpperCase() === 'IAM'
+                            <span className={`px-2 py-1 rounded text-xs font-bold ${
+                              isPCATTicket(selectedTicket)
+                                ? 'bg-purple-100 text-purple-700'
+                                : isBRETicket(selectedTicket)
+                                ? 'bg-green-100 text-green-700'
+                                : selectedTicket.category.toUpperCase() === 'IAM'
                                 ? 'bg-blue-100 text-blue-700'
                                 : 'bg-gray-100 text-gray-700'
                               }`}>

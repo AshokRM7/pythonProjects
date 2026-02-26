@@ -27,8 +27,8 @@ BRE_STAGES = [
     {"id": 1, "name": "Deliverable Intake Agent",     "status": "pending", "message": ""},
     {"id": 2, "name": "BRE Portal Check Agent",       "status": "pending", "message": ""},
     {"id": 3, "name": "Soft Review Agent",            "status": "pending", "message": ""},
-    {"id": 4, "name": "Certification Submission Agent","status": "pending","message": ""},
-    {"id": 5, "name": "Evidence & Closure Agent",     "status": "pending", "message": ""},
+    {"id": 4, "name": "Certification Request to App Owner","status": "pending","message": ""},
+    {"id": 5, "name": "Verify Response & Close",     "status": "pending", "message": ""},
 ]
 
 
@@ -561,7 +561,7 @@ class BREOrchestrator:
     # Async pipeline with WebSocket broadcast (mirrors IAM pipeline)
     # ------------------------------------------------------------------
 
-    async def _broadcast_stage(self, ticket_id: str, stage_idx: int, status: str, message: str):
+    async def _broadcast_stage(self, ticket_id: str, stage_idx: int, status: str, message: str, stage_data: Optional[Dict[str, Any]] = None):
         """Update ticket stage in shared store and broadcast via WebSocket"""
         if self._current_tickets and ticket_id in self._current_tickets:
             ticket = self._current_tickets[ticket_id]
@@ -582,6 +582,16 @@ class BREOrchestrator:
             }
             if self._current_tickets and ticket_id in self._current_tickets:
                 payload["ticket"] = self._current_tickets[ticket_id]
+            
+            # Include workflow state data for live updates
+            if ticket_id in self.workflow_states:
+                state = self.workflow_states[ticket_id]
+                payload["workflow_state"] = state.model_dump(mode='json')
+            
+            # Include additional stage-specific data
+            if stage_data:
+                payload["stage_data"] = stage_data
+            
             await self._broadcast(payload)
 
     async def process_deliverable_async(self, deliverable_id: str) -> Dict[str, Any]:
@@ -614,7 +624,15 @@ class BREOrchestrator:
                 await self._broadcast_stage(deliverable_id, 2, "error", f"Portal check failed: {portal_result.get('error', 'Unknown error')}")
                 return portal_result
             rule_count = len(state.ait_rules.pending_rules) if state.ait_rules else 0
-            await self._broadcast_stage(deliverable_id, 2, "completed", f"✅ Found {rule_count} pending rule(s) in BRE Portal")
+            # Broadcast rules data after stage 2 completion
+            rules_data = state.ait_rules.model_dump(mode='json') if state.ait_rules else None
+            await self._broadcast_stage(
+                deliverable_id, 
+                2, 
+                "completed", 
+                f"✅ Found {rule_count} pending rule(s) in BRE Portal",
+                stage_data={"rules": rules_data}
+            )
 
             # Stage 3 – Soft Review
             await self._broadcast_stage(deliverable_id, 3, "in-progress", "Soft Review Agent: Analyzing rules without final certification...")
@@ -624,17 +642,25 @@ class BREOrchestrator:
                 await self._broadcast_stage(deliverable_id, 3, "error", f"Soft review failed: {review_result.get('error', 'Unknown error')}")
                 return review_result
             high_risk = state.soft_review.high_risk_rules if state.soft_review else 0
-            await self._broadcast_stage(deliverable_id, 3, "completed", f"✅ Soft review complete — {high_risk} high-risk rule(s) identified")
+            # Broadcast soft review data after stage 3 completion
+            soft_review_data = state.soft_review.model_dump(mode='json') if state.soft_review else None
+            await self._broadcast_stage(
+                deliverable_id, 
+                3, 
+                "completed", 
+                f"✅ Soft review complete — {high_risk} high-risk rule(s) identified",
+                stage_data={"soft_review": soft_review_data}
+            )
 
             # Stage 4 – Certification Submission (pause for app owner)
-            await self._broadcast_stage(deliverable_id, 4, "in-progress", "Certification Submission Agent: Sending certification request to App Owner...")
+            await self._broadcast_stage(deliverable_id, 4, "in-progress", "Sending certification request to App Owner (App Owner will certify the rules)...")
             await asyncio.sleep(2)  # Simulate processing time
             submission_result = await asyncio.to_thread(self._step_4_submission, state)
             if not submission_result["success"]:
                 await self._broadcast_stage(deliverable_id, 4, "error", f"Submission failed: {submission_result.get('error', 'Unknown error')}")
                 return submission_result
             app_owner_email = state.certification_submission.app_owner_email if state.certification_submission else "app owner"
-            await self._broadcast_stage(deliverable_id, 4, "completed", f"✅ Certification request sent to {app_owner_email}")
+            await self._broadcast_stage(deliverable_id, 4, "completed", f"✅ Certification request sent to {app_owner_email}. Awaiting App Owner's response.")
 
             # Mark ticket as waiting for certification
             if self._current_tickets and deliverable_id in self._current_tickets:
@@ -643,14 +669,14 @@ class BREOrchestrator:
                 await self._broadcast({
                     "type": "bre_waiting_certification",
                     "deliverable_id": deliverable_id,
-                    "message": f"Waiting for app owner certification from {app_owner_email}",
+                    "message": f"Waiting for App Owner ({app_owner_email}) to certify the rules. Click 'Verify & Close' when ready.",
                     "ticket": self._current_tickets.get(deliverable_id) if self._current_tickets else {},
                 })
             return {
                 "success": True,
                 "deliverable_id": deliverable_id,
                 "current_step": "evidence_closure",
-                "message": "Awaiting app owner certification. Call /api/bre/certify/{deliverable_id} to complete.",
+                "message": "Awaiting App Owner certification. Call /api/bre/verify/{deliverable_id} to verify response and close.",
                 "workflow_state": state.model_dump(mode="json"),
             }
 
@@ -683,7 +709,7 @@ class BREOrchestrator:
         state = self.workflow_states[deliverable_id]
 
         # Stage 5 – Evidence & Closure
-        await self._broadcast_stage(deliverable_id, 5, "in-progress", "Evidence & Closure Agent: Capturing certification evidence and closing deliverable...")
+        await self._broadcast_stage(deliverable_id, 5, "in-progress", "Verifying App Owner's certification response and closing deliverable...")
         if self._current_tickets and deliverable_id in self._current_tickets:
             # Logic to fetch certification response from external system or use stored response in state
             self._current_tickets[deliverable_id]["waitingForCertification"] = True
@@ -694,29 +720,29 @@ class BREOrchestrator:
                 await self._broadcast({
                     "type": "bre_auto_certification",
                     "deliverable_id": state.deliverable.deliverable_id,
-                    "message": "Auto-completing certification for testing purposes"
+                    "message": "Simulating App Owner certification for demo purposes (in production, App Owner would provide this)"
                 })
             self._current_tickets[deliverable_id]["waitingForCertification"] = False
         else:
             # Check if certification response will be loaded
             response_data = self._load_app_owner_response(deliverable_id)
             if response_data and self._broadcast:
-                await asyncio.sleep(3)  # Simulate delay in receiving response
+                await asyncio.sleep(1)  # Simulate delay in checking response
                 await self._broadcast({
                     "type": "bre_certification_received",
                     "deliverable_id": state.deliverable.deliverable_id,
-                    "message": f"Certification response received from {response_data['certified_by']}",
-                    "certification_response": response_data
+                    "message": f"App Owner certification response received from {response_data['certified_by']}",
+                    "certification_response": response_data,
+                    "workflow_state": state.model_dump(mode='json') if state else None
                 })
                 self._current_tickets[deliverable_id]["waitingForCertification"] = False
             else:
-                await self._broadcast_stage(deliverable_id, 5, "pending", "Waiting for certification response from app owner...")
+                await self._broadcast_stage(deliverable_id, 5, "pending", "Waiting for App Owner's certification response...")
 
-        await asyncio.sleep(2)  # Simulate processing time for closure
         closure_result = await asyncio.to_thread(self._step_5_closure, state, auto_certify)
         if not closure_result["success"]:
             if closure_result.get("error") == "Certification response not received from app owner":
-                await self._broadcast_stage(deliverable_id, 5, "pending", "Waiting for certification response from app owner...")
+                await self._broadcast_stage(deliverable_id, 5, "pending", "Waiting for App Owner's certification response...")
             await self._broadcast_stage(deliverable_id, 5, "error", f"Closure failed: {closure_result.get('error', 'Unknown error')}")
             return closure_result
 

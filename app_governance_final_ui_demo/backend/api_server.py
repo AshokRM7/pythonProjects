@@ -427,13 +427,15 @@ async def load_initial_tickets():
                 frontend_ticket["stages"][0]["status"] = "completed"
                 frontend_ticket["stages"][0]["message"] = "Ticket fetched successfully"
                 current_tickets[frontend_ticket["id"]] = frontend_ticket
-            print(f"Loaded {len(current_tickets)} tickets")
+            print(f"✅ Loaded {len(current_tickets)} tickets")
         else:
-            print("No tickets found")
+            print("⚠️ No tickets found - tickets_response.tickets is empty")
             
     except Exception as e:
         AgentLogger.log_agent_error("TicketFetcher", str(e))
-        print(f"Error loading initial tickets: {e}")
+        print(f"❌ Error loading initial tickets: {e}")
+        import traceback
+        traceback.print_exc()
 
 
 def seed_pcat_demo_ticket():

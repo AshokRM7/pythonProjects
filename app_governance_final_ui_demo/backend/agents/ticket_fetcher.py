@@ -1,6 +1,7 @@
 import json
 import os
 from backend.models.ticket_context import TicketResponse, Ticket
+from backend.bre.orchestrator import BRE_STAGES
 from langchain.agents import create_agent
 from langchain_core.tools import Tool
 from langchain_core.messages import ToolMessage
@@ -24,7 +25,8 @@ def fetch_all_tickets(data_file: str) -> TicketResponse:
         {"id": 9, "name": "Logging Agent", "status": "pending", "message": ""},
     ]
 
-    tickets = [Ticket(**{**t, "stages": base_stages, "currentStage": 0}) for t in sample_data]
+    tickets = [Ticket(**{**t, "stages": base_stages, "currentStage": 0}) for t in sample_data if t.get("ticket_type") != "BRE"]
+    tickets.extend(Ticket(**{**t, "stages": BRE_STAGES, "currentStage": 0}) for t in sample_data if t.get("ticket_type") == "BRE")
     return TicketResponse(tickets=tickets)
 
 
