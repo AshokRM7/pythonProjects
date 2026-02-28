@@ -31,6 +31,7 @@
           "risk_level": "critical"
         }
       ],
+      "invalid_permissions": [],
       "certification_history": [
         {
           "certification_date": "2025-11-15T09:00:00Z",
@@ -66,6 +67,7 @@
           "risk_level": "medium"
         }
       ],
+      "invalid_permissions": [],
       "certification_history": [
         {
           "certification_date": "2025-12-01T10:15:00Z",
@@ -93,9 +95,267 @@
           "risk_level": "low"
         }
       ],
+      "invalid_permissions": [],
+      "certification_history": []
+    },
+    "AIT-88001": {
+      "ait_number": "AIT-88001",
+      "application_name": "Trading Platform",
+      "pending_rules": [
+        {
+          "rule_id": "RULE-NEW-001",
+          "rule_name": "Dev_Prod_Access_Violation",
+          "rule_type": "permission",
+          "description": "Developer accounts with Production environment access",
+          "current_state": "pending_certification",
+          "last_modified": "2026-02-20T09:00:00Z",
+          "changes_from_last_et": [
+            "dev_user_group granted PROD_ENV_READ access",
+            "dev_team_lead granted PROD_DEPLOY permission"
+          ],
+          "risk_level": "high"
+        }
+      ],
+      "invalid_permissions": [
+        {
+          "permission_id": "PERM-88001-001",
+          "user_type": "Developer",
+          "permission_name": "PROD_ENV_READ",
+          "environment": "Production",
+          "assigned_to": "dev_user_group",
+          "violates_rule": "BRE-RULE-1",
+          "rule_description": "Developers cannot have Production environment access",
+          "risk_level": "high"
+        },
+        {
+          "permission_id": "PERM-88001-002",
+          "user_type": "Developer",
+          "permission_name": "PROD_DEPLOY",
+          "environment": "Production",
+          "assigned_to": "dev_team_lead",
+          "violates_rule": "BRE-RULE-1",
+          "rule_description": "Developers cannot have Production environment access",
+          "risk_level": "high"
+        }
+      ],
+      "certification_history": []
+    },
+    "AIT-88002": {
+      "ait_number": "AIT-88002",
+      "application_name": "Risk Management System",
+      "pending_rules": [
+        {
+          "rule_id": "RULE-NEW-002",
+          "rule_name": "ServiceAccount_InteractiveLogin",
+          "rule_type": "permission",
+          "description": "Service accounts with interactive login enabled",
+          "current_state": "pending_certification",
+          "last_modified": "2026-02-21T10:00:00Z",
+          "changes_from_last_et": [
+            "svc_risk_monitor account has interactive login enabled",
+            "svc_batch_processor account has console access"
+          ],
+          "risk_level": "critical"
+        }
+      ],
+      "invalid_permissions": [
+        {
+          "permission_id": "PERM-88002-001",
+          "user_type": "Service Account",
+          "permission_name": "INTERACTIVE_LOGIN",
+          "environment": "All",
+          "assigned_to": "svc_risk_monitor",
+          "violates_rule": "BRE-RULE-5",
+          "rule_description": "Service accounts must not have interactive login enabled",
+          "risk_level": "critical"
+        },
+        {
+          "permission_id": "PERM-88002-002",
+          "user_type": "Service Account",
+          "permission_name": "CONSOLE_ACCESS",
+          "environment": "All",
+          "assigned_to": "svc_batch_processor",
+          "violates_rule": "BRE-RULE-5",
+          "rule_description": "Service accounts must not have interactive login enabled",
+          "risk_level": "critical"
+        }
+      ],
+      "certification_history": []
+    },
+    "AIT-99101": {
+      "ait_number": "AIT-99101",
+      "application_name": "Payment Gateway",
+      "pending_rules": [
+        {
+          "rule_id": "RULE-GIS-001",
+          "rule_name": "Contractor_Confidential_Access",
+          "rule_type": "permission",
+          "description": "Contractor accounts accessing confidential payment data",
+          "current_state": "pending_certification",
+          "last_modified": "2026-02-22T08:30:00Z",
+          "changes_from_last_et": [
+            "contractor_ext_grp granted READ access to CONFIDENTIAL_PAYMENT_DATA",
+            "contractor_temp_01 assigned to SENSITIVE_REPORTS_ACCESS role"
+          ],
+          "risk_level": "high"
+        }
+      ],
+      "invalid_permissions": [
+        {
+          "permission_id": "PERM-99101-001",
+          "user_type": "Contractor",
+          "permission_name": "CONFIDENTIAL_PAYMENT_DATA_READ",
+          "environment": "Production",
+          "assigned_to": "contractor_ext_grp",
+          "violates_rule": "BRE-RULE-3",
+          "rule_description": "Contractors cannot access confidential data",
+          "risk_level": "high"
+        },
+        {
+          "permission_id": "PERM-99101-002",
+          "user_type": "Contractor",
+          "permission_name": "SENSITIVE_REPORTS_ACCESS",
+          "environment": "Production",
+          "assigned_to": "contractor_temp_01",
+          "violates_rule": "BRE-RULE-3",
+          "rule_description": "Contractors cannot access confidential data",
+          "risk_level": "high"
+        }
+      ],
+      "certification_history": []
+    },
+    "AIT-99102": {
+      "ait_number": "AIT-99102",
+      "application_name": "User Management Portal",
+      "pending_rules": [
+        {
+          "rule_id": "RULE-GIS-002",
+          "rule_name": "TestAccount_ElevatedPrivilege",
+          "rule_type": "permission",
+          "description": "Test accounts assigned elevated admin privileges",
+          "current_state": "pending_certification",
+          "last_modified": "2026-02-23T09:00:00Z",
+          "changes_from_last_et": [
+            "test_user_qa01 assigned ADMIN_ELEVATED role",
+            "test_automation_bot granted SUPERUSER privilege"
+          ],
+          "risk_level": "medium"
+        }
+      ],
+      "invalid_permissions": [
+        {
+          "permission_id": "PERM-99102-001",
+          "user_type": "Test Account",
+          "permission_name": "ADMIN_ELEVATED",
+          "environment": "UAT",
+          "assigned_to": "test_user_qa01",
+          "violates_rule": "BRE-RULE-4",
+          "rule_description": "Test accounts cannot be assigned elevated privileges",
+          "risk_level": "medium"
+        },
+        {
+          "permission_id": "PERM-99102-002",
+          "user_type": "Test Account",
+          "permission_name": "SUPERUSER",
+          "environment": "UAT",
+          "assigned_to": "test_automation_bot",
+          "violates_rule": "BRE-RULE-4",
+          "rule_description": "Test accounts cannot be assigned elevated privileges",
+          "risk_level": "medium"
+        }
+      ],
+      "certification_history": []
+    },
+    "AIT-99103": {
+      "ait_number": "AIT-99103",
+      "application_name": "Core Banking System",
+      "pending_rules": [
+        {
+          "rule_id": "RULE-GIS-003",
+          "rule_name": "User_AdminAccess_Violation",
+          "rule_type": "permission",
+          "description": "Regular user accounts granted admin access",
+          "current_state": "pending_certification",
+          "last_modified": "2026-02-24T10:00:00Z",
+          "changes_from_last_et": [
+            "regular_user_banking_001 assigned ADMIN role",
+            "branch_user_group granted SYS_ADMIN permission"
+          ],
+          "risk_level": "critical"
+        }
+      ],
+      "invalid_permissions": [
+        {
+          "permission_id": "PERM-99103-001",
+          "user_type": "Regular User",
+          "permission_name": "ADMIN_ROLE",
+          "environment": "Production",
+          "assigned_to": "regular_user_banking_001",
+          "violates_rule": "BRE-RULE-2",
+          "rule_description": "Users cannot have Admin access",
+          "risk_level": "critical"
+        },
+        {
+          "permission_id": "PERM-99103-002",
+          "user_type": "Regular User",
+          "permission_name": "SYS_ADMIN",
+          "environment": "Production",
+          "assigned_to": "branch_user_group",
+          "violates_rule": "BRE-RULE-2",
+          "rule_description": "Users cannot have Admin access",
+          "risk_level": "critical"
+        }
+      ],
       "certification_history": []
     }
   },
+  "business_rules": [
+    {
+      "rule_id": "BRE-RULE-1",
+      "rule_name": "No Developer → Production Access",
+      "description": "Developers cannot have Production environment access",
+      "user_type": "Developer",
+      "forbidden_permission": "Production Environment Access",
+      "risk_level": "high",
+      "category": "Environment Access"
+    },
+    {
+      "rule_id": "BRE-RULE-2",
+      "rule_name": "No User → Admin Access",
+      "description": "Users cannot have Admin access",
+      "user_type": "Regular User",
+      "forbidden_permission": "Admin Access",
+      "risk_level": "critical",
+      "category": "Privilege Escalation"
+    },
+    {
+      "rule_id": "BRE-RULE-3",
+      "rule_name": "No Contractor → Confidential Data",
+      "description": "Contractors cannot access confidential data",
+      "user_type": "Contractor",
+      "forbidden_permission": "Confidential Data Access",
+      "risk_level": "high",
+      "category": "Data Access"
+    },
+    {
+      "rule_id": "BRE-RULE-4",
+      "rule_name": "No Test Account → Elevated Privileges",
+      "description": "Test accounts cannot be assigned elevated privileges",
+      "user_type": "Test Account",
+      "forbidden_permission": "Elevated Privileges",
+      "risk_level": "medium",
+      "category": "Privilege Management"
+    },
+    {
+      "rule_id": "BRE-RULE-5",
+      "rule_name": "No Service Account → Interactive Login",
+      "description": "Service accounts must not have interactive login enabled",
+      "user_type": "Service Account",
+      "forbidden_permission": "Interactive Login",
+      "risk_level": "critical",
+      "category": "Account Security"
+    }
+  ],
   "app_owners": {
     "APP-12345": {
       "name": "John Smith",
@@ -114,6 +374,36 @@
       "email": "sarah.williams@company.com",
       "department": "IT Infrastructure",
       "phone": "+1-555-0303"
+    },
+    "APP-88001": {
+      "name": "Alex Morgan",
+      "email": "alex.morgan@company.com",
+      "department": "Capital Markets",
+      "phone": "+1-555-0401"
+    },
+    "APP-88002": {
+      "name": "Linda Chen",
+      "email": "linda.chen@company.com",
+      "department": "Risk & Compliance",
+      "phone": "+1-555-0402"
+    },
+    "APP-99101": {
+      "name": "Rajesh Kumar",
+      "email": "rajesh.kumar@company.com",
+      "department": "Payments",
+      "phone": "+1-555-0501"
+    },
+    "APP-99102": {
+      "name": "Priya Shah",
+      "email": "priya.shah@company.com",
+      "department": "IT Operations",
+      "phone": "+1-555-0502"
+    },
+    "APP-99103": {
+      "name": "Suresh Nair",
+      "email": "suresh.nair@company.com",
+      "department": "Banking Operations",
+      "phone": "+1-555-0503"
     }
   }
 }

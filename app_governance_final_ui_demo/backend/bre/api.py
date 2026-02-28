@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Any, Callable, Awaitable, Dict, List, Optional
 
 import os
+from datetime import datetime
 from fastapi import APIRouter, HTTPException, WebSocket, WebSocketDisconnect
 from langchain_openai import ChatOpenAI
 from backend.bre.models import (
@@ -58,7 +59,10 @@ def _seed_bre_ticket(ticket_id: str, ticket_data: dict):
     """Ensure a BRE ticket is present in the shared ticket store with stage scaffold."""
     if _current_tickets is None or ticket_id in _current_tickets:
         return
-    stages = [dict(s) for s in BRE_STAGES]  # fresh copy
+    is_bre_new = ticket_data.get("deliverableType") == "BRE-NEW"
+    # Stage 6 is for BRE-NEW only. Legacy BRE tickets keep stages 0-5.
+    max_stages = 7 if is_bre_new else 6
+    stages = [dict(s) for s in BRE_STAGES[:max_stages]]  # fresh copy correctly sized
     _current_tickets[ticket_id] = {
         **ticket_data,
         "id": ticket_id,
@@ -506,3 +510,289 @@ async def bre_websocket_endpoint(websocket: WebSocket, deliverable_id: str):
             _bre_ws_connections[deliverable_id] = [
                 ws for ws in _bre_ws_connections[deliverable_id] if ws != websocket
             ]
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# BRE Remediation Agent Endpoints (BRE-NEW deliverable only)
+# These endpoints are ISOLATED from existing BRE-2026-* / IAM / PCAT flows.
+# ──────────────────────────────────────────────────────────────────────────────
+
+from pydantic import BaseModel as _BaseModel, Field as _Field
+from typing import List as _List, Optional as _Optional
+
+# Lazy-load the remediation agent (no LLM required)
+_remediation_agent = None
+
+def _get_remediation_agent():
+    global _remediation_agent
+    if _remediation_agent is None:
+        from backend.agents.bre_remediation_agent import BRERemediationAgent
+        _remediation_agent = BRERemediationAgent()
+    return _remediation_agent
+
+
+class BREDecision(_BaseModel):
+    permission_id: str = _Field(alias="permissionId")
+    permission_name: str = _Field(alias="permissionName")
+    action: str  # "certify" or "remove"
+    comment: _Optional[str] = ""
+
+    class Config:
+        populate_by_name = True
+
+
+class BRESubmitRequest(_BaseModel):
+    decisions: _List[BREDecision]
+    submitted_by: _Optional[str] = "support_team"
+
+
+@router.get("/dashboard/rules")
+async def get_bre_business_rules() -> Dict[str, Any]:
+    """
+    Return all 5 BRE business rules for the Remediation Dashboard.
+    Used by the BRE-NEW deliverable flow ONLY.
+    """
+    agent = orchestrator.remediation_agent
+    rules = agent.get_business_rules()
+    return {"success": True, "rules": rules, "count": len(rules)}
+
+
+@router.get("/remediation/{deliverable_id}/permissions")
+async def get_remediation_permissions(deliverable_id: str) -> Dict[str, Any]:
+    """
+    Get invalid permissions for a BRE-NEW ticket's AIT number.
+    Reads from bre_portal_data.json → ait_rules[ait_number].invalid_permissions.
+    """
+    try:
+        # Resolve AIT number from the shared ticket store
+        ait_number = None
+        if _current_tickets and deliverable_id in _current_tickets:
+            ait_number = _current_tickets[deliverable_id].get("ait_number") or _current_tickets[deliverable_id].get("aitNumber")
+
+        if not ait_number:
+            # Fall back to ticket_data.json
+            data_path = Path(__file__).resolve().parents[2] / "data" / "ticket_data.json"
+            with open(data_path, "r", encoding="utf-8") as f:
+                tickets = json.load(f)
+            for t in tickets:
+                if t.get("ticket_id") == deliverable_id:
+                    ait_number = t.get("ait_number")
+                    break
+
+        if not ait_number:
+            raise HTTPException(status_code=404, detail=f"AIT number not found for {deliverable_id}")
+
+        agent = orchestrator.remediation_agent
+        result = agent.get_invalid_permissions(ait_number)
+        return {"success": True, **result}
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/remediation/{deliverable_id}/simulate-owner-response")
+async def simulate_bre_owner_response(deliverable_id: str) -> Dict[str, Any]:
+    """
+    Simulate the App Owner's Certify/Remove decisions for demo purposes.
+    Returns a pre-filled list of decisions that can be shown in the popup.
+    Mirrors the simulate-response pattern used by the ARM Admin flow.
+    BRE-NEW ONLY — does not affect existing BRE or IAM tickets.
+    """
+    try:
+        ait_number = None
+        if _current_tickets and deliverable_id in _current_tickets:
+            ait_number = _current_tickets[deliverable_id].get("ait_number") or _current_tickets[deliverable_id].get("aitNumber")
+
+        if not ait_number:
+            data_path = Path(__file__).resolve().parents[2] / "data" / "ticket_data.json"
+            with open(data_path, "r", encoding="utf-8") as f:
+                tickets = json.load(f)
+            for t in tickets:
+                if t.get("ticket_id") == deliverable_id:
+                    ait_number = t.get("ait_number")
+                    break
+
+        if not ait_number:
+            raise HTTPException(status_code=404, detail=f"AIT number not found for {deliverable_id}")
+
+        agent = orchestrator.remediation_agent
+        decisions = agent.simulate_owner_response(ait_number)
+
+        if _broadcast:
+            await _broadcast({
+                "type": "bre_owner_response_simulated",
+                "deliverable_id": deliverable_id,
+                "message": f"App Owner response simulated for {deliverable_id}",
+                "decisions": decisions,
+            })
+
+        return {
+            "success": True,
+            "deliverable_id": deliverable_id,
+            "ait_number": ait_number,
+            "decisions": decisions,
+            "message": "App Owner response simulated. Review and click Submit to proceed.",
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/remediation/{deliverable_id}/submit")
+async def submit_bre_remediation(deliverable_id: str, req: BRESubmitRequest) -> Dict[str, Any]:
+    """
+    Submit support team's Certify/Remove decisions for a BRE-NEW ticket.
+    Triggers:
+      1. Screenshot capture (Pillow PNG)
+      2. Email to App Owner with screenshot attachment
+      3. JIRA ticket update with screenshot
+      4. RISA portal notification
+      5. Stage 6 marked completed via WebSocket broadcast
+
+    BRE-NEW ONLY — does not affect existing BRE-2026-* / IAM / PCAT deliverables.
+    """
+    try:
+        # Resolve AIT number and Application ID
+        ait_number = None
+        application_id = None
+
+        if _current_tickets and deliverable_id in _current_tickets:
+            t = _current_tickets[deliverable_id]
+            ait_number = t.get("ait_number") or t.get("aitNumber")
+            application_id = t.get("application_id") or t.get("applicationId")
+
+        if not ait_number or not application_id:
+            data_path = Path(__file__).resolve().parents[2] / "data" / "ticket_data.json"
+            with open(data_path, "r", encoding="utf-8") as f:
+                tickets = json.load(f)
+            for t in tickets:
+                if t.get("ticket_id") == deliverable_id:
+                    ait_number = ait_number or t.get("ait_number")
+                    application_id = application_id or t.get("application_id")
+                    break
+
+        if not ait_number:
+            raise HTTPException(status_code=404, detail=f"AIT number not found for {deliverable_id}")
+
+        # Broadcast: stage 6 in-progress
+        if _broadcast:
+            await _broadcast({
+                "type": "bre_remediation_submitting",
+                "deliverable_id": deliverable_id,
+                "message": "Support team submitted decisions. Processing screenshot and notifications...",
+            })
+
+        decisions_list = [d.model_dump() for d in req.decisions]
+        agent = orchestrator.remediation_agent
+        result = await asyncio.to_thread(
+            agent.submit_remediation_decision,
+            deliverable_id,
+            ait_number,
+            application_id or "",
+            decisions_list,
+        )
+
+        if not result.get("success"):
+            raise HTTPException(status_code=500, detail=result.get("message", "Submission failed"))
+
+        # Update shared ticket store: mark remediation complete and advance to Stage 7
+        if _current_tickets and deliverable_id in _current_tickets:
+            ticket = _current_tickets[deliverable_id]
+            ticket["bre_remediation_completed"] = True
+            ticket["bre_remediation_result"] = {
+                "certified_count": result["certified_count"],
+                "removed_count": result["removed_count"],
+                "screenshot": result["screenshot"].get("filename"),
+                "timestamp": result["timestamp"],
+            }
+            
+            # Advance to Stage 7 (Archive & Close)
+            ticket["currentStage"] = 7
+            if len(ticket["stages"]) > 7:
+                # Stage 6 was remediation
+                ticket["stages"][6]["status"] = "completed"
+                ticket["stages"][7]["status"] = "in-progress"
+                ticket["status"] = "Remediated"
+
+        # Broadcast completion and stage advance
+        if _broadcast:
+            await _broadcast({
+                "type": "bre_remediation_completed",
+                "deliverable_id": deliverable_id,
+                "message": result["message"],
+                "result": {
+                    "certified_count": result["certified_count"],
+                    "removed_count": result["removed_count"],
+                    "screenshot": result["screenshot"].get("filename"),
+                },
+                "ticket": _current_tickets.get(deliverable_id) if _current_tickets else {},
+            })
+
+        # Trigger final Archive & Close stage logic in background
+        asyncio.create_task(orchestrator.finalize_remediation_async(deliverable_id))
+
+        return result
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+@router.post("/remediation/{deliverable_id}/capture-preview")
+async def capture_bre_remediation_preview(deliverable_id: str, req: BRESubmitRequest) -> Dict[str, Any]:
+    """
+    Generate a remediation screenshot preview without final submission.
+    """
+    try:
+        ait_number = None
+        if _current_tickets and deliverable_id in _current_tickets:
+            t = _current_tickets[deliverable_id]
+            ait_number = t.get("ait_number") or t.get("aitNumber")
+
+        if not ait_number:
+            data_path = Path(__file__).resolve().parents[2] / "data" / "ticket_data.json"
+            with open(data_path, "r", encoding="utf-8") as f:
+                tickets = json.load(f)
+            for t in tickets:
+                if t.get("ticket_id") == deliverable_id:
+                    ait_number = t.get("ait_number")
+                    break
+
+        if not ait_number:
+            raise HTTPException(status_code=404, detail=f"AIT number not found for {deliverable_id}")
+
+        decisions_list = [d.model_dump() for d in req.decisions]
+        
+        # Generate filename but don't perform submission actions
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        screenshot_filename = f"preview_{deliverable_id}_{timestamp}.png"
+        
+        project_root = Path(__file__).resolve().parents[2]
+        screenshots_dir = project_root / "backend" / "bre" / "data" / "evidence" / "screenshots"
+        screenshots_dir.mkdir(parents=True, exist_ok=True)
+        screenshot_path = str(screenshots_dir / screenshot_filename)
+
+        # Use the remediation_agent from the global orchestrator instance
+        result = await asyncio.to_thread(
+            orchestrator.remediation_agent._capture_screenshot,
+            deliverable_id,
+            decisions_list,
+            screenshot_path
+        )
+
+        if not result.get("success"):
+            raise HTTPException(status_code=500, detail=result.get("error", "Preview generation failed"))
+
+        return {
+            "success": True,
+            "deliverable_id": deliverable_id,
+            "preview_url": f"/api/screenshots/{screenshot_filename}",
+            "filename": screenshot_filename,
+            "timestamp": timestamp
+        }
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 from dotenv import load_dotenv
 load_dotenv()
 
@@ -61,7 +62,14 @@ async def lifespan(app: FastAPI):
         seed_pcat_demo_ticket()
     yield
 
+from fastapi.staticfiles import StaticFiles
+
 app = FastAPI(title="Ticket Portal API", version="1.0.0", lifespan=lifespan)
+
+# Mount screenshots directory for evidence preview
+screenshots_dir = Path(__file__).resolve().parent / "bre" / "data" / "evidence" / "screenshots"
+screenshots_dir.mkdir(parents=True, exist_ok=True)
+app.mount("/api/screenshots", StaticFiles(directory=str(screenshots_dir)), name="screenshots")
 
 # CORS middleware for React frontend
 app.add_middleware(

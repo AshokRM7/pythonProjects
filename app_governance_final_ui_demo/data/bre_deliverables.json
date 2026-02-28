@@ -21,6 +21,46 @@
       "rise_ticket_id": "RISE-8903",
       "ait_number": "AIT-44556",
       "application_id": "APP-99887"
+    },
+    {
+      "deliverable_id": "BRE-NEW-001",
+      "ticket_id": "BRE-NEW-001",
+      "rise_ticket_id": "RISE-9001",
+      "ait_number": "AIT-88001",
+      "application_id": "APP-88001",
+      "deliverable_type": "BRE-NEW"
+    },
+    {
+      "deliverable_id": "BRE-NEW-002",
+      "ticket_id": "BRE-NEW-002",
+      "rise_ticket_id": "RISE-9002",
+      "ait_number": "AIT-88002",
+      "application_id": "APP-88002",
+      "deliverable_type": "BRE-NEW"
+    },
+    {
+      "deliverable_id": "GIS-BRE-001",
+      "ticket_id": "GIS-BRE-001",
+      "rise_ticket_id": "RISE-9101",
+      "ait_number": "AIT-99101",
+      "application_id": "APP-99101",
+      "deliverable_type": "BRE-NEW"
+    },
+    {
+      "deliverable_id": "GIS-BRE-002",
+      "ticket_id": "GIS-BRE-002",
+      "rise_ticket_id": "RISE-9102",
+      "ait_number": "AIT-99102",
+      "application_id": "APP-99102",
+      "deliverable_type": "BRE-NEW"
+    },
+    {
+      "deliverable_id": "GIS-BRE-003",
+      "ticket_id": "GIS-BRE-003",
+      "rise_ticket_id": "RISE-9103",
+      "ait_number": "AIT-99103",
+      "application_id": "APP-99103",
+      "deliverable_type": "BRE-NEW"
     }
   ]
 }

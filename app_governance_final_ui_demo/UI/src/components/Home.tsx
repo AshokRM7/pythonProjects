@@ -4,6 +4,8 @@ import { createPortal } from 'react-dom';
 import { Play, Activity, Clock, User, Calendar, Tag, FileText, Bot, ShieldCheck, AlertCircle, X, CheckCheck, Loader2, CheckCircle, ChevronRight, Download, Layers, RotateCcw, PlayCircle, ArrowLeft, ArrowRight, Info, Settings, Key, Mail } from 'lucide-react';
 import { PCATTicketPanel } from './pcat/PCATTicketPanel';
 import { pcatApi } from './pcat/pcatApi';
+import { BRERemediationPanel } from './bre-new/BRERemediationPanel';
+import { BRERemediationWizard } from './bre-new/BRERemediationWizard';
 import Header from './Header';
 import Footer from './Footer';
 import { TicketStagesAccordion } from './TicketStagesAccordion';
@@ -76,6 +78,15 @@ const isPCATTicket = (ticket: Ticket | null) => {
   return ticket.subcategory?.toUpperCase() === 'PCAT';
 };
 
+// BRE-NEW Identification Helper (does NOT affect existing BRE-2026-* tickets unless they have deliverableType=BRE-NEW)
+const isBRENewTicket = (ticket: Ticket | null) => {
+  if (!ticket) return false;
+  return (
+    (ticket as any).deliverableType === 'BRE-NEW' &&
+    ticket.subcategory?.toUpperCase() === 'BRE'
+  );
+};
+
 // Get display name for category (supports hierarchical categories)
 const getCategoryDisplay = (ticket: Ticket | null) => {
   if (!ticket) return 'Unknown';
@@ -101,6 +112,7 @@ export default function Home({ currentUser, onSignOut }: HomeProps) {
   const [showClosureModal, setShowClosureModal] = useState(false);
   const [showStepsModal, setShowStepsModal] = useState(false);
   const [showRemediationModal, setShowRemediationModal] = useState(false);
+  const [showBRERemediationModal, setShowBRERemediationModal] = useState(false);
 
   // ARM Admin Drawer State (V2)
   const [showAdminModal, setShowAdminModal] = useState(false); // Using drawer but keeping same state name for trigger
@@ -397,23 +409,27 @@ export default function Home({ currentUser, onSignOut }: HomeProps) {
 
   // AUTO-TRIGGER Remediation Modal
   useEffect(() => {
-    if (selectedTicket &&
-      selectedTicket.currentStage === 5 &&
-      selectedTicket.stages[5].status === 'in-progress' &&
-      !isPCATTicket(selectedTicket) &&
-      !showRemediationModal &&
-      !showAdminModal) {
-      // Check if ARM FORMS NO ADMIN ticket
-      const isArmNoAdmin = selectedTicket.subcategory === 'ARM FORMS NO ADMIN' ||
-        (selectedTicket as any).deliverableType === 'ARM FORMS NO ADMIN' ||
-        (selectedTicket as any).waitingForAdminUpdate;
+    if (!selectedTicket || showRemediationModal || showAdminModal || showBRERemediationModal) return;
+
+    const isBreNew = isBRENewTicket(selectedTicket);
+    const isArmNoAdmin = selectedTicket.subcategory === 'ARM FORMS NO ADMIN' ||
+      (selectedTicket as any).deliverableType === 'ARM FORMS NO ADMIN' ||
+      (selectedTicket as any).waitingForAdminUpdate;
+
+    // Stage 5 Triggers (Legacy & Admin Forms)
+    if (selectedTicket.currentStage === 5 && selectedTicket.stages[5]?.status === 'in-progress') {
       if (isArmNoAdmin) {
         handleOpenAdminModal();
-      } else {
+      } else if (!isBreNew && !isPCATTicket(selectedTicket)) {
         setShowRemediationModal(true);
       }
     }
-  }, [selectedTicket?.currentStage, selectedTicket?.stages?.[5]?.status]);
+
+    // Stage 6 Triggers (BRE-NEW Remediation)
+    if (isBreNew && selectedTicket.currentStage === 6 && selectedTicket.stages[6]?.status === 'in-progress') {
+      setShowBRERemediationModal(true);
+    }
+  }, [selectedTicket?.currentStage, selectedTicket?.stages?.[5]?.status, selectedTicket?.stages?.[6]?.status]);
 
   // Handle ticket selection from URL
 
@@ -740,10 +756,13 @@ export default function Home({ currentUser, onSignOut }: HomeProps) {
     } catch (error) {
       console.error('Error fetching email template:', error);
       // If API doesn't exist yet, show sample template
+      const isBRE = isBRENewTicket(selectedTicket);
       setEmailTemplate({
         to: selectedTicket?.contacts?.join(', ') || 'app.owner@company.com',
         subject: `Evidence Required: ${selectedTicket?.title || 'Ticket'} - ${selectedTicket?.id}`,
-        body: `Dear Application Owner,\n\nWe are processing ticket ${selectedTicket?.id} regarding ${selectedTicket?.title}.\n\nApplication Details:\n- Application Name: ${selectedTicket?.applicationName || 'N/A'}\n- AIT Number: ${selectedTicket?.aitNumber || 'N/A'}\n- LOB Owner: ${selectedTicket?.lobOwner || 'N/A'}\n\nUpdated Admin Assignments:\n- Primary Admin: ${adminPrimaryInput || 'N/A'}\n- Secondary Admin: ${adminSecondaryInput || 'N/A'}\n\nWe require evidence of the following actions:\n1. User access review\n2. Compliance verification\n3. Security approval\n\nPlease provide the requested evidence within 48 hours.\n\nBest regards,\nGovernance Team`
+        body: isBRE
+          ? `Dear Application Owner,\n\nWe are processing ticket ${selectedTicket?.id} regarding ${selectedTicket?.title}.\n\nApplication Details:\n- Application Name: ${selectedTicket?.applicationName || 'N/A'}\n- AIT Number: ${selectedTicket?.aitNumber || 'N/A'}\n- LOB Owner: ${selectedTicket?.lobOwner || 'N/A'}\n\nBRE Violation Details:\n- The Business Rule Engine (BRE) has detected policy violations in your application.\n- Specifically: ${selectedTicket?.description || 'Review required'}\n\nWe require evidence of the following actions:\n1. BRE Rule Certification\n2. Remediation Verification\n3. Policy Compliance Proof\n\nPlease provide the requested evidence within 48 hours.\n\nBest regards,\nGovernance Team`
+          : `Dear Application Owner,\n\nWe are processing ticket ${selectedTicket?.id} regarding ${selectedTicket?.title}.\n\nApplication Details:\n- Application Name: ${selectedTicket?.applicationName || 'N/A'}\n- AIT Number: ${selectedTicket?.aitNumber || 'N/A'}\n- LOB Owner: ${selectedTicket?.lobOwner || 'N/A'}\n\nUpdated Admin Assignments:\n- Primary Admin: ${adminPrimaryInput || 'N/A'}\n- Secondary Admin: ${adminSecondaryInput || 'N/A'}\n\nWe require evidence of the following actions:\n1. User access review\n2. Compliance verification\n3. Security approval\n\nPlease provide the requested evidence within 48 hours.\n\nBest regards,\nGovernance Team`
       });
       setShowEmailModal(true);
     }
@@ -1512,6 +1531,21 @@ export default function Home({ currentUser, onSignOut }: HomeProps) {
                         })}
                       </div>
                     </div>
+
+                    {/* BRE Remediation Panel – BRE-NEW deliverable only */}
+                    {isBRENewTicket(selectedTicket) && (
+                      <div className="pt-6 border-t border-gray-200">
+                        <BRERemediationPanel
+                          deliverableId={selectedTicket.id}
+                          aitNumber={(selectedTicket as any).ait_number || (selectedTicket as any).aitNumber || ''}
+                          applicationName={(selectedTicket as any).applicationName || (selectedTicket as any).application_name || selectedTicket.title}
+                          applicationId={(selectedTicket as any).application_id || (selectedTicket as any).applicationId || ''}
+                          onComplete={(result) => {
+                            console.log('BRE Remediation completed:', result);
+                          }}
+                        />
+                      </div>
+                    )}
                   </div>
                 </>
               )}
@@ -2540,6 +2574,33 @@ export default function Home({ currentUser, onSignOut }: HomeProps) {
           document.body
         )
       }
+
+      {/* BRE Remediation Wizard Global Modal */}
+      {showBRERemediationModal && selectedTicket && createPortal(
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 overflow-hidden">
+          <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300" onClick={() => setShowBRERemediationModal(false)} />
+          <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col animate-in zoom-in-95 duration-300">
+            <button
+              onClick={() => setShowBRERemediationModal(false)}
+              className="absolute top-6 right-6 p-2 bg-slate-100 rounded-full text-slate-400 hover:text-slate-800 hover:bg-slate-200 transition-all z-20"
+            >
+              <X className="w-6 h-6" />
+            </button>
+            <div className="flex-1 overflow-y-auto">
+              <BRERemediationWizard
+                deliverableId={selectedTicket.id}
+                aitNumber={(selectedTicket as any).ait_number || (selectedTicket as any).aitNumber || ''}
+                applicationName={(selectedTicket as any).applicationName || (selectedTicket as any).application_name || selectedTicket.title}
+                onSuccess={() => {
+                  setShowBRERemediationModal(false);
+                  fetchTickets();
+                }}
+              />
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
 
       <Footer />
     </div >

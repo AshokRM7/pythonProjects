@@ -7,3 +7,4 @@ uvicorn[standard]
 websockets
 python-dotenv
 python-multipart
+Pillow
