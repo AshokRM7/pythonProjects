@@ -17,7 +17,7 @@ export default function Footer() {
               </div>
               <div>
                 <h2 className="text-white font-bold text-lg">Bank of America</h2>
-                <p className="text-gray-300 text-sm">App Governance UI</p>
+                <p className="text-gray-300 text-sm">App Governance</p>
               </div>
             </div>
             <p className="text-gray-300 text-sm max-w-md">

@@ -63,7 +63,7 @@ export default function Header({ currentUser, onSignOut, onSearch, searchValue }
             <div className="hidden sm:block h-10 w-px bg-gray-200" />
             <div className="hidden sm:flex flex-col text-left">
               <span className="text-xl font-black text-[#012169] tracking-tight leading-none">
-                App Governance UI
+                App Governance
               </span>
               <span className="text-[#E31837] font-bold text-[10px] uppercase tracking-[0.2em] mt-1">
                 Internal Access Portal

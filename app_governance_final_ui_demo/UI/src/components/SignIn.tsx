@@ -177,7 +177,7 @@ export default function SignIn({ onSignIn }: SignInProps) {
               <div className="p-8 bg-white rounded-[2.5rem] flex flex-col items-center justify-center shadow-2xl animate-bounce gap-4">
                 <img src={bofaFlag} alt="Bank of America" className="h-24 w-auto object-contain" />
                 <div className="h-0.5 w-12 bg-[#E31837] rounded-full" />
-                <span className="text-[#012169] font-black tracking-widest text-[10px] uppercase">App Governance UI</span>
+                <span className="text-[#012169] font-black tracking-widest text-[10px] uppercase">App Governance</span>
               </div>
               <div className="absolute -inset-4 border-2 border-white/20 rounded-[3rem] animate-[spin_10s_linear_infinite]" />
             </div>
