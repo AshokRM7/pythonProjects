@@ -13,12 +13,12 @@
     "arm_id": "ARM-BRE-001",
     "application_name": "Financial Management System",
     "application_id": "APP-12345",
-    "application_owner": "john.smith@company.com",
+    "application_owner": "m.potnuru@example.com",
     "lob_owner": "Finance",
-    "ait_owner": "jane.doe@company.com",
+    "ait_owner": "m.potnuru@example.com",
     "contacts": [
-      "john.smith@company.com",
-      "jane.doe@company.com"
+      "m.potnuru@example.com",
+      "m.potnuru@example.com"
     ],
     "status": "Open",
     "priority": "High",
@@ -42,12 +42,12 @@
     "arm_id": "ARM-BRE-002",
     "application_name": "Customer Portal",
     "application_id": "APP-54321",
-    "application_owner": "mike.johnson@company.com",
+    "application_owner": "m.potnuru@example.com",
     "lob_owner": "Customer Operations",
-    "ait_owner": "sarah.wilson@company.com",
+    "ait_owner": "m.potnuru@example.com",
     "contacts": [
-      "mike.johnson@company.com",
-      "sarah.wilson@company.com"
+      "m.potnuru@example.com",
+      "m.potnuru@example.com"
     ],
     "status": "Open",
     "priority": "Medium",
@@ -71,12 +71,12 @@
     "arm_id": "ARM-BRE-003",
     "application_name": "Reporting Dashboard",
     "application_id": "APP-99887",
-    "application_owner": "sarah.williams@company.com",
+    "application_owner": "m.potnuru@example.com",
     "lob_owner": "IT Infrastructure",
-    "ait_owner": "compliance.team@company.com",
+    "ait_owner": "m.potnuru@example.com",
     "contacts": [
-      "sarah.williams@company.com",
-      "compliance.team@company.com"
+      "m.potnuru@example.com",
+      "m.potnuru@example.com"
     ],
     "status": "In Review",
     "priority": "Low",
@@ -100,12 +100,12 @@
     "arm_id": "ARM-BRE-NEW-001",
     "application_name": "Trading Platform",
     "application_id": "APP-88001",
-    "application_owner": "alex.morgan@company.com",
+    "application_owner": "m.potnuru@example.com",
     "lob_owner": "Capital Markets",
-    "ait_owner": "trading.ops@company.com",
+    "ait_owner": "m.potnuru@example.com",
     "contacts": [
-      "alex.morgan@company.com",
-      "trading.ops@company.com"
+      "m.potnuru@example.com",
+      "m.potnuru@example.com"
     ],
     "status": "Open",
     "priority": "High",
@@ -129,12 +129,12 @@
     "arm_id": "ARM-BRE-NEW-002",
     "application_name": "Risk Management System",
     "application_id": "APP-88002",
-    "application_owner": "linda.chen@company.com",
+    "application_owner": "m.potnuru@example.com",
     "lob_owner": "Risk & Compliance",
-    "ait_owner": "risk.team@company.com",
+    "ait_owner": "m.potnuru@example.com",
     "contacts": [
-      "linda.chen@company.com",
-      "risk.team@company.com"
+      "m.potnuru@example.com",
+      "m.potnuru@example.com"
     ],
     "status": "Open",
     "priority": "Critical",
@@ -158,12 +158,12 @@
     "arm_id": "ARM-GIS-BRE-001",
     "application_name": "Payment Gateway",
     "application_id": "APP-99101",
-    "application_owner": "rajesh.kumar@company.com",
+    "application_owner": "m.potnuru@example.com",
     "lob_owner": "Payments",
-    "ait_owner": "payments.iam@company.com",
+    "ait_owner": "m.potnuru@example.com",
     "contacts": [
-      "rajesh.kumar@company.com",
-      "payments.iam@company.com"
+      "m.potnuru@example.com",
+      "m.potnuru@example.com"
     ],
     "status": "Open",
     "priority": "High",
@@ -187,12 +187,12 @@
     "arm_id": "ARM-GIS-BRE-002",
     "application_name": "User Management Portal",
     "application_id": "APP-99102",
-    "application_owner": "priya.shah@company.com",
+    "application_owner": "m.potnuru@example.com",
     "lob_owner": "IT Operations",
-    "ait_owner": "itops.iam@company.com",
+    "ait_owner": "m.potnuru@example.com",
     "contacts": [
-      "priya.shah@company.com",
-      "itops.iam@company.com"
+      "m.potnuru@example.com",
+      "m.potnuru@example.com"
     ],
     "status": "Open",
     "priority": "Medium",
@@ -216,12 +216,12 @@
     "arm_id": "ARM-GIS-BRE-003",
     "application_name": "Core Banking System",
     "application_id": "APP-99103",
-    "application_owner": "suresh.nair@company.com",
+    "application_owner": "m.potnuru@example.com",
     "lob_owner": "Banking Operations",
-    "ait_owner": "banking.iam@company.com",
+    "ait_owner": "m.potnuru@example.com",
     "contacts": [
-      "suresh.nair@company.com",
-      "banking.iam@company.com"
+      "m.potnuru@example.com",
+      "m.potnuru@example.com"
     ],
     "status": "Open",
     "priority": "Critical",
@@ -240,20 +240,20 @@
     "risk_level": "High",
     "sla_deadline": "2025-11-15",
     "created_on": "2025-11-01",
-    "description": "User E1023 (leaver.crm@example.com) has resigned. Revoke all CRM_DB access and disable account.",
+    "description": "User E1023 (m.potnuru@example.com) has resigned. Revoke all CRM_DB access and disable account.",
     "arm_id": "ARM-9999",
     "application_name": "CRM_DB",
-    "application_owner": "admin@example.com",
+    "application_owner": "m.potnuru@example.com",
     "lob_owner": "SALES",
     "ait_owner": "IAM Team",
     "contacts": [
-      "admin@example.com"
+      "m.potnuru@example.com"
     ],
     "status": "Open",
     "priority": "High",
     "owner": "Unassigned",
     "employee_id": "E1023",
-    "user_email": "leaver.crm@example.com",
+    "user_email": "m.potnuru@example.com",
     "target_system": "CRM_DB",
     "requested_action": "REVOKE_DB_ACCESS",
     "subcategory": "IAM"
@@ -270,17 +270,17 @@
     "description": "Automated ticket generation for IAM issue in Customer Portal.",
     "arm_id": "ARM-7121",
     "application_name": "Customer Portal",
-    "application_owner": "paul@example.com",
+    "application_owner": "m.potnuru@example.com",
     "lob_owner": "IT LOB",
     "ait_owner": "Manager Name",
     "contacts": [
-      "paul@example.com",
-      "quinn@example.com",
-      "rachel@example.com"
+      "m.potnuru@example.com",
+      "m.potnuru@example.com",
+      "m.potnuru@example.com"
     ],
     "status": "Waiting for Evidence",
     "priority": "Medium",
-    "owner": "paul@example.com",
+    "owner": "m.potnuru@example.com",
     "subcategory": "TOXIC COMBINATION"
   },
   {
@@ -295,17 +295,17 @@
     "description": "Automated ticket generation for IAM issue in Sales CRM.",
     "arm_id": "ARM-8456",
     "application_name": "Sales CRM",
-    "application_owner": "ben@example.com",
+    "application_owner": "m.potnuru@example.com",
     "lob_owner": "IT LOB",
     "ait_owner": "Manager Name",
     "contacts": [
-      "ben@example.com",
-      "clara@example.com",
-      "dan@example.com"
+      "m.potnuru@example.com",
+      "m.potnuru@example.com",
+      "m.potnuru@example.com"
     ],
     "status": "In Progress",
     "priority": "High",
-    "owner": "ben@example.com",
+    "owner": "m.potnuru@example.com",
     "subcategory": "TOXIC COMBINATION"
   },
   {
@@ -320,17 +320,17 @@
     "description": "Automated ticket generation for IAM issue in HR System.",
     "arm_id": "ARM-5217",
     "application_name": "HR System",
-    "application_owner": "david@example.com",
+    "application_owner": "m.potnuru@example.com",
     "lob_owner": "IT LOB",
     "ait_owner": "Manager Name",
     "contacts": [
-      "david@example.com",
-      "eva@example.com",
-      "frank@example.com"
+      "m.potnuru@example.com",
+      "m.potnuru@example.com",
+      "m.potnuru@example.com"
     ],
     "status": "Open",
     "priority": "Critical",
-    "owner": "david@example.com",
+    "owner": "m.potnuru@example.com",
     "subcategory": "IAM"
   },
   {
@@ -345,17 +345,17 @@
     "description": "Automated ticket generation for SECURITY issue in Employee Directory.",
     "arm_id": "ARM-3004",
     "application_name": "Employee Directory",
-    "application_owner": "victor@example.com",
+    "application_owner": "m.potnuru@example.com",
     "lob_owner": "IT LOB",
     "ait_owner": "Manager Name",
     "contacts": [
-      "victor@example.com",
-      "wendy@example.com",
-      "xavier@example.com"
+      "m.potnuru@example.com",
+      "m.potnuru@example.com",
+      "m.potnuru@example.com"
     ],
     "status": "Open",
     "priority": "Critical",
-    "owner": "victor@example.com"
+    "owner": "m.potnuru@example.com"
   },
   {
     "ticket_id": "REQ1005",
@@ -369,17 +369,17 @@
     "description": "Automated ticket generation for IAM issue in Employee Directory.",
     "arm_id": "ARM-3010",
     "application_name": "Employee Directory",
-    "application_owner": "victor@example.com",
+    "application_owner": "m.potnuru@example.com",
     "lob_owner": "IT LOB",
     "ait_owner": "Manager Name",
     "contacts": [
-      "victor@example.com",
-      "wendy@example.com",
-      "xavier@example.com"
+      "m.potnuru@example.com",
+      "m.potnuru@example.com",
+      "m.potnuru@example.com"
     ],
     "status": "Open",
     "priority": "Critical",
-    "owner": "victor@example.com",
+    "owner": "m.potnuru@example.com",
     "subcategory": "IAM"
   },
   {
@@ -394,17 +394,17 @@
     "description": "Automated ticket generation for IAM issue in Customer Portal.",
     "arm_id": "ARM-3879",
     "application_name": "Customer Portal",
-    "application_owner": "paul@example.com",
+    "application_owner": "m.potnuru@example.com",
     "lob_owner": "IT LOB",
     "ait_owner": "Manager Name",
     "contacts": [
-      "paul@example.com",
-      "quinn@example.com",
-      "rachel@example.com"
+      "m.potnuru@example.com",
+      "m.potnuru@example.com",
+      "m.potnuru@example.com"
     ],
     "status": "Open",
     "priority": "Medium",
-    "owner": "paul@example.com",
+    "owner": "m.potnuru@example.com",
     "subcategory": "IAM"
   },
   {
@@ -419,17 +419,17 @@
     "description": "Automated ticket generation for IAM issue in Sales CRM.",
     "arm_id": "ARM-8899",
     "application_name": "Sales CRM",
-    "application_owner": "ashns200@example.com",
+    "application_owner": "m.potnuru@example.com",
     "lob_owner": "IT LOB",
     "ait_owner": "Manager Name",
     "contacts": [
-      "ashns200@gmail.com",
-      "ashns200@gmail.com",
-      "ashns200@gmail.com"
+      "m.potnuru@example.com",
+      "m.potnuru@example.com",
+      "m.potnuru@example.com"
     ],
     "status": "Open",
     "priority": "Medium",
-    "owner": "ashns200@gmail.com",
+    "owner": "m.potnuru@example.com",
     "subcategory": "IAM"
   },
   {
@@ -444,17 +444,17 @@
     "description": "Automated ticket generation for IAM issue in Customer Portal.",
     "arm_id": "ARM-4210",
     "application_name": "Customer Portal",
-    "application_owner": "paul@example.com",
+    "application_owner": "m.potnuru@example.com",
     "lob_owner": "IT LOB",
     "ait_owner": "Manager Name",
     "contacts": [
-      "paul@example.com",
-      "quinn@example.com",
-      "rachel@example.com"
+      "m.potnuru@example.com",
+      "m.potnuru@example.com",
+      "m.potnuru@example.com"
     ],
     "status": "Waiting for Evidence",
     "priority": "Low",
-    "owner": "paul@example.com",
+    "owner": "m.potnuru@example.com",
     "subcategory": "IAM"
   },
   {
@@ -469,17 +469,17 @@
     "description": "Automated ticket generation for IAM issue in ERP System.",
     "arm_id": "ARM-6090",
     "application_name": "ERP System",
-    "application_owner": "sam@example.com",
+    "application_owner": "m.potnuru@example.com",
     "lob_owner": "IT LOB",
     "ait_owner": "Manager Name",
     "contacts": [
-      "sam@example.com",
-      "tina@example.com",
-      "uma@example.com"
+      "m.potnuru@example.com",
+      "m.potnuru@example.com",
+      "m.potnuru@example.com"
     ],
     "status": "Pending",
     "priority": "Low",
-    "owner": "sam@example.com",
+    "owner": "m.potnuru@example.com",
     "subcategory": "IAM"
   },
   {
@@ -494,17 +494,17 @@
     "description": "Automated ticket generation for IAM issue in CRM Database.",
     "arm_id": "ARM-3220",
     "application_name": "CRM Database",
-    "application_owner": "grace@example.com",
+    "application_owner": "m.potnuru@example.com",
     "lob_owner": "IT LOB",
     "ait_owner": "Manager Name",
     "contacts": [
-      "grace@example.com",
-      "henry@example.com",
-      "iris@example.com"
+      "m.potnuru@example.com",
+      "m.potnuru@example.com",
+      "m.potnuru@example.com"
     ],
     "status": "Pending",
     "priority": "Critical",
-    "owner": "grace@example.com",
+    "owner": "m.potnuru@example.com",
     "subcategory": "IAM"
   },
   {
@@ -519,17 +519,17 @@
     "description": "Automated ticket generation for IAM issue in HR System.",
     "arm_id": "ARM-8363",
     "application_name": "HR System",
-    "application_owner": "david@example.com",
+    "application_owner": "m.potnuru@example.com",
     "lob_owner": "IT LOB",
     "ait_owner": "Manager Name",
     "contacts": [
-      "david@example.com",
-      "eva@example.com",
-      "frank@example.com"
+      "m.potnuru@example.com",
+      "m.potnuru@example.com",
+      "m.potnuru@example.com"
     ],
     "status": "Closed",
     "priority": "High",
-    "owner": "david@example.com",
+    "owner": "m.potnuru@example.com",
     "subcategory": "IAM"
   },
   {
@@ -544,17 +544,17 @@
     "description": "Automated ticket generation for SECURITY issue in HR System.",
     "arm_id": "ARM-6416",
     "application_name": "HR System",
-    "application_owner": "david@example.com",
+    "application_owner": "m.potnuru@example.com",
     "lob_owner": "IT LOB",
     "ait_owner": "Manager Name",
     "contacts": [
-      "david@example.com",
-      "eva@example.com",
-      "frank@example.com"
+      "m.potnuru@example.com",
+      "m.potnuru@example.com",
+      "m.potnuru@example.com"
     ],
     "status": "Open",
     "priority": "Critical",
-    "owner": "david@example.com"
+    "owner": "m.potnuru@example.com"
   },
   {
     "ticket_id": "REQ1018",
@@ -568,17 +568,17 @@
     "description": "Automated ticket generation for IAM issue in Marketing Platform.",
     "arm_id": "ARM-5605",
     "application_name": "Marketing Platform",
-    "application_owner": "mary@example.com",
+    "application_owner": "m.potnuru@example.com",
     "lob_owner": "IT LOB",
     "ait_owner": "Manager Name",
     "contacts": [
-      "mary@example.com",
-      "nathan@example.com",
-      "olivia@example.com"
+      "m.potnuru@example.com",
+      "m.potnuru@example.com",
+      "m.potnuru@example.com"
     ],
     "status": "Open",
     "priority": "Medium",
-    "owner": "mary@example.com",
+    "owner": "m.potnuru@example.com",
     "subcategory": "IAM"
   },
   {
@@ -593,17 +593,17 @@
     "description": "Automated ticket generation for IAM issue in Authentication Service.",
     "arm_id": "ARM-4904",
     "application_name": "Authentication Service",
-    "application_owner": "jack@example.com",
+    "application_owner": "m.potnuru@example.com",
     "lob_owner": "IT LOB",
     "ait_owner": "Manager Name",
     "contacts": [
-      "jack@example.com",
-      "kate@example.com",
-      "leo@example.com"
+      "m.potnuru@example.com",
+      "m.potnuru@example.com",
+      "m.potnuru@example.com"
     ],
     "status": "Open",
     "priority": "Medium",
-    "owner": "jack@example.com",
+    "owner": "m.potnuru@example.com",
     "subcategory": "IAM"
   },
   {
@@ -618,17 +618,17 @@
     "description": "Automated ticket generation for IAM issue in Cloud Services Platform.",
     "arm_id": "ARM-3166",
     "application_name": "Cloud Services Platform",
-    "application_owner": "yara@example.com",
+    "application_owner": "m.potnuru@example.com",
     "lob_owner": "IT LOB",
     "ait_owner": "Manager Name",
     "contacts": [
-      "yara@example.com",
-      "zack@example.com",
-      "amy@example.com"
+      "m.potnuru@example.com",
+      "m.potnuru@example.com",
+      "m.potnuru@example.com"
     ],
     "status": "Recent Issues",
     "priority": "Medium",
-    "owner": "yara@example.com",
+    "owner": "m.potnuru@example.com",
     "subcategory": "IAM"
   },
   {
@@ -643,17 +643,17 @@
     "description": "Automated ticket generation for IAM issue in Customer Portal.",
     "arm_id": "ARM-9812",
     "application_name": "Customer Portal",
-    "application_owner": "paul@example.com",
+    "application_owner": "m.potnuru@example.com",
     "lob_owner": "IT LOB",
     "ait_owner": "Manager Name",
     "contacts": [
-      "paul@example.com",
-      "quinn@example.com",
-      "rachel@example.com"
+      "m.potnuru@example.com",
+      "m.potnuru@example.com",
+      "m.potnuru@example.com"
     ],
     "status": "Open",
     "priority": "Low",
-    "owner": "paul@example.com",
+    "owner": "m.potnuru@example.com",
     "subcategory": "IAM"
   },
   {
@@ -668,17 +668,17 @@
     "description": "Automated ticket generation for IAM issue in Finance Portal.",
     "arm_id": "ARM-4843",
     "application_name": "Finance Portal",
-    "application_owner": "alice@example.com",
+    "application_owner": "m.potnuru@example.com",
     "lob_owner": "IT LOB",
     "ait_owner": "Manager Name",
     "contacts": [
-      "alice@example.com",
-      "bob@example.com",
-      "carol@example.com"
+      "m.potnuru@example.com",
+      "m.potnuru@example.com",
+      "m.potnuru@example.com"
     ],
     "status": "Pending",
     "priority": "Low",
-    "owner": "alice@example.com",
+    "owner": "m.potnuru@example.com",
     "subcategory": "IAM"
   },
   {
@@ -693,17 +693,17 @@
     "description": "Automated ticket generation for SECURITY issue in ERP System.",
     "arm_id": "ARM-9484",
     "application_name": "ERP System",
-    "application_owner": "sam@example.com",
+    "application_owner": "m.potnuru@example.com",
     "lob_owner": "IT LOB",
     "ait_owner": "Manager Name",
     "contacts": [
-      "sam@example.com",
-      "tina@example.com",
-      "uma@example.com"
+      "m.potnuru@example.com",
+      "m.potnuru@example.com",
+      "m.potnuru@example.com"
     ],
     "status": "In Progress",
     "priority": "Low",
-    "owner": "sam@example.com"
+    "owner": "m.potnuru@example.com"
   },
   {
     "ticket_id": "REQ1025",
@@ -717,17 +717,17 @@
     "description": "Automated ticket generation for IAM issue in Cloud Services Platform.",
     "arm_id": "ARM-3061",
     "application_name": "Cloud Services Platform",
-    "application_owner": "yara@example.com",
+    "application_owner": "m.potnuru@example.com",
     "lob_owner": "IT LOB",
     "ait_owner": "Manager Name",
     "contacts": [
-      "yara@example.com",
-      "zack@example.com",
-      "amy@example.com"
+      "m.potnuru@example.com",
+      "m.potnuru@example.com",
+      "m.potnuru@example.com"
     ],
     "status": "Open",
     "priority": "Critical",
-    "owner": "yara@example.com",
+    "owner": "m.potnuru@example.com",
     "subcategory": "IAM"
   },
   {
@@ -742,17 +742,17 @@
     "description": "Automated ticket generation for SECURITY issue in Sales CRM.",
     "arm_id": "ARM-8274",
     "application_name": "Sales CRM",
-    "application_owner": "ben@example.com",
+    "application_owner": "m.potnuru@example.com",
     "lob_owner": "IT LOB",
     "ait_owner": "Manager Name",
     "contacts": [
-      "ben@example.com",
-      "clara@example.com",
-      "dan@example.com"
+      "m.potnuru@example.com",
+      "m.potnuru@example.com",
+      "m.potnuru@example.com"
     ],
     "status": "Open",
     "priority": "High",
-    "owner": "ben@example.com"
+    "owner": "m.potnuru@example.com"
   },
   {
     "ticket_id": "REQ1028",
@@ -766,17 +766,17 @@
     "description": "Automated ticket generation for IAM issue in Employee Directory.",
     "arm_id": "ARM-4416",
     "application_name": "Employee Directory",
-    "application_owner": "victor@example.com",
+    "application_owner": "m.potnuru@example.com",
     "lob_owner": "IT LOB",
     "ait_owner": "Manager Name",
     "contacts": [
-      "victor@example.com",
-      "wendy@example.com",
-      "xavier@example.com"
+      "m.potnuru@example.com",
+      "m.potnuru@example.com",
+      "m.potnuru@example.com"
     ],
     "status": "Waiting for Evidence",
     "priority": "High",
-    "owner": "victor@example.com",
+    "owner": "m.potnuru@example.com",
     "subcategory": "IAM"
   },
   {
@@ -791,17 +791,17 @@
     "description": "Automated ticket generation for IAM issue in Customer Portal.",
     "arm_id": "ARM-5553",
     "application_name": "Customer Portal",
-    "application_owner": "paul@example.com",
+    "application_owner": "m.potnuru@example.com",
     "lob_owner": "IT LOB",
     "ait_owner": "Manager Name",
     "contacts": [
-      "paul@example.com",
-      "quinn@example.com",
-      "rachel@example.com"
+      "m.potnuru@example.com",
+      "m.potnuru@example.com",
+      "m.potnuru@example.com"
     ],
     "status": "Waiting for Evidence",
     "priority": "Medium",
-    "owner": "paul@example.com",
+    "owner": "m.potnuru@example.com",
     "subcategory": "IAM"
   },
   {
@@ -816,17 +816,17 @@
     "description": "Automated ticket generation for IAM issue in Database Management System.",
     "arm_id": "ARM-6417",
     "application_name": "Database Management System",
-    "application_owner": "emma@example.com",
+    "application_owner": "m.potnuru@example.com",
     "lob_owner": "IT LOB",
     "ait_owner": "Manager Name",
     "contacts": [
-      "emma@example.com",
-      "finn@example.com",
-      "gina@example.com"
+      "m.potnuru@example.com",
+      "m.potnuru@example.com",
+      "m.potnuru@example.com"
     ],
     "status": "Open",
     "priority": "Low",
-    "owner": "emma@example.com",
+    "owner": "m.potnuru@example.com",
     "subcategory": "IAM"
   },
   {
@@ -841,17 +841,17 @@
     "description": "Automated ticket generation for IAM issue in Database Management System.",
     "arm_id": "ARM-9468",
     "application_name": "Database Management System",
-    "application_owner": "emma@example.com",
+    "application_owner": "m.potnuru@example.com",
     "lob_owner": "IT LOB",
     "ait_owner": "Manager Name",
     "contacts": [
-      "emma@example.com",
-      "finn@example.com",
-      "gina@example.com"
+      "m.potnuru@example.com",
+      "m.potnuru@example.com",
+      "m.potnuru@example.com"
     ],
     "status": "Pending",
     "priority": "High",
-    "owner": "emma@example.com",
+    "owner": "m.potnuru@example.com",
     "subcategory": "IAM"
   },
   {
@@ -866,17 +866,17 @@
     "description": "Automated ticket generation for IAM issue in Finance Portal.",
     "arm_id": "ARM-4875",
     "application_name": "Finance Portal",
-    "application_owner": "alice@example.com",
+    "application_owner": "m.potnuru@example.com",
     "lob_owner": "IT LOB",
     "ait_owner": "Manager Name",
     "contacts": [
-      "alice@example.com",
-      "bob@example.com",
-      "carol@example.com"
+      "m.potnuru@example.com",
+      "m.potnuru@example.com",
+      "m.potnuru@example.com"
     ],
     "status": "Open",
     "priority": "Low",
-    "owner": "alice@example.com",
+    "owner": "m.potnuru@example.com",
     "subcategory": "IAM"
   },
   {
@@ -891,17 +891,17 @@
     "description": "Automated ticket generation for IAM issue in Cloud Services Platform.",
     "arm_id": "ARM-6979",
     "application_name": "Cloud Services Platform",
-    "application_owner": "yara@example.com",
+    "application_owner": "m.potnuru@example.com",
     "lob_owner": "IT LOB",
     "ait_owner": "Manager Name",
     "contacts": [
-      "yara@example.com",
-      "zack@example.com",
-      "amy@example.com"
+      "m.potnuru@example.com",
+      "m.potnuru@example.com",
+      "m.potnuru@example.com"
     ],
     "status": "Open",
     "priority": "High",
-    "owner": "yara@example.com",
+    "owner": "m.potnuru@example.com",
     "subcategory": "IAM"
   },
   {
@@ -916,17 +916,17 @@
     "description": "Automated ticket generation for IAM issue in Employee Directory.",
     "arm_id": "ARM-5582",
     "application_name": "Employee Directory",
-    "application_owner": "victor@example.com",
+    "application_owner": "m.potnuru@example.com",
     "lob_owner": "IT LOB",
     "ait_owner": "Manager Name",
     "contacts": [
-      "victor@example.com",
-      "wendy@example.com",
-      "xavier@example.com"
+      "m.potnuru@example.com",
+      "m.potnuru@example.com",
+      "m.potnuru@example.com"
     ],
     "status": "Recent Issues",
     "priority": "High",
-    "owner": "victor@example.com",
+    "owner": "m.potnuru@example.com",
     "subcategory": "IAM"
   },
   {
@@ -941,17 +941,17 @@
     "description": "Automated ticket generation for IAM issue in HR System.",
     "arm_id": "ARM-5371",
     "application_name": "HR System",
-    "application_owner": "david@example.com",
+    "application_owner": "m.potnuru@example.com",
     "lob_owner": "IT LOB",
     "ait_owner": "Manager Name",
     "contacts": [
-      "david@example.com",
-      "eva@example.com",
-      "frank@example.com"
+      "m.potnuru@example.com",
+      "m.potnuru@example.com",
+      "m.potnuru@example.com"
     ],
     "status": "Open",
     "priority": "Low",
-    "owner": "david@example.com",
+    "owner": "m.potnuru@example.com",
     "subcategory": "IAM"
   },
   {
@@ -966,17 +966,17 @@
     "description": "Automated ticket generation for IAM issue in CRM Database.",
     "arm_id": "ARM-2517",
     "application_name": "CRM Database",
-    "application_owner": "grace@example.com",
+    "application_owner": "m.potnuru@example.com",
     "lob_owner": "IT LOB",
     "ait_owner": "Manager Name",
     "contacts": [
-      "grace@example.com",
-      "henry@example.com",
-      "iris@example.com"
+      "m.potnuru@example.com",
+      "m.potnuru@example.com",
+      "m.potnuru@example.com"
     ],
     "status": "In Progress",
     "priority": "High",
-    "owner": "grace@example.com",
+    "owner": "m.potnuru@example.com",
     "subcategory": "IAM"
   },
   {
@@ -991,17 +991,17 @@
     "description": "Automated ticket generation for IAM issue in Cloud Services Platform.",
     "arm_id": "ARM-8053",
     "application_name": "Cloud Services Platform",
-    "application_owner": "yara@example.com",
+    "application_owner": "m.potnuru@example.com",
     "lob_owner": "IT LOB",
     "ait_owner": "Manager Name",
     "contacts": [
-      "yara@example.com",
-      "zack@example.com",
-      "amy@example.com"
+      "m.potnuru@example.com",
+      "m.potnuru@example.com",
+      "m.potnuru@example.com"
     ],
     "status": "In Progress",
     "priority": "High",
-    "owner": "yara@example.com",
+    "owner": "m.potnuru@example.com",
     "subcategory": "IAM"
   },
   {
@@ -1016,17 +1016,17 @@
     "description": "Automated ticket generation for SECURITY issue in Marketing Platform.",
     "arm_id": "ARM-6319",
     "application_name": "Marketing Platform",
-    "application_owner": "mary@example.com",
+    "application_owner": "m.potnuru@example.com",
     "lob_owner": "IT LOB",
     "ait_owner": "Manager Name",
     "contacts": [
-      "mary@example.com",
-      "nathan@example.com",
-      "olivia@example.com"
+      "m.potnuru@example.com",
+      "m.potnuru@example.com",
+      "m.potnuru@example.com"
     ],
     "status": "Waiting for Evidence",
     "priority": "High",
-    "owner": "mary@example.com"
+    "owner": "m.potnuru@example.com"
   },
   {
     "ticket_id": "REQ1043",
@@ -1040,17 +1040,17 @@
     "description": "Automated ticket generation for IAM issue in Finance Portal.",
     "arm_id": "ARM-6118",
     "application_name": "Finance Portal",
-    "application_owner": "alice@example.com",
+    "application_owner": "m.potnuru@example.com",
     "lob_owner": "IT LOB",
     "ait_owner": "Manager Name",
     "contacts": [
-      "alice@example.com",
-      "bob@example.com",
-      "carol@example.com"
+      "m.potnuru@example.com",
+      "m.potnuru@example.com",
+      "m.potnuru@example.com"
     ],
     "status": "Recent Issues",
     "priority": "Critical",
-    "owner": "alice@example.com",
+    "owner": "m.potnuru@example.com",
     "subcategory": "IAM"
   },
   {
@@ -1065,17 +1065,17 @@
     "description": "Automated ticket generation for IAM issue in Sales CRM.",
     "arm_id": "ARM-1014",
     "application_name": "Sales CRM",
-    "application_owner": "ben@example.com",
+    "application_owner": "m.potnuru@example.com",
     "lob_owner": "IT LOB",
     "ait_owner": "Manager Name",
     "contacts": [
-      "ben@example.com",
-      "clara@example.com",
-      "dan@example.com"
+      "m.potnuru@example.com",
+      "m.potnuru@example.com",
+      "m.potnuru@example.com"
     ],
     "status": "Open",
     "priority": "Low",
-    "owner": "ben@example.com",
+    "owner": "m.potnuru@example.com",
     "subcategory": "IAM"
   },
   {
@@ -1090,17 +1090,17 @@
     "description": "Automated ticket generation for IAM issue in Cloud Services Platform.",
     "arm_id": "ARM-9970",
     "application_name": "Cloud Services Platform",
-    "application_owner": "yara@example.com",
+    "application_owner": "m.potnuru@example.com",
     "lob_owner": "IT LOB",
     "ait_owner": "Manager Name",
     "contacts": [
-      "yara@example.com",
-      "zack@example.com",
-      "amy@example.com"
+      "m.potnuru@example.com",
+      "m.potnuru@example.com",
+      "m.potnuru@example.com"
     ],
     "status": "Waiting for Evidence",
     "priority": "Medium",
-    "owner": "yara@example.com",
+    "owner": "m.potnuru@example.com",
     "subcategory": "IAM"
   },
   {
@@ -1115,17 +1115,17 @@
     "description": "Automated ticket generation for IAM issue in ERP System.",
     "arm_id": "ARM-1579",
     "application_name": "ERP System",
-    "application_owner": "sam@example.com",
+    "application_owner": "m.potnuru@example.com",
     "lob_owner": "IT LOB",
     "ait_owner": "Manager Name",
     "contacts": [
-      "sam@example.com",
-      "tina@example.com",
-      "uma@example.com"
+      "m.potnuru@example.com",
+      "m.potnuru@example.com",
+      "m.potnuru@example.com"
     ],
     "status": "Open",
     "priority": "High",
-    "owner": "sam@example.com",
+    "owner": "m.potnuru@example.com",
     "subcategory": "IAM"
   },
   {
@@ -1140,17 +1140,17 @@
     "description": "Automated ticket generation for SECURITY issue in Cloud Services Platform.",
     "arm_id": "ARM-6807",
     "application_name": "Cloud Services Platform",
-    "application_owner": "yara@example.com",
+    "application_owner": "m.potnuru@example.com",
     "lob_owner": "IT LOB",
     "ait_owner": "Manager Name",
     "contacts": [
-      "yara@example.com",
-      "zack@example.com",
-      "amy@example.com"
+      "m.potnuru@example.com",
+      "m.potnuru@example.com",
+      "m.potnuru@example.com"
     ],
     "status": "Pending",
     "priority": "High",
-    "owner": "yara@example.com"
+    "owner": "m.potnuru@example.com"
   },
   {
     "ticket_id": "REQ1049",
@@ -1164,17 +1164,17 @@
     "description": "Automated ticket generation for IAM issue in Finance Portal.",
     "arm_id": "ARM-3804",
     "application_name": "Finance Portal",
-    "application_owner": "alice@example.com",
+    "application_owner": "m.potnuru@example.com",
     "lob_owner": "IT LOB",
     "ait_owner": "Manager Name",
     "contacts": [
-      "alice@example.com",
-      "bob@example.com",
-      "carol@example.com"
+      "m.potnuru@example.com",
+      "m.potnuru@example.com",
+      "m.potnuru@example.com"
     ],
     "status": "Open",
     "priority": "Critical",
-    "owner": "alice@example.com",
+    "owner": "m.potnuru@example.com",
     "subcategory": "IAM"
   },
   {
@@ -1189,17 +1189,17 @@
     "description": "Automated ticket generation for SECURITY issue in Cloud Services Platform.",
     "arm_id": "ARM-4043",
     "application_name": "Cloud Services Platform",
-    "application_owner": "yara@example.com",
+    "application_owner": "m.potnuru@example.com",
     "lob_owner": "IT LOB",
     "ait_owner": "Manager Name",
     "contacts": [
-      "yara@example.com",
-      "zack@example.com",
-      "amy@example.com"
+      "m.potnuru@example.com",
+      "m.potnuru@example.com",
+      "m.potnuru@example.com"
     ],
     "status": "Open",
     "priority": "Low",
-    "owner": "yara@example.com"
+    "owner": "m.potnuru@example.com"
   },
   {
     "ticket_id": "REQ1051",
@@ -1213,17 +1213,17 @@
     "description": "Automated ticket generation for IAM issue in Authentication Service.",
     "arm_id": "ARM-5803",
     "application_name": "Authentication Service",
-    "application_owner": "jack@example.com",
+    "application_owner": "m.potnuru@example.com",
     "lob_owner": "IT LOB",
     "ait_owner": "Manager Name",
     "contacts": [
-      "jack@example.com",
-      "kate@example.com",
-      "leo@example.com"
+      "m.potnuru@example.com",
+      "m.potnuru@example.com",
+      "m.potnuru@example.com"
     ],
     "status": "In Progress",
     "priority": "High",
-    "owner": "jack@example.com",
+    "owner": "m.potnuru@example.com",
     "subcategory": "IAM"
   },
   {
@@ -1238,17 +1238,17 @@
     "description": "Automated ticket generation for IAM issue in Cloud Services Platform.",
     "arm_id": "ARM-3899",
     "application_name": "Cloud Services Platform",
-    "application_owner": "yara@example.com",
+    "application_owner": "m.potnuru@example.com",
     "lob_owner": "IT LOB",
     "ait_owner": "Manager Name",
     "contacts": [
-      "yara@example.com",
-      "zack@example.com",
-      "amy@example.com"
+      "m.potnuru@example.com",
+      "m.potnuru@example.com",
+      "m.potnuru@example.com"
     ],
     "status": "Pending",
     "priority": "Medium",
-    "owner": "yara@example.com",
+    "owner": "m.potnuru@example.com",
     "subcategory": "IAM"
   },
   {
@@ -1263,17 +1263,17 @@
     "description": "Automated ticket generation for IAM issue in Employee Directory.",
     "arm_id": "ARM-9863",
     "application_name": "Employee Directory",
-    "application_owner": "victor@example.com",
+    "application_owner": "m.potnuru@example.com",
     "lob_owner": "IT LOB",
     "ait_owner": "Manager Name",
     "contacts": [
-      "victor@example.com",
-      "wendy@example.com",
-      "xavier@example.com"
+      "m.potnuru@example.com",
+      "m.potnuru@example.com",
+      "m.potnuru@example.com"
     ],
     "status": "Pending",
     "priority": "Critical",
-    "owner": "victor@example.com",
+    "owner": "m.potnuru@example.com",
     "subcategory": "IAM"
   },
   {
@@ -1288,17 +1288,17 @@
     "description": "Automated ticket generation for IAM issue in Sales CRM.",
     "arm_id": "ARM-8736",
     "application_name": "Sales CRM",
-    "application_owner": "ben@example.com",
+    "application_owner": "m.potnuru@example.com",
     "lob_owner": "IT LOB",
     "ait_owner": "Manager Name",
     "contacts": [
-      "ben@example.com",
-      "clara@example.com",
-      "dan@example.com"
+      "m.potnuru@example.com",
+      "m.potnuru@example.com",
+      "m.potnuru@example.com"
     ],
     "status": "In Progress",
     "priority": "Low",
-    "owner": "ben@example.com",
+    "owner": "m.potnuru@example.com",
     "subcategory": "IAM"
   },
   {
@@ -1313,17 +1313,17 @@
     "description": "Automated ticket generation for IAM issue in CRM Database.",
     "arm_id": "ARM-1290",
     "application_name": "CRM Database",
-    "application_owner": "grace@example.com",
+    "application_owner": "m.potnuru@example.com",
     "lob_owner": "IT LOB",
     "ait_owner": "Manager Name",
     "contacts": [
-      "grace@example.com",
-      "henry@example.com",
-      "iris@example.com"
+      "m.potnuru@example.com",
+      "m.potnuru@example.com",
+      "m.potnuru@example.com"
     ],
     "status": "Closed",
     "priority": "Critical",
-    "owner": "grace@example.com",
+    "owner": "m.potnuru@example.com",
     "subcategory": "IAM"
   },
   {
@@ -1338,17 +1338,17 @@
     "description": "Automated ticket generation for IAM issue in Sales CRM.",
     "arm_id": "ARM-4903",
     "application_name": "Sales CRM",
-    "application_owner": "ben@example.com",
+    "application_owner": "m.potnuru@example.com",
     "lob_owner": "IT LOB",
     "ait_owner": "Manager Name",
     "contacts": [
-      "ben@example.com",
-      "clara@example.com",
-      "dan@example.com"
+      "m.potnuru@example.com",
+      "m.potnuru@example.com",
+      "m.potnuru@example.com"
     ],
     "status": "Recent Issues",
     "priority": "Medium",
-    "owner": "ben@example.com",
+    "owner": "m.potnuru@example.com",
     "subcategory": "IAM"
   },
   {
@@ -1363,17 +1363,17 @@
     "description": "Automated ticket generation for IAM issue in Customer Portal.",
     "arm_id": "ARM-7950",
     "application_name": "Customer Portal",
-    "application_owner": "paul@example.com",
+    "application_owner": "m.potnuru@example.com",
     "lob_owner": "IT LOB",
     "ait_owner": "Manager Name",
     "contacts": [
-      "paul@example.com",
-      "quinn@example.com",
-      "rachel@example.com"
+      "m.potnuru@example.com",
+      "m.potnuru@example.com",
+      "m.potnuru@example.com"
     ],
     "status": "Open",
     "priority": "Low",
-    "owner": "paul@example.com",
+    "owner": "m.potnuru@example.com",
     "subcategory": "IAM"
   },
   {
@@ -1388,17 +1388,17 @@
     "description": "Automated ticket generation for IAM issue in Finance Portal.",
     "arm_id": "ARM-8021",
     "application_name": "Finance Portal",
-    "application_owner": "alice@example.com",
+    "application_owner": "m.potnuru@example.com",
     "lob_owner": "IT LOB",
     "ait_owner": "Manager Name",
     "contacts": [
-      "alice@example.com",
-      "bob@example.com",
-      "carol@example.com"
+      "m.potnuru@example.com",
+      "m.potnuru@example.com",
+      "m.potnuru@example.com"
     ],
     "status": "Open",
     "priority": "Medium",
-    "owner": "alice@example.com",
+    "owner": "m.potnuru@example.com",
     "subcategory": "IAM"
   },
   {
@@ -1413,17 +1413,17 @@
     "description": "Automated ticket generation for IAM issue in Customer Portal.",
     "arm_id": "ARM-6802",
     "application_name": "Customer Portal",
-    "application_owner": "paul@example.com",
+    "application_owner": "m.potnuru@example.com",
     "lob_owner": "IT LOB",
     "ait_owner": "Manager Name",
     "contacts": [
-      "paul@example.com",
-      "quinn@example.com",
-      "rachel@example.com"
+      "m.potnuru@example.com",
+      "m.potnuru@example.com",
+      "m.potnuru@example.com"
     ],
     "status": "Recent Issues",
     "priority": "Medium",
-    "owner": "paul@example.com",
+    "owner": "m.potnuru@example.com",
     "subcategory": "IAM"
   },
   {
@@ -1438,17 +1438,17 @@
     "description": "Automated ticket generation for IAM issue in CRM Database.",
     "arm_id": "ARM-4999",
     "application_name": "CRM Database",
-    "application_owner": "grace@example.com",
+    "application_owner": "m.potnuru@example.com",
     "lob_owner": "IT LOB",
     "ait_owner": "Manager Name",
     "contacts": [
-      "grace@example.com",
-      "henry@example.com",
-      "iris@example.com"
+      "m.potnuru@example.com",
+      "m.potnuru@example.com",
+      "m.potnuru@example.com"
     ],
     "status": "Closed",
     "priority": "High",
-    "owner": "grace@example.com",
+    "owner": "m.potnuru@example.com",
     "subcategory": "IAM"
   },
   {
@@ -1463,17 +1463,17 @@
     "description": "Automated ticket generation for IAM issue in Cloud Services Platform.",
     "arm_id": "ARM-4337",
     "application_name": "Cloud Services Platform",
-    "application_owner": "yara@example.com",
+    "application_owner": "m.potnuru@example.com",
     "lob_owner": "IT LOB",
     "ait_owner": "Manager Name",
     "contacts": [
-      "yara@example.com",
-      "zack@example.com",
-      "amy@example.com"
+      "m.potnuru@example.com",
+      "m.potnuru@example.com",
+      "m.potnuru@example.com"
     ],
     "status": "Pending",
     "priority": "Critical",
-    "owner": "yara@example.com",
+    "owner": "m.potnuru@example.com",
     "subcategory": "IAM"
   },
   {
@@ -1488,17 +1488,17 @@
     "description": "Automated ticket generation for IAM issue in ERP System.",
     "arm_id": "ARM-9509",
     "application_name": "ERP System",
-    "application_owner": "sam@example.com",
+    "application_owner": "m.potnuru@example.com",
     "lob_owner": "IT LOB",
     "ait_owner": "Manager Name",
     "contacts": [
-      "sam@example.com",
-      "tina@example.com",
-      "uma@example.com"
+      "m.potnuru@example.com",
+      "m.potnuru@example.com",
+      "m.potnuru@example.com"
     ],
     "status": "Pending",
     "priority": "Medium",
-    "owner": "sam@example.com",
+    "owner": "m.potnuru@example.com",
     "subcategory": "IAM"
   },
   {
@@ -1513,17 +1513,17 @@
     "description": "Automated ticket generation for IAM issue in Marketing Platform.",
     "arm_id": "ARM-7348",
     "application_name": "Marketing Platform",
-    "application_owner": "mary@example.com",
+    "application_owner": "m.potnuru@example.com",
     "lob_owner": "IT LOB",
     "ait_owner": "Manager Name",
     "contacts": [
-      "mary@example.com",
-      "nathan@example.com",
-      "olivia@example.com"
+      "m.potnuru@example.com",
+      "m.potnuru@example.com",
+      "m.potnuru@example.com"
     ],
     "status": "In Progress",
     "priority": "Critical",
-    "owner": "mary@example.com",
+    "owner": "m.potnuru@example.com",
     "subcategory": "IAM"
   },
   {
@@ -1538,17 +1538,17 @@
     "description": "Automated ticket generation for IAM issue in Database Management System.",
     "arm_id": "ARM-4322",
     "application_name": "Database Management System",
-    "application_owner": "emma@example.com",
+    "application_owner": "m.potnuru@example.com",
     "lob_owner": "IT LOB",
     "ait_owner": "Manager Name",
     "contacts": [
-      "emma@example.com",
-      "finn@example.com",
-      "gina@example.com"
+      "m.potnuru@example.com",
+      "m.potnuru@example.com",
+      "m.potnuru@example.com"
     ],
     "status": "In Progress",
     "priority": "Low",
-    "owner": "emma@example.com",
+    "owner": "m.potnuru@example.com",
     "subcategory": "IAM"
   },
   {
@@ -1563,17 +1563,17 @@
     "description": "Automated ticket generation for IAM issue in Authentication Service.",
     "arm_id": "ARM-4961",
     "application_name": "Authentication Service",
-    "application_owner": "jack@example.com",
+    "application_owner": "m.potnuru@example.com",
     "lob_owner": "IT LOB",
     "ait_owner": "Manager Name",
     "contacts": [
-      "jack@example.com",
-      "kate@example.com",
-      "leo@example.com"
+      "m.potnuru@example.com",
+      "m.potnuru@example.com",
+      "m.potnuru@example.com"
     ],
     "status": "In Progress",
     "priority": "High",
-    "owner": "jack@example.com",
+    "owner": "m.potnuru@example.com",
     "subcategory": "IAM"
   },
   {
@@ -1588,17 +1588,17 @@
     "description": "Automated ticket generation for IAM issue in Employee Directory.",
     "arm_id": "ARM-5137",
     "application_name": "Employee Directory",
-    "application_owner": "victor@example.com",
+    "application_owner": "m.potnuru@example.com",
     "lob_owner": "IT LOB",
     "ait_owner": "Manager Name",
     "contacts": [
-      "victor@example.com",
-      "wendy@example.com",
-      "xavier@example.com"
+      "m.potnuru@example.com",
+      "m.potnuru@example.com",
+      "m.potnuru@example.com"
     ],
     "status": "In Progress",
     "priority": "Critical",
-    "owner": "victor@example.com",
+    "owner": "m.potnuru@example.com",
     "subcategory": "IAM"
   },
   {
@@ -1613,17 +1613,17 @@
     "description": "Automated ticket generation for SECURITY issue in Employee Directory.",
     "arm_id": "ARM-2550",
     "application_name": "Employee Directory",
-    "application_owner": "victor@example.com",
+    "application_owner": "m.potnuru@example.com",
     "lob_owner": "IT LOB",
     "ait_owner": "Manager Name",
     "contacts": [
-      "victor@example.com",
-      "wendy@example.com",
-      "xavier@example.com"
+      "m.potnuru@example.com",
+      "m.potnuru@example.com",
+      "m.potnuru@example.com"
     ],
     "status": "Pending",
     "priority": "Critical",
-    "owner": "victor@example.com"
+    "owner": "m.potnuru@example.com"
   },
   {
     "ticket_id": "REQ1076",
@@ -1637,17 +1637,17 @@
     "description": "Automated ticket generation for IAM issue in Customer Portal.",
     "arm_id": "ARM-7188",
     "application_name": "Customer Portal",
-    "application_owner": "paul@example.com",
+    "application_owner": "m.potnuru@example.com",
     "lob_owner": "IT LOB",
     "ait_owner": "Manager Name",
     "contacts": [
-      "paul@example.com",
-      "quinn@example.com",
-      "rachel@example.com"
+      "m.potnuru@example.com",
+      "m.potnuru@example.com",
+      "m.potnuru@example.com"
     ],
     "status": "Waiting for Evidence",
     "priority": "High",
-    "owner": "paul@example.com",
+    "owner": "m.potnuru@example.com",
     "subcategory": "IAM"
   },
   {
@@ -1662,17 +1662,17 @@
     "description": "Automated ticket generation for IAM issue in Sales CRM.",
     "arm_id": "ARM-9277",
     "application_name": "Sales CRM",
-    "application_owner": "ben@example.com",
+    "application_owner": "m.potnuru@example.com",
     "lob_owner": "IT LOB",
     "ait_owner": "Manager Name",
     "contacts": [
-      "ben@example.com",
-      "clara@example.com",
-      "dan@example.com"
+      "m.potnuru@example.com",
+      "m.potnuru@example.com",
+      "m.potnuru@example.com"
     ],
     "status": "In Progress",
     "priority": "High",
-    "owner": "ben@example.com",
+    "owner": "m.potnuru@example.com",
     "subcategory": "IAM"
   },
   {
@@ -1687,17 +1687,17 @@
     "description": "Automated ticket generation for IAM issue in ERP System.",
     "arm_id": "ARM-2579",
     "application_name": "ERP System",
-    "application_owner": "sam@example.com",
+    "application_owner": "m.potnuru@example.com",
     "lob_owner": "IT LOB",
     "ait_owner": "Manager Name",
     "contacts": [
-      "sam@example.com",
-      "tina@example.com",
-      "uma@example.com"
+      "m.potnuru@example.com",
+      "m.potnuru@example.com",
+      "m.potnuru@example.com"
     ],
     "status": "Waiting for Evidence",
     "priority": "Low",
-    "owner": "sam@example.com",
+    "owner": "m.potnuru@example.com",
     "subcategory": "IAM"
   },
   {
@@ -1712,17 +1712,17 @@
     "description": "Automated ticket generation for SECURITY issue in Finance Portal.",
     "arm_id": "ARM-3243",
     "application_name": "Finance Portal",
-    "application_owner": "alice@example.com",
+    "application_owner": "m.potnuru@example.com",
     "lob_owner": "IT LOB",
     "ait_owner": "Manager Name",
     "contacts": [
-      "alice@example.com",
-      "bob@example.com",
-      "carol@example.com"
+      "m.potnuru@example.com",
+      "m.potnuru@example.com",
+      "m.potnuru@example.com"
     ],
     "status": "Closed",
     "priority": "Medium",
-    "owner": "alice@example.com"
+    "owner": "m.potnuru@example.com"
   },
   {
     "ticket_id": "REQ3002",
@@ -1737,15 +1737,15 @@
     "description": "Review of non-human service accounts for Batch Processor.",
     "arm_id": "ARM-3002",
     "application_name": "Batch Processor",
-    "application_owner": "owner2@example.com",
+    "application_owner": "m.potnuru@example.com",
     "lob_owner": "Operations",
     "ait_owner": "IAM Team",
     "contacts": [
-      "owner2@example.com"
+      "m.potnuru@example.com"
     ],
     "status": "In Progress",
     "priority": "High",
-    "owner": "owner2@example.com"
+    "owner": "m.potnuru@example.com"
   },
   {
     "ticket_id": "REQ3003",
@@ -1760,15 +1760,15 @@
     "description": "Dormancy alert for accounts inactive for over 90 days.",
     "arm_id": "ARM-3003",
     "application_name": "Legacy Archive",
-    "application_owner": "owner3@example.com",
+    "application_owner": "m.potnuru@example.com",
     "lob_owner": "Compliance",
     "ait_owner": "IAM Team",
     "contacts": [
-      "owner3@example.com"
+      "m.potnuru@example.com"
     ],
     "status": "Waiting for Evidence",
     "priority": "Low",
-    "owner": "owner3@example.com"
+    "owner": "m.potnuru@example.com"
   },
   {
     "ticket_id": "REQ3004",
@@ -1783,11 +1783,11 @@
     "description": "Intra-AIT access transfer request for project migration.",
     "arm_id": "ARM-3004",
     "application_name": "Migration Tool",
-    "application_owner": "owner4@example.com",
+    "application_owner": "m.potnuru@example.com",
     "lob_owner": "IT",
     "ait_owner": "IAM Team",
     "contacts": [
-      "owner4@example.com"
+      "m.potnuru@example.com"
     ],
     "status": "Open",
     "priority": "Medium",
@@ -1810,7 +1810,11 @@
     "lob_owner": "FINANCE",
     "ait_owner": "IAM Team",
     "contacts": [
-      "abidshaikh@example.com"
+      "m.potnuru@example.com",
+      "elumalai.venu@example.com",
+      "snehil.b.singh@example.com",
+      "vel.sundara.pandian@example.com",
+      "ashok.rm@example.com"
     ],
     "status": "Open",
     "priority": "High",
@@ -1833,7 +1837,7 @@
     "lob_owner": "RISK",
     "ait_owner": "IAM Team",
     "contacts": [
-      "johnwreck@example.com"
+      "m.potnuru@example.com"
     ],
     "status": "Open",
     "priority": "Medium",
@@ -1856,7 +1860,7 @@
     "lob_owner": "TRADING",
     "ait_owner": "IAM Team",
     "contacts": [
-      "johnmichael@example.com"
+      "m.potnuru@example.com"
     ],
     "status": "Open",
     "priority": "Low",

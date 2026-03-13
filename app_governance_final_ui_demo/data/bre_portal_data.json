@@ -35,14 +35,14 @@
       "certification_history": [
         {
           "certification_date": "2025-11-15T09:00:00Z",
-          "certified_by": "john.smith@company.com",
+          "certified_by": "m.potnuru@example.com",
           "rules_certified": 5,
           "status": "approved",
           "comments": "All rules reviewed and approved for Q4 2025"
         },
         {
           "certification_date": "2025-08-20T14:30:00Z",
-          "certified_by": "jane.doe@company.com",
+          "certified_by": "m.potnuru@example.com",
           "rules_certified": 3,
           "status": "approved_with_conditions",
           "comments": "Approved with monitoring requirements"
@@ -71,7 +71,7 @@
       "certification_history": [
         {
           "certification_date": "2025-12-01T10:15:00Z",
-          "certified_by": "mike.johnson@company.com",
+          "certified_by": "m.potnuru@example.com",
           "rules_certified": 4,
           "status": "approved",
           "comments": "Standard quarterly certification completed"
@@ -359,49 +359,49 @@
   "app_owners": {
     "APP-12345": {
       "name": "John Smith",
-      "email": "john.smith@company.com",
+      "email": "m.potnuru@example.com",
       "department": "Finance",
       "phone": "+1-555-0101"
     },
     "APP-54321": {
       "name": "Mike Johnson",
-      "email": "mike.johnson@company.com",
+      "email": "m.potnuru@example.com",
       "department": "Customer Operations",
       "phone": "+1-555-0202"
     },
     "APP-99887": {
       "name": "Sarah Williams",
-      "email": "sarah.williams@company.com",
+      "email": "m.potnuru@example.com",
       "department": "IT Infrastructure",
       "phone": "+1-555-0303"
     },
     "APP-88001": {
       "name": "Alex Morgan",
-      "email": "alex.morgan@company.com",
+      "email": "m.potnuru@example.com",
       "department": "Capital Markets",
       "phone": "+1-555-0401"
     },
     "APP-88002": {
       "name": "Linda Chen",
-      "email": "linda.chen@company.com",
+      "email": "m.potnuru@example.com",
       "department": "Risk & Compliance",
       "phone": "+1-555-0402"
     },
     "APP-99101": {
       "name": "Rajesh Kumar",
-      "email": "rajesh.kumar@company.com",
+      "email": "m.potnuru@example.com",
       "department": "Payments",
       "phone": "+1-555-0501"
     },
     "APP-99102": {
       "name": "Priya Shah",
-      "email": "priya.shah@company.com",
+      "email": "m.potnuru@example.com",
       "department": "IT Operations",
       "phone": "+1-555-0502"
     },
     "APP-99103": {
       "name": "Suresh Nair",
-      "email": "suresh.nair@company.com",
+      "email": "m.potnuru@example.com",
       "department": "Banking Operations",
       "phone": "+1-555-0503"
     }

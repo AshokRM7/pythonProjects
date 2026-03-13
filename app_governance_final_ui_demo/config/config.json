@@ -1,16 +1,13 @@
 {
-    
-"llm": {
+  "llm": {
     "model": "gpt-3.5-turbo",
     "temperature": 0,
     "base_url": "https://openrouter.ai/api/v1"
   },
   "human_review": ["SLA", "Ownership", "EvidenceCollector", "Closer"],
+
   "smtp": {
-    "server": "smtp.office365.com",
-    "port": 587,
-    "user": "iam-bot@example.com",
-    "password": "securepassword",
-    "use_tls": true
+    "#comment": "SMTP is no longer used. Email is sent via Outlook COM (PowerShell). The 'user' field is used only as the From display address in email bodies.",
+    "user": "iam-bot@company.com"
   }
 }
