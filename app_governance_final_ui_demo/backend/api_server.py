@@ -11,6 +11,7 @@ import asyncio
 import json
 from backend.core.orchestrator import IAMOrchestrator
 from backend.agents.arm_admin_remediation import ARMAdminRemediationAgent
+from backend.services.inbox_reader import read_inbox_for_ticket, parse_admin_names_from_body, is_closure_affirmation
 
 from backend.core.logger_utils import AgentLogger, AgentTimer
 from backend.models.ticket_context import Ticket, TicketResponse, Stage
@@ -167,6 +168,8 @@ def convert_ticket_to_frontend(ticket: Ticket) -> dict:
         "final_csv_path": ticket.final_csv_path,
         "pcat_summary": ticket.pcat_summary,
         "ticket_type": ticket.ticket_type,
+        "closure_approved": ticket.closure_approved,
+        "waitingForClosureConfirmation": ticket.waitingForClosureConfirmation,
     }
 
 
@@ -200,7 +203,9 @@ def convert_frontend_to_ticket(data: dict) -> Ticket:
         final_csv_ready=data.get("final_csv_ready", False),
         final_csv_path=data.get("final_csv_path"),
         pcat_summary=data.get("pcat_summary"),
-        ticket_type=data.get("ticket_type", "IAM")
+        ticket_type=data.get("ticket_type", "IAM"),
+        closure_approved=data.get("closure_approved", False),
+        waitingForClosureConfirmation=data.get("waitingForClosureConfirmation", False)
     )
 
 async def update_stage_progress(ticket_id: str, stage_index: int, status: str, message: str):
@@ -729,6 +734,202 @@ async def simulate_admin_response(ait_number: str):
         print(f"CRITICAL ERROR in simulation: {e}")
         return JSONResponse(status_code=500, content={"error": str(e)})
 
+# ─── Outlook Inbox Polling ────────────────────────────────────────────────────
+
+# Tracks which (ticket_id, ait_number) pairs currently have a live poll running.
+# key: ait_number  value: ticket_id
+active_polls: dict = {}
+
+
+async def poll_inbox_for_reply(ticket_id: str, ait_number: str, max_wait_mins: int = 30):
+    """
+    Background coroutine: polls the Outlook Inbox every 30 seconds looking for
+    an email whose subject contains both the ticket_id and/or ait_number.
+    When a matching reply is found, admin names are parsed from the body,
+    pushed into the ARM Admin database, and broadcast to the UI via WebSocket.
+    """
+    import os
+    sending_enabled = os.getenv("EMAIL_SENDING_ENABLED", "false").lower() == "true"
+    if not sending_enabled:
+        # Simulated mode — skip real polling entirely.
+        print(f"INFO: Inbox polling skipped for {ticket_id} (EMAIL_SENDING_ENABLED=false)")
+        active_polls.pop(ait_number, None)
+        return
+
+    poll_interval = 30   # seconds between each Outlook check
+    max_polls = (max_wait_mins * 60) // poll_interval
+    attempts = 0
+
+    print(f"INFO: Starting Outlook inbox poll for ticket={ticket_id}, ait={ait_number} (max {max_wait_mins} min)")
+
+    while attempts < max_polls:
+        await asyncio.sleep(poll_interval)
+        attempts += 1
+
+        emails_id = read_inbox_for_ticket(ticket_id, max_emails=50)
+        emails_ait = read_inbox_for_ticket(ait_number, max_emails=50)
+        
+        # Combine, avoiding duplicates by Id
+        seen_ids = set()
+        emails = []
+        for e in emails_id + emails_ait:
+            e_id = e.get("Id")
+            if e_id not in seen_ids:
+                if e_id:
+                    seen_ids.add(e_id)
+                
+                subj = str(e.get("Subject", "")).strip().lower()
+                # Extremely important: Ignore the "Evidence Required" emails generated later in the pipeline
+                if "evidence required" not in subj:
+                    emails.append(e)
+
+        # Sort combined results by ReceivedTime descending
+        emails.sort(key=lambda x: x.get("ReceivedTime", ""), reverse=True)
+
+        # Look for the first email that contains actual filled-out data
+        # Ignore emails where the extracted name is still the placeholder or empty
+        reply_email = None
+        admin_data = {}
+        sender = "unknown"
+
+        for e in emails:
+            body = e.get("Body", "")
+            is_affirmation = is_closure_affirmation(body)
+            parsed_names = parse_admin_names_from_body(body)
+            
+            p_name = parsed_names.get("primary_admin_name", "").strip()
+            s_name = parsed_names.get("secondary_admin_name", "").strip()
+            is_admin_update = bool(p_name or s_name)
+            
+            # Determine if this email is actionable based on the current ticket state
+            ticket = current_tickets.get(ticket_id, {})
+            is_waiting_for_closure = ticket.get("waitingForClosureConfirmation", False)
+            
+            # If waiting for closure, affirmation takes precedence
+            if is_waiting_for_closure and is_affirmation:
+                reply_email = e
+                admin_data = parsed_names # might be empty, that's fine
+                sender = e.get("SenderEmail", "unknown")
+                print(f"DEBUG: Found closure affirmation for {ticket_id} (Waiting for closure=True)")
+                break
+            
+            # Otherwise, check for admin updates
+            if is_admin_update:
+                reply_email = e
+                admin_data = parsed_names
+                sender = e.get("SenderEmail", "unknown")
+                print(f"DEBUG: Found admin name update for {ticket_id}")
+                break
+            
+            # Fallback: if we just find an affirmation but aren't strictly "waiting" (or vice versa)
+            # we can still pick it up if nothing else matched
+            if is_affirmation and not reply_email:
+                reply_email = e
+                admin_data = parsed_names
+                sender = e.get("SenderEmail", "unknown")
+
+        if reply_email:
+            print(f"INFO: Reply email found from {sender} for {ticket_id}")
+            primary_name   = admin_data.get("primary_admin_name", "")
+            primary_nbkid  = admin_data.get("primary_nbkid", "")
+            secondary_name = admin_data.get("secondary_admin_name", "")
+            secondary_nbkid = admin_data.get("secondary_nbkid", "")
+
+            # Determine current state
+            ticket = current_tickets.get(ticket_id, {})
+            is_waiting_for_closure = ticket.get("waitingForClosureConfirmation", False)
+            is_affirmation = is_closure_affirmation(reply_email.get("Body", ""))
+
+            # CASE 1: Admin Name Updates (Stage 5)
+            # Prioritize admin names ONLY if we aren't specifically waiting for closure,
+            # OR if we didn't find a clear closure affirmation.
+            if (primary_name or secondary_name) and (not is_waiting_for_closure or not is_affirmation):
+                # Re-invoke the agent to update the ticket's stages/status based on the newly saved data
+                ticket_obj = convert_frontend_to_ticket(current_tickets[ticket_id])
+                ticket_context = TicketResponse(tickets=[ticket_obj])
+                agent_result = arm_admin_agent.invoke(ticket_context)
+                
+                if agent_result.tickets:
+                    updated_ticket = convert_ticket_to_frontend(agent_result.tickets[0])
+                    # Preserve the inbox flags
+                    updated_ticket["inboxReplyReceived"] = True
+                    updated_ticket["inboxReplyFrom"] = sender
+                    updated_ticket["inboxAdminData"] = {
+                        "ait_number": ait_number,
+                        "primary_admin_name":   primary_name,
+                        "primary_nbkid":        primary_nbkid,
+                        "secondary_admin_name": secondary_name,
+                        "secondary_nbkid":      secondary_nbkid,
+                    }
+                    current_tickets[ticket_id] = updated_ticket
+
+                    await manager.broadcast({
+                        "type": "ticket_update",
+                        "ticket": current_tickets[ticket_id],
+                        "message": f"📩 Reply received from App Owner ({sender}). Admin names extracted and validated."
+                    })
+                    print(f"INFO: Inbox reply processed, agent re-invoked, and broadcast for {ticket_id}")
+            
+            # CASE 2: Closure Affirmation (Stage 7)
+            elif is_closure_affirmation(reply_email.get("Body", "")):
+                print(f"INFO: Closure affirmation detected for {ticket_id}")
+                if ticket_id in current_tickets:
+                    current_tickets[ticket_id]["closure_approved"] = True
+                    current_tickets[ticket_id]["waitingForClosureConfirmation"] = False
+                    
+                    await manager.broadcast({
+                        "type": "ticket_update",
+                        "ticket": current_tickets[ticket_id],
+                        "message": f"✅ Confirmation received from {sender}: 'Good to close'. Resuming pipeline..."
+                    })
+                    
+                    # Resume the background process to actually run the CloserAgent
+                    asyncio.create_task(process_individual_ticket(ticket_id))
+            
+            else:
+                print(f"WARN: Email found but no admin names or closure affirmation could be parsed for {ticket_id}")
+                # Still notify so UI can show a "reply received but incomplete" state
+                if ticket_id in current_tickets:
+                    current_tickets[ticket_id]["inboxReplyReceived"] = True
+                    current_tickets[ticket_id]["inboxReplyFrom"] = sender
+                    current_tickets[ticket_id]["inboxAdminData"] = {}
+                    await manager.broadcast({
+                        "type": "ticket_update",
+                        "ticket": current_tickets[ticket_id],
+                        "message": f"📩 Reply received from App Owner ({sender}), but no actionable information was found."
+                    })
+
+            # Stop polling after finding the reply
+            active_polls.pop(ait_number, None)
+            return
+
+        print(f"INFO: No reply yet for {ticket_id}, attempt {attempts}/{max_polls}")
+
+    # Timeout
+    print(f"WARN: Inbox polling timed out for {ticket_id} after {max_wait_mins} minutes")
+    active_polls.pop(ait_number, None)
+
+
+class InboxPollRequest(BaseModel):
+    ticket_id: str
+
+
+@app.post("/api/admin-details/{ait_number}/start-inbox-poll")
+async def start_inbox_poll(ait_number: str, req: InboxPollRequest):
+    """Start a background Outlook inbox poll for the given AIT / ticket."""
+    if ait_number in active_polls:
+        return JSONResponse(content={"status": "already_polling", "message": f"Already polling inbox for {ait_number}"})
+
+    active_polls[ait_number] = req.ticket_id
+    asyncio.create_task(poll_inbox_for_reply(req.ticket_id, ait_number))
+    return JSONResponse(content={
+        "status": "polling_started",
+        "ait_number": ait_number,
+        "ticket_id": req.ticket_id,
+        "message": f"Outlook inbox polling started for {ait_number}. Will check every 30s for up to 30 minutes."
+    })
+
+
 @app.post("/api/tickets/{ticket_id}/confirm-admin-update")
 async def confirm_admin_update(ticket_id: str):
     """Confirm admin update and continue the pipeline past Stage 5."""
@@ -830,11 +1031,11 @@ async def reset_admin_ticket(ticket_id: str):
         ticket["waitingForClosureConfirmation"] = False
         # Restore basic contacts if it's an ARM ticket
         if ait_number == "AIT-5001":
-            ticket["contacts"] = ["abidshaikh@example.com"]
+            ticket["contacts"] = []
         elif ait_number == "AIT-5002":
-            ticket["contacts"] = ["johnwreck@example.com"]
+            ticket["contacts"] = []
         elif ait_number == "AIT-5003":
-            ticket["contacts"] = ["johnmichael@example.com"]
+            ticket["contacts"] = []
         else:
             ticket["contacts"] = []
         
@@ -948,6 +1149,21 @@ async def send_ticket_email(ticket_id: str, email_req: EmailRequest):
             # The update_stage_progress already broadcasts the update
             # We trigger the next stage
             asyncio.create_task(process_individual_ticket(ticket_id))
+
+            # ── Auto-start Outlook inbox polling for ARM Forms NO ADMIN tickets ──
+            # Only when real emails are sent (EMAIL_SENDING_ENABLED=true).
+            # The ARM Admin modal sets inboxReplyReceived flag once a reply is found.
+            ticket = current_tickets.get(ticket_id, {})
+            is_arm_no_admin = (
+                ticket.get("subcategory") == "ARM FORMS NO ADMIN" or
+                ticket.get("deliverableType") == "ARM FORMS NO ADMIN"
+            )
+            ait_number = ticket.get("aitNumber") or ticket.get("ait_number", "")
+            sending_enabled = os.getenv("EMAIL_SENDING_ENABLED", "false").lower() == "true"
+            if is_arm_no_admin and ait_number and sending_enabled and ait_number not in active_polls:
+                active_polls[ait_number] = ticket_id
+                asyncio.create_task(poll_inbox_for_reply(ticket_id, ait_number))
+                print(f"INFO: Auto-started Outlook inbox poll for ARM ticket {ticket_id} / {ait_number}")
 
         return JSONResponse(content={
             "status": "success" if status == "completed" else "error",

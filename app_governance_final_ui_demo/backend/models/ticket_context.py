@@ -38,6 +38,8 @@ class Ticket(BaseModel):
     pcat_summary: Optional[dict] = None
     final_csv_ready: Optional[bool] = False
     final_csv_path: Optional[str] = None
+    closure_approved: Optional[bool] = False
+    waitingForClosureConfirmation: Optional[bool] = False
 
 class TicketResponse(BaseModel):
     tickets: List[Ticket]

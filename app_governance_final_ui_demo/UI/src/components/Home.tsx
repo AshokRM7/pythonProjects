@@ -134,6 +134,8 @@ export default function Home({ currentUser, onSignOut }: HomeProps) {
   const [hasSimulatedConflict, setHasSimulatedConflict] = useState(false);
   const [simulatedConflictData, setSimulatedConflictData] = useState<any>(null);
   const [simulationAttempt, setSimulationAttempt] = useState(0);
+  // Tracks whether a real Outlook inbox poll is actively running (EMAIL_SENDING_ENABLED=true).
+  const [isPollingInbox, setIsPollingInbox] = useState(false);
 
   const areRolesValid = useMemo(() => {
     if (!adminDetails) return false;
@@ -316,6 +318,30 @@ export default function Home({ currentUser, onSignOut }: HomeProps) {
             // Update selected ticket if it's the one being updated
             if (selectedTicket && selectedTicket.id === data.ticket.id) {
               setSelectedTicket(data.ticket);
+            }
+
+            // ── Handle Outlook inbox reply received ──────────────────────────
+            if (data.ticket?.inboxReplyReceived) {
+              const adminData = data.ticket.inboxAdminData || {};
+              setIsPollingInbox(false);
+              // Pre-fill admin input fields from the parsed reply email
+              if (adminData.primary_admin_name) {
+                setAdminPrimaryInput(adminData.primary_admin_name);
+              }
+              if (adminData.primary_nbkid) {
+                setAdminPrimaryNbkidInput(adminData.primary_nbkid);
+              }
+              if (adminData.secondary_admin_name) {
+                setAdminSecondaryInput(adminData.secondary_admin_name);
+              }
+              if (adminData.secondary_nbkid) {
+                setAdminSecondaryNbkidInput(adminData.secondary_nbkid);
+              }
+              // Refresh adminDetails with the latest data from backend
+              const updatedDetails = { ...adminDetails, ...adminData };
+              setAdminDetails(updatedDetails);
+              // Advance the wizard to Step 3 (Validate)
+              setCurrentAdminStep(3);
             }
 
             // Update status message if provided
@@ -560,7 +586,7 @@ export default function Home({ currentUser, onSignOut }: HomeProps) {
 
   const handleAdminValidate = async () => {
     if (!selectedTicket || !adminDetails) return;
-    const ait = adminDetails.ait_number;
+    const ait = adminDetails.ait_number || (selectedTicket as any).aitNumber || (selectedTicket as any).ait_number;
     try {
       const res = await fetch(`http://localhost:8000/api/admin-details/${ait}/update`, {
         method: 'POST',
@@ -758,13 +784,63 @@ export default function Home({ currentUser, onSignOut }: HomeProps) {
       // If API doesn't exist yet, show sample template
       const isBRE = isBRENewTicket(selectedTicket);
       setEmailTemplate({
-        to: selectedTicket?.contacts?.join(', ') || 'app.owner@company.com',
+        to: selectedTicket?.contacts?.join(', ') || '',
         subject: `Evidence Required: ${selectedTicket?.title || 'Ticket'} - ${selectedTicket?.id}`,
         body: isBRE
           ? `Dear Application Owner,\n\nWe are processing ticket ${selectedTicket?.id} regarding ${selectedTicket?.title}.\n\nApplication Details:\n- Application Name: ${selectedTicket?.applicationName || 'N/A'}\n- AIT Number: ${selectedTicket?.aitNumber || 'N/A'}\n- LOB Owner: ${selectedTicket?.lobOwner || 'N/A'}\n\nBRE Violation Details:\n- The Business Rule Engine (BRE) has detected policy violations in your application.\n- Specifically: ${selectedTicket?.description || 'Review required'}\n\nWe require evidence of the following actions:\n1. BRE Rule Certification\n2. Remediation Verification\n3. Policy Compliance Proof\n\nPlease provide the requested evidence within 48 hours.\n\nBest regards,\nGovernance Team`
           : `Dear Application Owner,\n\nWe are processing ticket ${selectedTicket?.id} regarding ${selectedTicket?.title}.\n\nApplication Details:\n- Application Name: ${selectedTicket?.applicationName || 'N/A'}\n- AIT Number: ${selectedTicket?.aitNumber || 'N/A'}\n- LOB Owner: ${selectedTicket?.lobOwner || 'N/A'}\n\nUpdated Admin Assignments:\n- Primary Admin: ${adminPrimaryInput || 'N/A'}\n- Secondary Admin: ${adminSecondaryInput || 'N/A'}\n\nWe require evidence of the following actions:\n1. User access review\n2. Compliance verification\n3. Security approval\n\nPlease provide the requested evidence within 48 hours.\n\nBest regards,\nGovernance Team`
       });
       setShowEmailModal(true);
+    }
+  };
+
+  const sendRealAdminEmail = async () => {
+    if (!selectedTicket) return;
+    try {
+      const ait_number = (selectedTicket as any).aitNumber || (selectedTicket as any).ait_number;
+      const app_name = (selectedTicket as any).applicationName || (selectedTicket as any).application_name;
+      
+      // Improved recipient logic: contacts list first, then customer field if it looks like an email
+      let app_owner = '';
+      if (selectedTicket.contacts && selectedTicket.contacts.length > 0) {
+        app_owner = selectedTicket.contacts[0];
+      } else if (selectedTicket.customer && selectedTicket.customer.includes('@')) {
+        app_owner = selectedTicket.customer;
+      } else {
+        // Fallback to the current user email if everything else fails
+        app_owner = 'm.potnuru@accenture.com';
+      }
+
+      const subject = `ARM Admin Access Required: ${app_name} (${ait_number})`;
+      const body = `Dear ${(selectedTicket as any).lobOwner || 'App Owner'},\n\nOur records indicate that your application is missing required administrator assignments.\n\nPlease provide 2 unique administrator names and their NBKID.\n\nPlease reply to this email using the following format:\n\nPrimary Admin Name: [Full Name]\nPrimary Admin NBKID: [7-char NBKID]\nSecondary Admin Name: [Full Name]\nSecondary Admin NBKID: [7-char NBKID]\n\nBest regards,\nApp Governance & IAM Team`;
+
+      setStatusMessage(`Sending investigative email to ${app_owner}...`);
+
+      const response = await fetch(`http://localhost:8000/api/tickets/${selectedTicket.id}/send-email`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          to: [app_owner],
+          cc: [],
+          subject: subject,
+          body: body
+        }),
+      });
+
+      if (!response.ok) throw new Error('Failed to send email');
+      
+      const data = await response.json();
+      console.log('Admin Email Response:', data);
+
+      // Backend auto-starts polling if EMAIL_SENDING_ENABLED=true
+      setIsPollingInbox(true);
+      setStatusMessage('✅ Email sent successfully. Waiting for reply...');
+      
+    } catch (error) {
+      console.error('Error sending admin email:', error);
+      alert('Failed to send real email. Please check if Outlook is running.');
     }
   };
 
@@ -802,6 +878,19 @@ export default function Home({ currentUser, onSignOut }: HomeProps) {
 
       setShowEmailModal(false);
       setStatusMessage(data.message);
+
+      // If this was a real ARM Forms NO ADMIN email (not simulated), switch UI to
+      // inbox polling mode — the backend will watch Outlook and push the reply via WS.
+      const isArmNoAdmin = (
+        (selectedTicket as any)?.subcategory === 'ARM FORMS NO ADMIN' ||
+        (selectedTicket as any)?.deliverableType === 'ARM FORMS NO ADMIN'
+      );
+      if (data.status === 'success' && data.sent === true && isArmNoAdmin) {
+        // Real email was sent, show the inbox-waiting spinner in the wizard
+        setIsPollingInbox(true);
+        // Close the email preview modal and return to the admin wizard
+        return;
+      }
 
       // Notify user via alert/toast
       if (data.status === 'success') {
@@ -1989,7 +2078,12 @@ export default function Home({ currentUser, onSignOut }: HomeProps) {
                           <p>Dear {adminDetails.app_owner_name},</p>
                           <p className="mt-4">Our records indicate that your application is missing required administrator assignments.</p>
                           <p className="mt-4">Please provide 2 unique administrator names and their <strong>NBKID</strong>.</p>
-                          <p className="mt-4">Best regards,<br />App Governance & IAM Team</p>
+                          <p className="mt-4">Please reply to this email using the following format:</p>
+                          <p className="mt-2 bg-white border border-slate-200 rounded-lg p-3 text-xs font-mono whitespace-pre-line">{`Primary Admin Name: [Full Name]
+Primary Admin NBKID: [7-char NBKID]
+Secondary Admin Name: [Full Name]
+Secondary Admin NBKID: [7-char NBKID]`}</p>
+                          <p className="mt-4">Best regards,<br />App Governance &amp; IAM Team</p>
                         </div>
 
                         <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 flex items-start gap-3">
@@ -1997,7 +2091,9 @@ export default function Home({ currentUser, onSignOut }: HomeProps) {
                           <p className="text-xs text-blue-800 font-medium leading-relaxed">
                             {hasSimulatedConflict
                               ? 'Clicking "Send Notification" will notify the owner of the policy violation and automatically fetch the corrected details.'
-                              : 'Clicking "Send Notification" will simulate sending this investigative email to the App Owner.'}
+                              : isPollingInbox
+                                ? '📡 Email sent. Monitoring Outlook inbox for App Owner\'s reply...'
+                                : 'Clicking "Send Notification" will simulate sending this investigative email to the App Owner.'}
                           </p>
                         </div>
                       </div>
@@ -2012,8 +2108,8 @@ export default function Home({ currentUser, onSignOut }: HomeProps) {
                                 handleSimulateResponse(); // Trigger the fix!
                               }, 1500);
                             } else {
-                              setStatusMessage(`✅ Notification sent to ${adminDetails.app_owner_name}`);
-                              setTimeout(() => setStatusMessage(''), 3000);
+                              // Trigger real email flow
+                              sendRealAdminEmail();
                             }
                           }}
                           className={`w-full h-14 ${hasSimulatedConflict ? 'bg-rose-600 text-white hover:bg-rose-700' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'} rounded-xl font-black text-xs uppercase tracking-widest transition-all shadow-sm flex items-center justify-center gap-3 border ${hasSimulatedConflict ? 'border-rose-400' : 'border-slate-200'}`}
@@ -2022,15 +2118,26 @@ export default function Home({ currentUser, onSignOut }: HomeProps) {
                           {hasSimulatedConflict ? 'Send Correction Email' : 'Send Notification'}
                         </button>
 
-                        <button
-                          onClick={handleSimulateResponse}
-                          disabled={hasSimulatedConflict}
-                          className="w-full h-14 bg-blue-600 text-white rounded-xl font-black text-xs uppercase tracking-widest hover:bg-blue-500 transition-all shadow-lg flex items-center justify-center gap-3 group disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                          <Bot className="w-5 h-5" />
-                          Simulate Response
-                          <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-                        </button>
+                        {isPollingInbox ? (
+                          /* Real mode: show live waiting indicator instead of simulate button */
+                          <div className="w-full h-14 bg-blue-50 border-2 border-blue-200 rounded-xl flex items-center justify-center gap-3 text-blue-700">
+                            <svg className="w-5 h-5 animate-spin" viewBox="0 0 24 24" fill="none">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4l3-3-3-3v4a8 8 0 100 16v-4l-3 3 3 3v-4a8 8 0 01-8-8z" />
+                            </svg>
+                            <span className="font-bold text-xs uppercase tracking-widest">⏳ Waiting for App Owner Reply…</span>
+                          </div>
+                        ) : (
+                          <button
+                            onClick={handleSimulateResponse}
+                            disabled={hasSimulatedConflict}
+                            className="w-full h-14 bg-blue-600 text-white rounded-xl font-black text-xs uppercase tracking-widest hover:bg-blue-500 transition-all shadow-lg flex items-center justify-center gap-3 group disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            <Bot className="w-5 h-5" />
+                            Simulate Response
+                            <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                          </button>
+                        )}
                       </div>
 
                       {hasSimulatedConflict && simulatedConflictData && (

@@ -94,8 +94,20 @@ try {
     # 6 = olFolderInbox – the default Inbox folder of the primary account
     $inbox = $namespace.GetDefaultFolder(6)
 
-    # ── Sort items by ReceivedTime descending (newest first) ──────────────────
+    # ── Pre-filter items to avoid COM timeouts on large inboxes ───────────────
     $items = $inbox.Items
+
+    if ($UnreadOnly) {
+        try { $items = $items.Restrict("[Unread] = true") } catch { }
+    }
+
+    if ($SubjectFilter) {
+        # DASL filter for subject 'contains'
+        $safeSubj = $SubjectFilter -replace "'", "''"
+        $daslFilter = "@SQL=""urn:schemas:httpmail:subject"" LIKE '%$safeSubj%'"
+        try { $items = $items.Restrict($daslFilter) } catch { }
+    }
+
     $items.Sort("[ReceivedTime]", $true)   # $true = descending
 
     $collected = 0

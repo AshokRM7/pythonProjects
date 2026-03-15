@@ -41,7 +41,7 @@ class EvidenceCollectorAgent:
         if not recipient:
             recipient = ticket.application_owner
 
-        msg["To"] = recipient or "app_owner@example.com"
+        msg["To"] = recipient or "m.potnuru@example.com"
         msg["Subject"] = f"IAM Deliverable {ticket.ticket_id} – Evidence Required"
 
         body = f"""
