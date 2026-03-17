@@ -128,11 +128,21 @@ try {
         if ($SubjectFilter -and $item.Subject -notmatch [regex]::Escape($SubjectFilter)) { continue }
 
         # ── Build the email record ─────────────────────────────────────────────
+        $emailAddr = $item.SenderEmailAddress
+        if ($item.SenderEmailType -eq "EX" -and $item.Sender) {
+            try {
+                $exUser = $item.Sender.GetExchangeUser()
+                if ($null -ne $exUser -and $null -ne $exUser.PrimarySmtpAddress) {
+                    $emailAddr = $exUser.PrimarySmtpAddress
+                }
+            } catch { }
+        }
+
         $emailRecord = @{
             Id             = $item.EntryID
             Subject        = $item.Subject
             SenderName     = $item.SenderName
-            SenderEmail    = $item.SenderEmailAddress
+            SenderEmail    = $emailAddr
             ReceivedTime   = $item.ReceivedTime.ToString("o")
             Body           = $item.Body.Substring(0, [Math]::Min(2000, $item.Body.Length))
             HasAttachments = ($item.Attachments.Count -gt 0)

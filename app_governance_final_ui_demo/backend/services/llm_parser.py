@@ -31,7 +31,6 @@ def extract_admin_details(email_body: str) -> dict:
     
     # Strip whitespace/quotes if present due to .env formatting
     api_key = api_key_env.strip().strip('"').strip("'")
-    print(f"DEBUG: Using API Key (masked): {api_key[:10]}...{api_key[-5:]}")
 
     if api_key.startswith("sk-or"):
         api_url = "https://openrouter.ai/api/v1/chat/completions"
@@ -47,14 +46,19 @@ def extract_admin_details(email_body: str) -> dict:
     Email Body:
     \"\"\"{email_body}\"\"\"
     
-    Return the result as a JSON OBJECT with the following keys. Do NOT return a list.
+    Return the result as a JSON OBJECT with the following keys:
     - primary_admin_name
     - primary_nbkid
     - secondary_admin_name
     - secondary_nbkid
 
-    CRITICAL INSTRUCTION: If any field is missing or cannot be found, return an empty string "". 
-    DO NOT return null.
+    CRITICAL INSTRUCTIONS:
+    1. If a field is missing, return an empty string "". 
+    2. DO NOT return null.
+    3. IMPORTANT: DO NOT extract names from the signature line (e.g., "Best, Murali" or "Thanks, Murali").
+    4. ONLY extract names if they are explicitly provided as the new or corrected admin names for the application.
+    5. If the email contains a phrase like "Good to close" or "Verified", and NO admin names are explicitly listed for update, return empty strings for all fields.
+    6. CRITICAL: If the email body appears to be an automated system notification (e.g., starts with "Dear User", contains "[ACTION REQUIRED]", or is signed by "App Governance Compliance Team"), and does NOT contain a clear reply from a human, IGNORE it and return empty strings.
 
     Example:
     {{
@@ -81,13 +85,10 @@ def extract_admin_details(email_body: str) -> dict:
 
     try:
         response = requests.post(api_url, headers=headers, json=payload, timeout=30)
-        if response.status_code != 200:
-            print(f"DEBUG: API Error: {response.status_code} - {response.text}")
         response.raise_for_status()
         
         data = response.json()
         content = data['choices'][0]['message']['content']
-        print(f"DEBUG: LLM Response Content: {content}")
         
         # Strip markdown formatting if present
         if content.startswith("```"):
@@ -100,17 +101,7 @@ def extract_admin_details(email_body: str) -> dict:
         result = json.loads(content)
         
         if isinstance(result, list) and len(result) > 0:
-            print("DEBUG: Result is a list, taking first element.")
             result = result[0]
-        
-        if not isinstance(result, dict):
-            print(f"ERROR: LLM returned non-dict result: {type(result)}")
-            return {
-                "primary_admin_name": "",
-                "primary_nbkid": "",
-                "secondary_admin_name": "",
-                "secondary_nbkid": ""
-            }
         
         # Handle cases where the LLM still returns JSON null by converting None to ""
         def _safe_str(val):
@@ -134,14 +125,16 @@ def extract_admin_details(email_body: str) -> dict:
             "secondary_nbkid": ""
         }
 
-def check_closure_affirmation(email_body: str) -> bool:
+def check_closure_response(email_body: str) -> dict:
     """
-    Uses LLM to determine if the email body contains an affirmation 
-    to close the ticket or that the changes are verified/approved.
+    Uses LLM to determine the user's intent regarding ticket closure.
+    Returns a dict with:
+        decision: "APPROVED", "REJECTED", "UPDATE_INFO", or "UNCLEAR"
+        reason: Short explanation
     """
     api_key_env = os.getenv("OPEN_ROUTER_KEY_ORIGINAL") or os.getenv("OPENAI_API_KEY")
     if not api_key_env:
-        return False
+        return {"decision": "UNCLEAR", "reason": "No API key"}
     
     api_key = api_key_env.strip().strip('"').strip("'")
     if api_key.startswith("sk-or"):
@@ -152,23 +145,30 @@ def check_closure_affirmation(email_body: str) -> bool:
         model_name = "gpt-4o-mini"
 
     prompt = f"""
-    Analyze the following email body and determine if the sender is confirming that they are satisfied with the changes and that the ticket can be CLOSED. 
+    Analyze the following email response regarding a ticket closure or admin details update.
     
     Email Body:
     \"\"\"{email_body}\"\"\"
     
-    Consider affirmations like:
-    - "Verified the changes, please proceed with the ticket closure."
-    - "Good with changes, proceed with the closure."
-    - "Verified and good to close this ticket."
-    - "Confirmed, everything looks correct."
-    - "Approved."
+    Determine the user's intent and return a JSON object:
+    {{
+        "decision": "APPROVED" | "REJECTED" | "UPDATE_INFO" | "DELAY" | "UNCLEAR",
+        "reason": "short explanation"
+    }}
+
+    Rules for Decision:
+    - APPROVED: The user explicitly says "close", "verified", "proceed", "looks good", "correct", or "approved".
+    - REJECTED: The user says "don't close", "stop", "incorrect", "cancel", "not right", or "rejected".
+    - UPDATE_INFO: The user provides new names, NBKIDs, or says "change details to...", "update to...".
+    - DELAY: The user says "wait", "give me time", "will provide later", "yet to provide", "in a few hours", "tomorrow".
+    - UNCLEAR: The response is empty, garbage, unrelated, or too ambiguous to act upon. 
     
-    Return the result as a JSON OBJECT with a single key 'is_affirmation' which is a BOOLEAN.
-    
+    IMPORTANT: If the email body is clearly an outgoing system notification (e.g. "Dear User, we have identified a gap...", "Regards, App Governance Team"), and it does not contain a nested human reply, then classify it as UNCLEAR.
+
     Example:
     {{
-        "is_affirmation": true
+        "decision": "APPROVED",
+        "reason": "User confirmed verification and asked to proceed."
     }}
     """
 
@@ -190,7 +190,10 @@ def check_closure_affirmation(email_body: str) -> bool:
         data = response.json()
         content = data['choices'][0]['message']['content']
         result = json.loads(content)
-        return bool(result.get("is_affirmation", False))
+        return {
+            "decision": result.get("decision", "UNCLEAR").upper(),
+            "reason": result.get("reason", "No reason provided")
+        }
     except Exception as e:
         print(f"DEBUG: LLM closure check failed: {e}")
-        return False
+        return {"decision": "UNCLEAR", "reason": str(e)}

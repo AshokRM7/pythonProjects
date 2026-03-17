@@ -69,13 +69,8 @@ class PCATOrchestrator:
             await asyncio.sleep(1)
             await on_stage_update(5, "completed", "Recommendations Agent: insights generated.", {})
 
-            # Stage 6: Evidence Pack Generation (Mock)
-            await on_stage_update(6, "in-progress", "Evidence Pack Generation Agent is assembling pack...", {})
-            await asyncio.sleep(1)
-            await on_stage_update(6, "completed", "Evidence Pack Generation Agent: pack ready.", {})
-
-            # Stage 7: Ticket Update & Report
-            await on_stage_update(7, "in-progress", "Auto-Fix & Rebuild CSV Agent is finalizing report...", {})
+            # Stage 6: Evidence Pack Generation & Report
+            await on_stage_update(6, "in-progress", "Evidence Pack Generation Agent is assembling pack and report...", {})
             
             error_count = len([f for f in findings if f.severity == "ERROR"])
             warning_count = len([f for f in findings if f.severity == "WARNING"])
@@ -99,7 +94,7 @@ class PCATOrchestrator:
                 "report_path": report_path
             }
             
-            await on_stage_update(7, "completed", "Auto-Fix & Rebuild CSV Agent: finished report.", pcat_summary_data)
+            await on_stage_update(6, "completed", "Evidence Pack Generation Agent: pack and report ready.", pcat_summary_data)
 
             return summary
 

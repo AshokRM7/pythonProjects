@@ -64,6 +64,7 @@ def send_email(to: list[str], subject: str, body: str) -> dict:
     valid_to = validate_emails(to)
 
     if not valid_to:
+        print(f"WARN: No valid recipient email addresses found in {to}. Check if addresses are SMTP format.")
         return {"sent": False, "error": "No valid recipient email addresses found."}
 
     # ── Simulate mode (EMAIL_SENDING_ENABLED=false) ───────────────────────────

@@ -74,5 +74,15 @@ export const pcatApi = {
 
     downloadFinalCsv: (ticketId: string) => {
         window.location.href = `${BASE_URL}/tickets/${ticketId}/csv/final/download`;
+    },
+
+    sendEmail: async (ticketId: string, emailData: { to: string[], subject: string, body: string }) => {
+        const response = await fetch(`${BASE_URL}/tickets/${ticketId}/send-email`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(emailData)
+        });
+        if (!response.ok) throw new Error('Failed to send email');
+        return response.json();
     }
 };

@@ -20,7 +20,7 @@ import re
 import json
 import subprocess
 from pathlib import Path
-from backend.services.llm_parser import extract_admin_details, check_closure_affirmation
+from backend.services.llm_parser import extract_admin_details, check_closure_response
 
 # ─── Path to the PowerShell read script ───────────────────────────────────────
 _SCRIPT_DIR = Path(__file__).resolve().parents[2] / "scripts" / "outlook"
@@ -83,34 +83,48 @@ def parse_admin_names_from_body(body: str) -> dict:
     return result
 
 
-def is_closure_affirmation(body: str) -> bool:
+def get_closure_decision(body: str) -> dict:
     """
-    Check if the email body contains an affirmation that the ticket can be closed.
+    Check if the email body contains an affirmation or rejection for ticket closure.
     Uses regex/keyword matching first, falls back to LLM for complex phrasing.
+    
+    Returns a dict with 'decision' (APPROVED, REJECTED, UPDATE_INFO, UNCLEAR) and 'reason'.
     """
     body_lower = body.lower()
+    
+    # Simple keyword-based approval/delay (fast track)
     affirmations = [
         "good to close",
-        "approved",
-        "confirm",
         "looks good",
-        "details are correct",
         "proceed",
         "validated",
         "everything is correct",
-        "checked",
         "fine to close",
         "close the ticket",
-        "verified the changes"
+        "verified the changes",
+        "wait",
+        "give me time",
+        "yet to provide",
+        "tomorrow",
+        "will provide later"
     ]
     
     for phrase in affirmations:
         if phrase in body_lower:
-            return True
-            
-    # Fallback to LLM for more robust detection of varied user responses
-    print("DEBUG: Keyword affirmation check failed. Falling back to LLM for closure verification.")
-    return check_closure_affirmation(body)
+            # Still call LLM if there's significant text around it, 
+            # but if it's very short, we can trust it.
+            if len(body_lower) < 60:
+                decision = "APPROVED" if phrase not in ("wait", "give me time", "yet to provide", "tomorrow", "will provide later") else "DELAY"
+                return {"decision": decision, "reason": f"Matched keyword: {phrase}"}
+    
+    # Fallback to LLM for full contextual analysis
+    print("DEBUG: Keyword check insufficient. Calling LLM for comprehensive closure response analysis.")
+    return check_closure_response(body)
+
+def is_closure_affirmation(body: str) -> bool:
+    """Legacy wrapper for boolean checks"""
+    decision = get_closure_decision(body)
+    return decision["decision"] == "APPROVED"
 
 
 def read_inbox_for_ticket(subject_filter: str, max_emails: int = 50) -> list:

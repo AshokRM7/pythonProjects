@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { createPortal } from 'react-dom';
 import { Play, Activity, Clock, User, Calendar, Tag, FileText, Bot, ShieldCheck, AlertCircle, X, CheckCheck, Loader2, CheckCircle, ChevronRight, Download, Layers, RotateCcw, PlayCircle, ArrowLeft, ArrowRight, Info, Settings, Key, Mail } from 'lucide-react';
@@ -57,6 +57,7 @@ interface Ticket {
   };
   final_csv_ready?: boolean;
   final_csv_path?: string;
+  isPollingActive?: boolean;
 }
 
 // Helper to map API ticket status to Dashboard status
@@ -136,6 +137,7 @@ export default function Home({ currentUser, onSignOut }: HomeProps) {
   const [simulationAttempt, setSimulationAttempt] = useState(0);
   // Tracks whether a real Outlook inbox poll is actively running (EMAIL_SENDING_ENABLED=true).
   const [isPollingInbox, setIsPollingInbox] = useState(false);
+  const [adminEmailBody, setAdminEmailBody] = useState('');
 
   const areRolesValid = useMemo(() => {
     if (!adminDetails) return false;
@@ -164,316 +166,7 @@ export default function Home({ currentUser, onSignOut }: HomeProps) {
     }));
   };
 
-  // Update selectedTicketRef whenever selectedTicket state changes
-  useEffect(() => {
-    selectedTicketRef.current = selectedTicket;
-  }, [selectedTicket]);
-
-  useEffect(() => {
-    // 1. Process location state if coming from Dashboard
-    if (location.state) {
-      if (location.state.statusFilter) setStatusFilter(location.state.statusFilter);
-      if (location.state.timeline) setTimelineFilter(parseInt(location.state.timeline));
-      if (location.state.category) setCategoryFilter(location.state.category);
-      if (location.state.owner) setOwnerFilter(location.state.owner);
-      if (location.state.pastDueOptions) setPastDueOptions(location.state.pastDueOptions);
-      // Ensure we fetch all categories if coming from Dashboard
-      setShowAllTickets(true);
-    }
-  }, [location]);
-
-  // Combined fetch and reset logic
-  useEffect(() => {
-    fetchTickets();
-  }, [showAllTickets, currentUser]);
-
-
-  // Filter tickets based on dashboard selection, inputs and search
-  // 1. Context Filters (Category, Owner, Timeline, Search)
-  const contextTickets = useMemo(() => {
-    return tickets.filter(ticket => {
-      // Check Search Query
-      if (searchQuery) {
-        const query = searchQuery.toLowerCase();
-        const titleMatch = ticket.title.toLowerCase().includes(query);
-        const idMatch = ticket.id.toLowerCase().includes(query);
-        const categoryMatch = (ticket.category || '').toLowerCase().includes(query) ||
-          (ticket.subcategory || '').toLowerCase().includes(query);
-        const ownerMatch = (ticket.owner || '').toLowerCase().includes(query);
-        if (!titleMatch && !idMatch && !categoryMatch && !ownerMatch) return false;
-      }
-
-      // Check Category
-      if (categoryFilter !== 'all' && (!Array.isArray(categoryFilter) || !categoryFilter.includes('all'))) {
-        const selected = Array.isArray(categoryFilter) ? categoryFilter : [categoryFilter];
-        const hasMatch = ticket.subcategory ? selected.includes(ticket.subcategory) : selected.includes(ticket.category || 'IAM');
-        if (!hasMatch) return false;
-      }
-
-      // Check Owner
-      if (ownerFilter !== 'all' && (!Array.isArray(ownerFilter) || !ownerFilter.includes('all'))) {
-        const tOwner = ticket.owner || 'owner1';
-        if (Array.isArray(ownerFilter)) {
-          if (!ownerFilter.includes(tOwner)) return false;
-        } else {
-          if (tOwner !== ownerFilter) return false;
-        }
-      }
-
-      // Past Due logic - Check if active
-      const isPastDueSelected = pastDueOptions.length > 0 && !pastDueOptions.includes("all");
-
-      // Check Timeline - ONLY if past due is NOT selected
-      if (timelineFilter && !isPastDueSelected) {
-        const ticketDate = new Date(ticket.createdAt);
-        const days = timelineFilter;
-        const limit = new Date();
-        limit.setDate(limit.getDate() - days);
-        // If date is invalid (mock data issues), we might keep it or filter it.
-        // Assuming valid mock data or permissive fallback
-        if (!isNaN(ticketDate.getTime()) && ticketDate < limit) {
-          return false;
-        }
-      }
-
-      const now = new Date();
-      const isOverdue = ticket.slaDeadline && new Date(ticket.slaDeadline) < now;
-      if (isOverdue && ticket.status !== 'closed' && ticket.status !== 'completed') {
-        ticket.priority = 'high'; // Elevate priority for display
-      }
-
-      if (isPastDueSelected) {
-        // If any specific option is selected, ticket must match at least one
-        const matchesOption = pastDueOptions.some(option => {
-          if (option === 'past_due') return isOverdue && ticket.status !== 'closed' && ticket.status !== 'completed';
-          if (option === 'past_due_10') {
-            const tenDaysAgo = new Date(now.getTime() - 10 * 24 * 60 * 60 * 1000);
-            return ticket.slaDeadline && new Date(ticket.slaDeadline) < tenDaysAgo && ticket.status !== 'closed' && ticket.status !== 'completed';
-          }
-          if (option === 'past_due_30') {
-            const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-            return ticket.slaDeadline && new Date(ticket.slaDeadline) < thirtyDaysAgo && ticket.status !== 'closed' && ticket.status !== 'completed';
-          }
-          return false;
-        });
-
-        if (!matchesOption) return false;
-      }
-
-      return true;
-    });
-  }, [tickets, categoryFilter, ownerFilter, timelineFilter, searchQuery, pastDueOptions]);
-
-  // 2. Status Filter (Applied on top of Context)
-  const filteredTickets = useMemo(() => {
-    if (!statusFilter || statusFilter === 'Total') return contextTickets;
-
-    return contextTickets.filter(ticket => {
-      // Use standardized normalization to match Dashboard counts
-      const tNormalizedStatus = normalizeStatus(ticket.status || '');
-      const matchesStatus = tNormalizedStatus.toLowerCase() === statusFilter.toLowerCase();
-
-      // PERSISTENCE FIX: Always show the selected ticket in the sidebar list, 
-      // even if its status changed (e.g. from Open to In Progress), 
-      // so it doesn't "disappear" from under the user.
-      const isSelected = selectedTicket?.id === ticket.id;
-
-      return matchesStatus || isSelected;
-    });
-  }, [contextTickets, statusFilter, selectedTicket]);
-
-
-  useEffect(() => {
-    const connectWebSocket = () => {
-      const ws = new WebSocket('ws://localhost:8000/ws');
-
-      ws.onopen = () => {
-        console.log('WebSocket connected');
-        setStatusMessage('Connected to server');
-      };
-
-      ws.onmessage = (event) => {
-        const data = JSON.parse(event.data);
-        console.log('WebSocket message:', data);
-
-        switch (data.type) {
-          case 'initial_state':
-            // Don't set tickets from WebSocket - let HTTP fetch handle initial load
-            // This ensures the filter (IAM vs All) is respected
-            console.log('WebSocket connected, initial state received');
-            break;
-
-          case 'ticket_update':
-            setTickets((prev) => {
-              const index = prev.findIndex((t) => t.id === data.ticket.id);
-              if (index >= 0) {
-                const updated = [...prev];
-                updated[index] = data.ticket;
-                return updated;
-              } else {
-                return [...prev, data.ticket];
-              }
-            });
-
-            // Update selected ticket if it's the one being updated
-            if (selectedTicket && selectedTicket.id === data.ticket.id) {
-              setSelectedTicket(data.ticket);
-            }
-
-            // ── Handle Outlook inbox reply received ──────────────────────────
-            if (data.ticket?.inboxReplyReceived) {
-              const adminData = data.ticket.inboxAdminData || {};
-              setIsPollingInbox(false);
-              // Pre-fill admin input fields from the parsed reply email
-              if (adminData.primary_admin_name) {
-                setAdminPrimaryInput(adminData.primary_admin_name);
-              }
-              if (adminData.primary_nbkid) {
-                setAdminPrimaryNbkidInput(adminData.primary_nbkid);
-              }
-              if (adminData.secondary_admin_name) {
-                setAdminSecondaryInput(adminData.secondary_admin_name);
-              }
-              if (adminData.secondary_nbkid) {
-                setAdminSecondaryNbkidInput(adminData.secondary_nbkid);
-              }
-              // Refresh adminDetails with the latest data from backend
-              const updatedDetails = { ...adminDetails, ...adminData };
-              setAdminDetails(updatedDetails);
-              // Advance the wizard to Step 3 (Validate)
-              setCurrentAdminStep(3);
-            }
-
-            // Update status message if provided
-            if (data.message) {
-              setStatusMessage(data.message);
-            }
-            break;
-
-          case 'processing_start':
-            setStatusMessage(data.message);
-            break;
-
-          case 'stage_update':
-            setStatusMessage(`${data.stage}: ${data.message}`);
-            break;
-
-          case 'pcat_stage_update':
-            // Update individual ticket for PCAT real-time progress
-            setTickets(prev => prev.map(t =>
-              t.id === data.ticket_id ? { ...t, ...data.ticket } : t
-            ));
-            if (selectedTicketRef.current?.id === data.ticket_id) {
-              setSelectedTicket(prev => prev ? { ...prev, ...data.ticket } : null);
-            }
-            // Update status message banner for PCAT
-            if (data.message) {
-              setStatusMessage(data.message);
-            }
-            break;
-          case 'processing_complete':
-            setStatusMessage(data.message || 'Processing complete');
-
-            if (data.ticket) {
-              // Update the specific ticket
-              setTickets((prev) => {
-                const index = prev.findIndex((t) => t.id === data.ticket.id);
-                if (index >= 0) {
-                  const updated = [...prev];
-                  updated[index] = data.ticket;
-                  return updated;
-                }
-                return prev;
-              });
-            }
-
-            // ALWAYS clear the status message after 3 seconds for completion
-            setTimeout(() => setStatusMessage(''), 3000);
-            break;
-
-          case 'error':
-            setStatusMessage(`Error: ${data.message}`);
-            alert(`Error: ${data.message}`);
-            break;
-        }
-      };
-
-      ws.onerror = (error) => {
-        console.error('WebSocket error:', error);
-        setStatusMessage('Connection error');
-      };
-
-      ws.onclose = () => {
-        console.log('WebSocket disconnected');
-        setStatusMessage('Disconnected from server');
-
-        // Attempt to reconnect after 3 seconds
-        setTimeout(connectWebSocket, 3000);
-      };
-
-      wsRef.current = ws;
-    };
-
-    connectWebSocket();
-
-    return () => {
-      if (wsRef.current) {
-        wsRef.current.close();
-      }
-    };
-  }, []);
-
-  // Show success toast when ticket is completed
-  useEffect(() => {
-    const s = (selectedTicket?.status || '').toLowerCase().replace(/-/g, ' ').trim();
-    if (s === 'completed' || s === 'closed') {
-      setShowSuccessToast(true);
-      const timer = setTimeout(() => setShowSuccessToast(false), 5000);
-      return () => clearTimeout(timer);
-    }
-  }, [selectedTicket?.status]);
-
-  // AUTO-TRIGGER Remediation Modal
-  useEffect(() => {
-    if (!selectedTicket || showRemediationModal || showAdminModal || showBRERemediationModal) return;
-
-    const isBreNew = isBRENewTicket(selectedTicket);
-    const isArmNoAdmin = selectedTicket.subcategory === 'ARM FORMS NO ADMIN' ||
-      (selectedTicket as any).deliverableType === 'ARM FORMS NO ADMIN' ||
-      (selectedTicket as any).waitingForAdminUpdate;
-
-    // Stage 5 Triggers (Legacy & Admin Forms)
-    if (selectedTicket.currentStage === 5 && selectedTicket.stages[5]?.status === 'in-progress') {
-      if (isArmNoAdmin) {
-        handleOpenAdminModal();
-      } else if (!isBreNew && !isPCATTicket(selectedTicket)) {
-        setShowRemediationModal(true);
-      }
-    }
-
-    // Stage 6 Triggers (BRE-NEW Remediation)
-    if (isBreNew && selectedTicket.currentStage === 6 && selectedTicket.stages[6]?.status === 'in-progress') {
-      setShowBRERemediationModal(true);
-    }
-  }, [selectedTicket?.currentStage, selectedTicket?.stages?.[5]?.status, selectedTicket?.stages?.[6]?.status]);
-
-  // Handle ticket selection from URL
-
-
-  // Handle ticket selection from URL
-  useEffect(() => {
-    if (ticketId && tickets.length > 0) {
-      const ticket = tickets.find((t) => t.id === ticketId);
-      if (ticket) {
-        setSelectedTicket(ticket);
-      }
-    }
-  }, [ticketId, tickets]);
-
-  // No-op - removed redundant effects
-
-
-  const fetchTickets = async () => {
+  const fetchTickets = useCallback(async () => {
     try {
       const endpoint = showAllTickets
         ? 'http://localhost:8000/api/tickets'
@@ -486,7 +179,7 @@ export default function Home({ currentUser, onSignOut }: HomeProps) {
     } catch (error) {
       console.error('Error fetching tickets:', error);
     }
-  };
+  }, [showAllTickets]);
 
   const handleProcessTicket = async (ticketId: string) => {
     try {
@@ -562,18 +255,15 @@ export default function Home({ currentUser, onSignOut }: HomeProps) {
     setAdminUpdateResult(null);
     setCurrentAdminStep(1); // Reset to first step
     setSelectedService(null);
+    
+    // Initialize default email body
+    const appName = (selectedTicket as any).applicationName || (selectedTicket as any).application_name || 'Your Application';
+    const ownerName = (selectedTicket as any).lobOwner || 'App Owner';
+    const defaultBody = `Dear ${ownerName},\n\nOur records indicate that your application "${appName}" is missing required administrator assignments.\n\nPlease provide 2 unique administrator names and their NBKID.\n\nPlease reply to this email using the following format:\n\nPrimary Admin Name: [Full Name]\nPrimary Admin NBKID: [7-char NBKID]\nSecondary Admin Name: [Full Name]\nSecondary Admin NBKID: [7-char NBKID]\n\nBest regards,\nApp Governance & IAM Team`;
+    setAdminEmailBody(defaultBody);
+
     setShowAdminModal(true);
   };
-
-  // AUTO-RETRY if data is missing while modal is open
-  useEffect(() => {
-    if (showAdminModal && !adminDetails && selectedTicket) {
-      const timer = setTimeout(() => {
-        handleOpenAdminModal();
-      }, 3000);
-      return () => clearTimeout(timer);
-    }
-  }, [showAdminModal, adminDetails, selectedTicket]);
 
   const handleAdminNextStep = () => {
     // We already pre-fetch or rely on manual/simulated updates
@@ -799,20 +489,22 @@ export default function Home({ currentUser, onSignOut }: HomeProps) {
     try {
       const ait_number = (selectedTicket as any).aitNumber || (selectedTicket as any).ait_number;
       const app_name = (selectedTicket as any).applicationName || (selectedTicket as any).application_name;
-      
+
       // Improved recipient logic: contacts list first, then customer field if it looks like an email
       let app_owner = '';
-      if (selectedTicket.contacts && selectedTicket.contacts.length > 0) {
+      if (adminDetails?.app_owner_email) {
+        app_owner = adminDetails.app_owner_email;
+      } else if (selectedTicket.contacts && selectedTicket.contacts.length > 0) {
         app_owner = selectedTicket.contacts[0];
       } else if (selectedTicket.customer && selectedTicket.customer.includes('@')) {
         app_owner = selectedTicket.customer;
       } else {
         // Fallback to the current user email if everything else fails
-        app_owner = 'm.potnuru@accenture.com';
+        app_owner = 'velmuruganpandian@outlook.com';
       }
 
       const subject = `ARM Admin Access Required: ${app_name} (${ait_number})`;
-      const body = `Dear ${(selectedTicket as any).lobOwner || 'App Owner'},\n\nOur records indicate that your application is missing required administrator assignments.\n\nPlease provide 2 unique administrator names and their NBKID.\n\nPlease reply to this email using the following format:\n\nPrimary Admin Name: [Full Name]\nPrimary Admin NBKID: [7-char NBKID]\nSecondary Admin Name: [Full Name]\nSecondary Admin NBKID: [7-char NBKID]\n\nBest regards,\nApp Governance & IAM Team`;
+      const body = adminEmailBody;
 
       setStatusMessage(`Sending investigative email to ${app_owner}...`);
 
@@ -830,14 +522,14 @@ export default function Home({ currentUser, onSignOut }: HomeProps) {
       });
 
       if (!response.ok) throw new Error('Failed to send email');
-      
+
       const data = await response.json();
       console.log('Admin Email Response:', data);
 
       // Backend auto-starts polling if EMAIL_SENDING_ENABLED=true
       setIsPollingInbox(true);
       setStatusMessage('✅ Email sent successfully. Waiting for reply...');
-      
+
     } catch (error) {
       console.error('Error sending admin email:', error);
       alert('Failed to send real email. Please check if Outlook is running.');
@@ -881,10 +573,10 @@ export default function Home({ currentUser, onSignOut }: HomeProps) {
 
       // If this was a real ARM Forms NO ADMIN email (not simulated), switch UI to
       // inbox polling mode — the backend will watch Outlook and push the reply via WS.
-      const isArmNoAdmin = (
-        (selectedTicket as any)?.subcategory === 'ARM FORMS NO ADMIN' ||
-        (selectedTicket as any)?.deliverableType === 'ARM FORMS NO ADMIN'
-      );
+      const subcap = (selectedTicket as any)?.subcategory?.toUpperCase() || '';
+      const delType = (selectedTicket as any)?.deliverableType?.toUpperCase() || '';
+      const isArmNoAdmin = subcap.includes('ARM FORM') || delType.includes('ARM FORM');
+      
       if (data.status === 'success' && data.sent === true && isArmNoAdmin) {
         // Real email was sent, show the inbox-waiting spinner in the wizard
         setIsPollingInbox(true);
@@ -905,6 +597,321 @@ export default function Home({ currentUser, onSignOut }: HomeProps) {
       alert('Error: ' + (error as Error).message);
     }
   };
+
+  // Update selectedTicketRef whenever selectedTicket state changes
+  useEffect(() => {
+    selectedTicketRef.current = selectedTicket;
+  }, [selectedTicket]);
+
+  useEffect(() => {
+    // 1. Process location state if coming from Dashboard
+    if (location.state) {
+      if (location.state.statusFilter) setStatusFilter(location.state.statusFilter);
+      if (location.state.timeline) setTimelineFilter(parseInt(location.state.timeline));
+      if (location.state.category) setCategoryFilter(location.state.category);
+      if (location.state.owner) setOwnerFilter(location.state.owner);
+      if (location.state.pastDueOptions) setPastDueOptions(location.state.pastDueOptions);
+      // Ensure we fetch all categories if coming from Dashboard
+      setShowAllTickets(true);
+    }
+  }, [location]);
+
+  // Combined fetch and reset logic
+  useEffect(() => {
+    fetchTickets();
+  }, [fetchTickets, currentUser]);
+
+
+  // Filter tickets based on dashboard selection, inputs and search
+  // 1. Context Filters (Category, Owner, Timeline, Search)
+  const contextTickets = useMemo(() => {
+    return tickets.filter(ticket => {
+      // Check Search Query
+      if (searchQuery) {
+        const query = searchQuery.toLowerCase();
+        const titleMatch = ticket.title.toLowerCase().includes(query);
+        const idMatch = ticket.id.toLowerCase().includes(query);
+        const categoryMatch = (ticket.category || '').toLowerCase().includes(query) ||
+          (ticket.subcategory || '').toLowerCase().includes(query);
+        const ownerMatch = (ticket.owner || '').toLowerCase().includes(query);
+        if (!titleMatch && !idMatch && !categoryMatch && !ownerMatch) return false;
+      }
+
+      // Check Category
+      if (categoryFilter !== 'all' && (!Array.isArray(categoryFilter) || !categoryFilter.includes('all'))) {
+        const selected = Array.isArray(categoryFilter) ? categoryFilter : [categoryFilter];
+        const hasMatch = ticket.subcategory ? selected.includes(ticket.subcategory) : selected.includes(ticket.category || 'IAM');
+        if (!hasMatch) return false;
+      }
+
+      // Check Owner
+      if (ownerFilter !== 'all' && (!Array.isArray(ownerFilter) || !ownerFilter.includes('all'))) {
+        const tOwner = ticket.owner || 'owner1';
+        if (Array.isArray(ownerFilter)) {
+          if (!ownerFilter.includes(tOwner)) return false;
+        } else {
+          if (tOwner !== ownerFilter) return false;
+        }
+      }
+
+      // Past Due logic - Check if active
+      const isPastDueSelected = pastDueOptions.length > 0 && !pastDueOptions.includes("all");
+
+      // Check Timeline - ONLY if past due is NOT selected
+      if (timelineFilter && !isPastDueSelected) {
+        const ticketDate = new Date(ticket.createdAt);
+        const days = timelineFilter;
+        const limit = new Date();
+        limit.setDate(limit.getDate() - days);
+        // If date is invalid (mock data issues), we might keep it or filter it.
+        // Assuming valid mock data or permissive fallback
+        if (!isNaN(ticketDate.getTime()) && ticketDate < limit) {
+          return false;
+        }
+      }
+
+      const now = new Date();
+      const isOverdue = ticket.slaDeadline && new Date(ticket.slaDeadline) < now;
+      if (isOverdue && ticket.status !== 'closed' && ticket.status !== 'completed') {
+        ticket.priority = 'high'; // Elevate priority for display
+      }
+
+      if (isPastDueSelected) {
+        // If any specific option is selected, ticket must match at least one
+        const matchesOption = pastDueOptions.some(option => {
+          if (option === 'past_due') return isOverdue && ticket.status !== 'closed' && ticket.status !== 'completed';
+          if (option === 'past_due_10') {
+            const tenDaysAgo = new Date(now.getTime() - 10 * 24 * 60 * 60 * 1000);
+            return ticket.slaDeadline && new Date(ticket.slaDeadline) < tenDaysAgo && ticket.status !== 'closed' && ticket.status !== 'completed';
+          }
+          if (option === 'past_due_30') {
+            const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+            return ticket.slaDeadline && new Date(ticket.slaDeadline) < thirtyDaysAgo && ticket.status !== 'closed' && ticket.status !== 'completed';
+          }
+          return false;
+        });
+
+        if (!matchesOption) return false;
+      }
+
+      return true;
+    });
+  }, [tickets, categoryFilter, ownerFilter, timelineFilter, searchQuery, pastDueOptions]);
+
+  // 2. Status Filter (Applied on top of Context)
+  const filteredTickets = useMemo(() => {
+    if (!statusFilter || statusFilter === 'Total') return contextTickets;
+
+    return contextTickets.filter(ticket => {
+      // Use standardized normalization to match Dashboard counts
+      const tNormalizedStatus = normalizeStatus(ticket.status || '');
+      const matchesStatus = tNormalizedStatus.toLowerCase() === statusFilter.toLowerCase();
+
+      // PERSISTENCE FIX: Always show the selected ticket in the sidebar list, 
+      // even if its status changed (e.g. from Open to In Progress), 
+      // so it doesn't "disappear" from under the user.
+      const isSelected = selectedTicket?.id === ticket.id;
+
+      return matchesStatus || isSelected;
+    });
+  }, [contextTickets, statusFilter, selectedTicket]);
+
+
+  useEffect(() => {
+    const connectWebSocket = () => {
+      const ws = new WebSocket('ws://localhost:8000/ws');
+
+      ws.onopen = () => {
+        console.log('WebSocket connected');
+        setStatusMessage('Connected to server');
+      };
+
+      ws.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+
+        switch (data.type) {
+          case 'tickets_update':
+            setTickets(data.tickets);
+            break;
+          case 'initial_state':
+            // Don't set tickets from WebSocket - let HTTP fetch handle initial load
+            // This ensures the filter (IAM vs All) is respected
+            console.log('WebSocket connected, initial state received');
+            break;
+
+          case 'ticket_update':
+            setTickets((prev) => {
+              const index = prev.findIndex((t) => t.id === data.ticket.id);
+              if (index >= 0) {
+                const updated = [...prev];
+                updated[index] = data.ticket;
+                return updated;
+              } else {
+                return [...prev, data.ticket];
+              }
+            });
+
+            // Update selected ticket if it's the one being updated
+            if (selectedTicket && selectedTicket.id === data.ticket.id) {
+              setSelectedTicket(data.ticket);
+            }
+
+            // ── Handle Outlook inbox reply received ──────────────────────────
+            if (data.ticket?.inboxReplyReceived) {
+              const adminData = data.ticket.inboxAdminData || {};
+              setIsPollingInbox(false);
+              if (selectedTicket && selectedTicket.id === data.ticket.id) {
+                selectedTicket.isPollingActive = false;
+              }
+              // Pre-fill admin input fields from the parsed reply email
+              if (adminData.primary_admin_name) {
+                setAdminPrimaryInput(adminData.primary_admin_name);
+              }
+              if (adminData.primary_nbkid) {
+                setAdminPrimaryNbkidInput(adminData.primary_nbkid);
+              }
+              if (adminData.secondary_admin_name) {
+                setAdminSecondaryInput(adminData.secondary_admin_name);
+              }
+              if (adminData.secondary_nbkid) {
+                setAdminSecondaryNbkidInput(adminData.secondary_nbkid);
+              }
+              // Refresh adminDetails with the latest data from backend
+              const updatedDetails = { ...adminDetails, ...adminData };
+              setAdminDetails(updatedDetails);
+              // Advance the wizard to Step 3 (Validate)
+              setCurrentAdminStep(3);
+            }
+
+            // Update status message if provided
+            if (data.message) {
+              setStatusMessage(data.message);
+            }
+            break;
+
+          case 'processing_start':
+            setStatusMessage(data.message);
+            break;
+
+          case 'stage_update':
+            setStatusMessage(`${data.stage}: ${data.message}`);
+            break;
+
+          case 'pcat_stage_update':
+            // Update individual ticket for PCAT real-time progress
+            setTickets(prev => prev.map(t =>
+              t.id === data.ticket_id ? { ...t, ...data.ticket } : t
+            ));
+            if (selectedTicketRef.current?.id === data.ticket_id) {
+              setSelectedTicket(prev => prev ? { ...prev, ...data.ticket } : null);
+            }
+            // Update status message banner for PCAT
+            if (data.message) {
+              setStatusMessage(data.message);
+            }
+            break;
+          case 'processing_complete':
+            setStatusMessage(data.message || 'Processing complete');
+
+            if (data.ticket) {
+              // Update the specific ticket
+              setTickets((prev) => {
+                const index = prev.findIndex((t) => t.id === data.ticket.id);
+                if (index >= 0) {
+                  const updated = [...prev];
+                  updated[index] = data.ticket;
+                  return updated;
+                }
+                return prev;
+              });
+            }
+
+            // ALWAYS clear the status message after 3 seconds for completion
+            setTimeout(() => setStatusMessage(''), 3000);
+            break;
+
+          case 'error':
+            setStatusMessage(`Error: ${data.message}`);
+            alert(`Error: ${data.message}`);
+            break;
+        }
+      };
+
+      ws.onerror = (error) => {
+        console.error('WebSocket error:', error);
+        setStatusMessage('Connection error');
+      };
+
+      ws.onclose = () => {
+        console.log('WebSocket disconnected');
+        setStatusMessage('Disconnected from server');
+
+        // Attempt to reconnect after 3 seconds
+        setTimeout(connectWebSocket, 3000);
+      };
+
+      wsRef.current = ws;
+    };
+
+    connectWebSocket();
+
+    return () => {
+      if (wsRef.current) {
+        wsRef.current.close();
+      }
+    };
+  }, []);
+
+  // Show success toast when ticket is completed
+  useEffect(() => {
+    const s = (selectedTicket?.status || '').toLowerCase().replace(/-/g, ' ').trim();
+    if (s === 'completed' || s === 'closed') {
+      setShowSuccessToast(true);
+      const timer = setTimeout(() => setShowSuccessToast(false), 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [selectedTicket?.status]);
+
+  // AUTO-TRIGGER Remediation Modal
+  useEffect(() => {
+    if (!selectedTicket || showRemediationModal || showAdminModal || showBRERemediationModal) return;
+
+    const isBreNew = isBRENewTicket(selectedTicket);
+    const isArmNoAdmin = selectedTicket.subcategory === 'ARM FORMS NO ADMIN' ||
+      (selectedTicket as any).deliverableType === 'ARM FORMS NO ADMIN' ||
+      (selectedTicket as any).waitingForAdminUpdate;
+
+    // Stage 5 Triggers (Legacy & Admin Forms)
+    if (selectedTicket.currentStage === 5 && selectedTicket.stages[5]?.status === 'in-progress') {
+      if (isArmNoAdmin) {
+        handleOpenAdminModal();
+      } else if (!isBreNew && !isPCATTicket(selectedTicket)) {
+        setShowRemediationModal(true);
+      }
+    }
+
+    // Stage 6 Triggers (BRE-NEW Remediation)
+    if (isBreNew && selectedTicket.currentStage === 6 && selectedTicket.stages[6]?.status === 'in-progress') {
+      setShowBRERemediationModal(true);
+    }
+  }, [selectedTicket?.currentStage, selectedTicket?.stages?.[5]?.status, selectedTicket?.stages?.[6]?.status]);
+
+  // Handle ticket selection from URL
+
+
+  // Handle ticket selection from URL
+  useEffect(() => {
+    if (ticketId && tickets.length > 0) {
+      const ticket = tickets.find((t) => t.id === ticketId);
+      if (ticket) {
+        setSelectedTicket(ticket);
+      }
+    }
+  }, [ticketId, tickets]);
+
+  // No-op - removed redundant effects
+
+  // Sync selectedTicket with tickets state when updates arrive
 
   // Sync selectedTicket with tickets state when updates arrive
   useEffect(() => {
@@ -1391,7 +1398,7 @@ export default function Home({ currentUser, onSignOut }: HomeProps) {
                         }
 
                         // 4. Review Approval
-                        if (selectedTicket.stages[5].status === 'in-progress' || selectedTicket.waitingForReview) {
+                        if (selectedTicket.stages[6].status === 'in-progress' || selectedTicket.waitingForReview) {
                           return (
                             <button
                               onClick={() => handleShowEmailPreview(selectedTicket.id)}
@@ -1404,7 +1411,7 @@ export default function Home({ currentUser, onSignOut }: HomeProps) {
                         }
 
                         // 5. Closure Confirmation
-                        if (selectedTicket.stages[6].status === 'in-progress' || selectedTicket.waitingForClosureConfirmation) {
+                        if (selectedTicket.stages[7].status === 'in-progress' || selectedTicket.waitingForClosureConfirmation) {
                           return (
                             <button
                               onClick={() => setShowClosureModal(true)}
@@ -2074,16 +2081,14 @@ export default function Home({ currentUser, onSignOut }: HomeProps) {
                           {hasSimulatedConflict ? 'Correction Email Preview' : 'App Owner Notification Preview'}
                         </h3>
                         <div className="bg-slate-50 border border-slate-200 rounded-xl p-6 font-mono text-sm text-slate-700 leading-relaxed mb-6">
+                          <p className="font-bold mb-1">To: {adminDetails?.app_owner_email || selectedTicket?.contacts?.[0] || selectedTicket?.customer || 'velmuruganpandian@outlook.com'}</p>
                           <p className="font-bold mb-4">Subject: ARM Admin Access Required: {adminDetails.application_name} ({adminDetails.ait_number})</p>
-                          <p>Dear {adminDetails.app_owner_name},</p>
-                          <p className="mt-4">Our records indicate that your application is missing required administrator assignments.</p>
-                          <p className="mt-4">Please provide 2 unique administrator names and their <strong>NBKID</strong>.</p>
-                          <p className="mt-4">Please reply to this email using the following format:</p>
-                          <p className="mt-2 bg-white border border-slate-200 rounded-lg p-3 text-xs font-mono whitespace-pre-line">{`Primary Admin Name: [Full Name]
-Primary Admin NBKID: [7-char NBKID]
-Secondary Admin Name: [Full Name]
-Secondary Admin NBKID: [7-char NBKID]`}</p>
-                          <p className="mt-4">Best regards,<br />App Governance &amp; IAM Team</p>
+                          <textarea
+                            className="w-full h-64 bg-white border border-slate-300 rounded-lg p-3 text-sm font-mono focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none resize-none transition-all"
+                            value={adminEmailBody}
+                            onChange={(e) => setAdminEmailBody(e.target.value)}
+                            placeholder="Type your email body here..."
+                          />
                         </div>
 
                         <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 flex items-start gap-3">
@@ -2118,7 +2123,7 @@ Secondary Admin NBKID: [7-char NBKID]`}</p>
                           {hasSimulatedConflict ? 'Send Correction Email' : 'Send Notification'}
                         </button>
 
-                        {isPollingInbox ? (
+                        {(isPollingInbox || selectedTicket?.isPollingActive) ? (
                           /* Real mode: show live waiting indicator instead of simulate button */
                           <div className="w-full h-14 bg-blue-50 border-2 border-blue-200 rounded-xl flex items-center justify-center gap-3 text-blue-700">
                             <svg className="w-5 h-5 animate-spin" viewBox="0 0 24 24" fill="none">
@@ -2222,84 +2227,103 @@ Secondary Admin NBKID: [7-char NBKID]`}</p>
                         </div>
                       </div>
 
-                      <div className="bg-amber-50 border border-amber-200 rounded-2xl p-6">
-                        <h3 className="text-amber-900 font-bold flex items-center gap-2 mb-4 text-lg">
-                          <Bot className="w-6 h-6" />
-                          Admin Enrollment
-                        </h3>
-
-                        <div className="space-y-5">
-                          {(!adminDetails.primary_admin_name ||
-                            (adminPrimaryInput?.toLowerCase() === adminDetails.app_owner_name?.toLowerCase()) ||
-                            (adminUpdateResult?.warnings?.some((w: string) => w.toLowerCase().includes('bank policy'))) ||
-                            adminUpdateResult?.warnings?.some((w: string) => w.toLowerCase().includes('same person'))) && (
-                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div className="space-y-2">
-                                  <label className="text-xs font-black text-amber-900/60 uppercase tracking-widest pl-1">Primary Admin Name</label>
-                                  <div className="relative group">
-                                    <input
-                                      type="text"
-                                      value={adminPrimaryInput}
-                                      onChange={(e) => setAdminPrimaryInput(e.target.value)}
-                                      placeholder="e.g. Ashok Vel"
-                                      className="w-full h-12 bg-white px-4 rounded-xl border-2 border-amber-200 focus:border-amber-500 focus:ring-4 focus:ring-amber-500/10 outline-none transition-all placeholder:text-slate-300 font-semibold"
-                                    />
-                                    <User className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-amber-300 group-focus-within:text-amber-500 transition-colors" />
-                                  </div>
-                                </div>
-                                <div className="space-y-2">
-                                  <label className="text-xs font-black text-amber-900/60 uppercase tracking-widest pl-1">Primary NBKID</label>
-                                  <div className="relative group">
-                                    <input
-                                      type="text"
-                                      maxLength={7}
-                                      value={adminPrimaryNbkidInput}
-                                      onChange={(e) => setAdminPrimaryNbkidInput(e.target.value)}
-                                      placeholder="7-digit ID"
-                                      className="w-full h-12 bg-white px-4 rounded-xl border-2 border-amber-200 focus:border-amber-500 focus:ring-4 focus:ring-amber-500/10 outline-none transition-all placeholder:text-slate-300 font-semibold"
-                                    />
-                                    <ShieldCheck className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-amber-300 group-focus-within:text-amber-500 transition-colors" />
-                                  </div>
-                                </div>
-                              </div>
-                            )}
-
-                          {(!adminDetails.secondary_admin_name ||
-                            (adminSecondaryInput?.toLowerCase() === adminDetails.app_owner_name?.toLowerCase()) ||
-                            (adminUpdateResult?.warnings?.some((w: string) => w.toLowerCase().includes('bank policy'))) ||
-                            adminUpdateResult?.warnings?.some((w: string) => w.toLowerCase().includes('same person'))) && (
-                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div className="space-y-2">
-                                  <label className="text-xs font-black text-amber-900/60 uppercase tracking-widest pl-1">Secondary Admin Name</label>
-                                  <div className="relative group">
-                                    <input
-                                      type="text"
-                                      value={adminSecondaryInput}
-                                      onChange={(e) => setAdminSecondaryInput(e.target.value)}
-                                      placeholder="e.g. Vel Murugan"
-                                      className="w-full h-12 bg-white px-4 rounded-xl border-2 border-amber-200 focus:border-amber-500 focus:ring-4 focus:ring-amber-500/10 outline-none transition-all placeholder:text-slate-300 font-semibold"
-                                    />
-                                    <User className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-amber-300 group-focus-within:text-amber-500 transition-colors" />
-                                  </div>
-                                </div>
-                                <div className="space-y-2">
-                                  <label className="text-xs font-black text-amber-900/60 uppercase tracking-widest pl-1">Secondary NBKID</label>
-                                  <div className="relative group">
-                                    <input
-                                      type="text"
-                                      maxLength={7}
-                                      value={adminSecondaryNbkidInput}
-                                      onChange={(e) => setAdminSecondaryNbkidInput(e.target.value)}
-                                      placeholder="7-digit ID"
-                                      className="w-full h-12 bg-white px-4 rounded-xl border-2 border-amber-200 focus:border-amber-500 focus:ring-4 focus:ring-amber-500/10 outline-none transition-all placeholder:text-slate-300 font-semibold"
-                                    />
-                                    <ShieldCheck className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-amber-300 group-focus-within:text-amber-500 transition-colors" />
-                                  </div>
-                                </div>
-                              </div>
-                            )}
+                      {(isPollingInbox || selectedTicket?.isPollingActive) ? (
+                        <div className="bg-blue-50 border-2 border-blue-200 rounded-2xl p-8 flex flex-col items-center justify-center gap-4 animate-in fade-in duration-500">
+                          <div className="relative">
+                            <div className="w-16 h-16 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin" />
+                            <Mail className="absolute inset-0 m-auto w-6 h-6 text-blue-600 animate-pulse" />
+                          </div>
+                          <div className="text-center">
+                            <h3 className="text-blue-900 font-black text-xl tracking-tight">Investigative Poll Active</h3>
+                            <p className="text-blue-700 font-bold text-sm mt-1">Waiting for details via email conversation...</p>
+                            <p className="text-blue-600 text-[10px] font-black uppercase tracking-[0.2em] mt-4 leading-none">Status: Monitoring Inbox</p>
+                          </div>
+                          <div className="mt-4 p-4 bg-white/50 rounded-xl border border-blue-100 max-w-sm">
+                            <p className="text-[11px] font-medium text-blue-800 leading-snug text-center">
+                              The system is actively communicating with the App Owner. This form will update automatically once the required details are identified in the email thread.
+                            </p>
+                          </div>
                         </div>
-                      </div>
+                      ) : (
+                        <div className="bg-amber-50 border border-amber-200 rounded-2xl p-6">
+                          <h3 className="text-amber-900 font-bold flex items-center gap-2 mb-4 text-lg">
+                            <Bot className="w-6 h-6" />
+                            Admin Enrollment
+                          </h3>
+
+                          <div className="space-y-5">
+                            {(!adminDetails.primary_admin_name ||
+                              (adminPrimaryInput?.toLowerCase() === adminDetails.app_owner_name?.toLowerCase()) ||
+                              (adminUpdateResult?.warnings?.some((w: string) => w.toLowerCase().includes('bank policy'))) ||
+                              adminUpdateResult?.warnings?.some((w: string) => w.toLowerCase().includes('same person'))) && (
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                  <div className="space-y-2">
+                                    <label className="text-xs font-black text-amber-900/60 uppercase tracking-widest pl-1">Primary Admin Name</label>
+                                    <div className="relative group">
+                                      <input
+                                        type="text"
+                                        value={adminPrimaryInput}
+                                        onChange={(e) => setAdminPrimaryInput(e.target.value)}
+                                        placeholder="e.g. Ashok Vel"
+                                        className="w-full h-12 bg-white px-4 rounded-xl border-2 border-amber-200 focus:border-amber-500 focus:ring-4 focus:ring-amber-500/10 outline-none transition-all placeholder:text-slate-300 font-semibold"
+                                      />
+                                      <User className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-amber-300 group-focus-within:text-amber-500 transition-colors" />
+                                    </div>
+                                  </div>
+                                  <div className="space-y-2">
+                                    <label className="text-xs font-black text-amber-900/60 uppercase tracking-widest pl-1">Primary NBKID</label>
+                                    <div className="relative group">
+                                      <input
+                                        type="text"
+                                        maxLength={7}
+                                        value={adminPrimaryNbkidInput}
+                                        onChange={(e) => setAdminPrimaryNbkidInput(e.target.value)}
+                                        placeholder="7-digit ID"
+                                        className="w-full h-12 bg-white px-4 rounded-xl border-2 border-amber-200 focus:border-amber-500 focus:ring-4 focus:ring-amber-500/10 outline-none transition-all placeholder:text-slate-300 font-semibold"
+                                      />
+                                      <ShieldCheck className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-amber-300 group-focus-within:text-amber-500 transition-colors" />
+                                    </div>
+                                  </div>
+                                </div>
+                              )}
+
+                            {(!adminDetails.secondary_admin_name ||
+                              (adminSecondaryInput?.toLowerCase() === adminDetails.app_owner_name?.toLowerCase()) ||
+                              (adminUpdateResult?.warnings?.some((w: string) => w.toLowerCase().includes('bank policy'))) ||
+                              adminUpdateResult?.warnings?.some((w: string) => w.toLowerCase().includes('same person'))) && (
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                  <div className="space-y-2">
+                                    <label className="text-xs font-black text-amber-900/60 uppercase tracking-widest pl-1">Secondary Admin Name</label>
+                                    <div className="relative group">
+                                      <input
+                                        type="text"
+                                        value={adminSecondaryInput}
+                                        onChange={(e) => setAdminSecondaryInput(e.target.value)}
+                                        placeholder="e.g. Vel Murugan"
+                                        className="w-full h-12 bg-white px-4 rounded-xl border-2 border-amber-200 focus:border-amber-500 focus:ring-4 focus:ring-amber-500/10 outline-none transition-all placeholder:text-slate-300 font-semibold"
+                                      />
+                                      <User className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-amber-300 group-focus-within:text-amber-500 transition-colors" />
+                                    </div>
+                                  </div>
+                                  <div className="space-y-2">
+                                    <label className="text-xs font-black text-amber-900/60 uppercase tracking-widest pl-1">Secondary NBKID</label>
+                                    <div className="relative group">
+                                      <input
+                                        type="text"
+                                        maxLength={7}
+                                        value={adminSecondaryNbkidInput}
+                                        onChange={(e) => setAdminSecondaryNbkidInput(e.target.value)}
+                                        placeholder="7-digit ID"
+                                        className="w-full h-12 bg-white px-4 rounded-xl border-2 border-amber-200 focus:border-amber-500 focus:ring-4 focus:ring-amber-500/10 outline-none transition-all placeholder:text-slate-300 font-semibold"
+                                      />
+                                      <ShieldCheck className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-amber-300 group-focus-within:text-amber-500 transition-colors" />
+                                    </div>
+                                  </div>
+                                </div>
+                              )}
+                          </div>
+                        </div>
+                      )}
 
                       {/* Real-time Intelligent Validation Display */}
                       {adminUpdateResult && (
@@ -2473,9 +2497,10 @@ Secondary Admin NBKID: [7-char NBKID]`}</p>
                         handleAdminNextStep();
                       }
                     }}
-                    className={`h-14 px-8 ${areRolesValid ? 'bg-green-600 hover:bg-green-700' : 'bg-slate-900 hover:bg-slate-800'} text-white rounded-2xl font-black text-sm uppercase tracking-widest transition-all shadow-lg flex items-center gap-3 group`}
+                    disabled={isPollingInbox || selectedTicket?.isPollingActive}
+                    className={`h-14 px-8 ${areRolesValid ? 'bg-green-600 hover:bg-green-700' : 'bg-slate-900 hover:bg-slate-800'} text-white rounded-2xl font-black text-sm uppercase tracking-widest transition-all shadow-lg flex items-center gap-3 group disabled:opacity-40 disabled:cursor-not-allowed`}
                   >
-                    {areRolesValid ? 'Skip to Review' : 'Begin Communication'}
+                    {(isPollingInbox || selectedTicket?.isPollingActive) ? '⏳ Communication Active' : (areRolesValid ? 'Skip to Review' : 'Begin Communication')}
                     <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                   </button>
                 )}
@@ -2483,10 +2508,10 @@ Secondary Admin NBKID: [7-char NBKID]`}</p>
                 {currentAdminStep === 3 && (
                   <button
                     onClick={handleAdminValidate}
-                    disabled={(!adminPrimaryInput && !adminDetails?.primary_admin_name) || (!adminSecondaryInput && !adminDetails?.secondary_admin_name)}
+                    disabled={isPollingInbox || selectedTicket?.isPollingActive || ((!adminPrimaryInput && !adminDetails?.primary_admin_name) || (!adminSecondaryInput && !adminDetails?.secondary_admin_name))}
                     className="h-14 px-8 bg-blue-600 text-white rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-blue-500 transition-all shadow-lg shadow-blue-600/20 flex items-center gap-3 group disabled:opacity-40 disabled:grayscale disabled:cursor-not-allowed"
                   >
-                    Check & Proceed
+                    {(isPollingInbox || selectedTicket?.isPollingActive) ? '⏳ Polling...' : 'Check & Proceed'}
                     <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                   </button>
                 )}
@@ -2494,10 +2519,10 @@ Secondary Admin NBKID: [7-char NBKID]`}</p>
                 {currentAdminStep === 4 && (
                   <button
                     onClick={handleAdminNextStep}
-                    disabled={!selectedService}
+                    disabled={isPollingInbox || selectedTicket?.isPollingActive || !selectedService}
                     className="h-14 px-8 bg-indigo-600 text-white rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-indigo-500 transition-all shadow-lg shadow-indigo-600/20 flex items-center gap-3 group disabled:opacity-40 disabled:grayscale disabled:cursor-not-allowed"
                   >
-                    Proceed to Review
+                    {(isPollingInbox || selectedTicket?.isPollingActive) ? '⏳ Polling...' : 'Proceed to Review'}
                     <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                   </button>
                 )}

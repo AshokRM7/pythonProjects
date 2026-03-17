@@ -26,11 +26,17 @@ router = APIRouter(prefix="/api/pcat", tags=["pcat"])
 # This will be injected from api_server.py
 current_tickets_ref: Dict[str, Any] = {}
 broadcast_func = None
+active_polls_ref: Dict[str, Any] = {}
+poll_func_ref = None
 
-def init_pcat_api(tickets: dict, broadcast: Any):
-    global current_tickets_ref, broadcast_func
+def init_pcat_api(tickets: dict, broadcast: Any, active_polls: Dict = None, poll_func=None):
+    global current_tickets_ref, broadcast_func, active_polls_ref, poll_func_ref
     current_tickets_ref = tickets
     broadcast_func = broadcast
+    if active_polls is not None:
+        active_polls_ref = active_polls
+    if poll_func is not None:
+        poll_func_ref = poll_func
 
 def is_pcat_enabled():
     return os.getenv("ENABLE_PCAT", "true").lower() == "true"
@@ -75,10 +81,12 @@ async def validate_ticket(ticket_id: str, background_tasks: BackgroundTasks):
         return JSONResponse(status_code=403, content={"error": "PCAT is disabled"})
     
     ticket = current_tickets_ref.get(ticket_id)
+    print(f"DEBUG validate: ticket_id={ticket_id}, found={ticket is not None}, tickets_count={len(current_tickets_ref)}")
     if not ticket:
         raise HTTPException(status_code=404, detail="Ticket not found")
 
     csv_path = ticket.get("pcat_csv_path")
+    print(f"DEBUG validate: csv_path={csv_path}, exists={os.path.exists(csv_path) if csv_path else 'N/A'}, cwd={os.getcwd()}")
     if not csv_path or not os.path.exists(csv_path):
         raise HTTPException(status_code=400, detail="PCAT CSV file missing for this ticket")
 
@@ -128,9 +136,9 @@ async def run_pcat_pipeline(ticket_id: str, csv_path: str):
                 # ENHANCEMENT 1: Pause at Stage 7 for confirmation
                 ticket["currentStage"] = 7
                 ticket["stages"][7]["status"] = "awaiting_confirmation"
-                ticket["stages"][7]["message"] = "Auto-Fix & Rebuild CSV Agent is awaiting user confirmation to apply fixes"
+                ticket["stages"][7]["message"] = "Auto-Fix & Rebuild CSV Agent is awaiting user confirmation to apply fixes."
                 
-                # Pre-generate fixes for pending list
+                # Pre-generate fixes for pending list just so they are ready
                 rows = PCATLoader.load_csv(csv_path)
                 report_path = f"backend/data/pcat/runs/{ticket_id}/latest_report.json"
                 if os.path.exists(report_path):
@@ -152,13 +160,57 @@ async def run_pcat_pipeline(ticket_id: str, csv_path: str):
                     "type": "pcat_stage_update",
                     "ticket_id": ticket_id,
                     "stage_id": stage_idx,
-                    "status": status,
-                    "message": message,
+                    "status": ticket["stages"][stage_idx]["status"],
+                    "message": ticket["stages"][stage_idx]["message"],
                     "metrics": metrics,
                     "ticket": ticket
                 })
 
     await orchestrator.run_validation(stage_update_callback)
+
+class EmailRequest(BaseModel):
+    to: List[str]
+    cc: Optional[List[str]] = []
+    subject: str
+    body: str
+
+@router.post("/tickets/{ticket_id}/send-email")
+async def send_pcat_email(ticket_id: str, email_req: EmailRequest):
+    if not is_pcat_enabled():
+        return JSONResponse(status_code=403, content={"error": "PCAT is disabled"})
+    
+    ticket = current_tickets_ref.get(ticket_id)
+    if not ticket: raise HTTPException(status_code=404, detail="Ticket not found")
+
+    from backend.services.email_service import send_email
+    result = send_email(email_req.to, email_req.subject, email_req.body)
+
+    status = "completed" if (result.get("sent") or result.get("mode") == "simulated") else "failed"
+    msg = f"✅ Evidence email sent. Waiting for App Owner reply..." if status == "completed" else "❌ Email failed."
+
+    if status == "completed":
+        ticket["stages"][8]["status"] = "in-progress"
+        ticket["stages"][8]["message"] = msg
+        ticket["status"] = "in-progress"
+
+        if broadcast_func:
+            await broadcast_func({
+                "type": "pcat_stage_update",
+                "ticket_id": ticket_id,
+                "stage_id": 8,
+                "status": "in-progress",
+                "message": msg,
+                "ticket": ticket
+            })
+
+        # Use injected references to avoid circular imports that would re-initialize current_tickets
+        import asyncio
+        ait_number = ticket.get("aitNumber") or ticket.get("ait_number") or ticket_id
+        if poll_func_ref and ait_number not in active_polls_ref:
+            active_polls_ref[ait_number] = ticket_id
+            asyncio.create_task(poll_func_ref(ticket_id, ait_number))
+
+    return {"status": "success", "message": msg}
 
 @router.post("/tickets/{ticket_id}/fixes/decisions")
 async def save_fix_decisions(ticket_id: str, decisions: List[Decision]):
@@ -246,39 +298,29 @@ async def apply_fixes(ticket_id: str, req: ApplyFixesRequest):
     if broadcast_func:
         await broadcast_func({"type": "pcat_stage_update", "ticket_id": ticket_id, "stage_id": 7, "status": "completed", "message": f"Auto-Fix & Rebuild CSV Agent applied {len(applied_fixes)} fixes and rebuilt CSV.", "ticket": ticket})
     
-    # Stage 8
-    results = {}
-    if req.upload_to_pcat:
-        if broadcast_func:
-            await broadcast_func({"type": "pcat_stage_update", "ticket_id": ticket_id, "stage_id": 8, "status": "in-progress", "message": "Upload to PCAT & RISE Agent is uploading to PCAT...", "ticket": ticket})
-        results["pcat_portal"] = upload_to_pcat_portal(ticket_id, out_csv)
-    
-    if req.upload_to_rise:
-        if broadcast_func:
-            await broadcast_func({"type": "pcat_stage_update", "ticket_id": ticket_id, "stage_id": 8, "status": "in-progress", "message": "Upload to PCAT & RISE Agent is uploading to RISE...", "ticket": ticket})
-        results["rise_portal"] = upload_to_rise_portal(ticket_id, out_csv)
-
-    # NEW: Store final CSV metadata for frontend BEFORE final broadcast
+    # ENHANCEMENT 2 (Moved): Pause at Stage 8 for Evidence Review & Email
     ticket["final_csv_path"] = out_csv
     ticket["final_csv_ready"] = True
-    ticket["status"] = "PCAT Validation Completed"
+    
+    ticket["status"] = "Waiting for App Owner Approval"
     ticket["currentStage"] = 8
     ticket["stages"][7]["status"] = "completed"
-    ticket["stages"][8]["status"] = "completed"
-
+    ticket["stages"][8]["status"] = "awaiting_review"
+    ticket["stages"][8]["message"] = "Awaiting review and email of final resolved evidence to App Owner."
+    
     if broadcast_func:
         await broadcast_func({
-            "type": "pcat_stage_update", 
+            "type": "pcat.awaiting_review", 
             "ticket_id": ticket_id, 
             "stage_id": 8, 
-            "status": "completed", 
-            "message": "Upload to PCAT & RISE Agent: upload completed.",
+            "status": "awaiting_review", 
+            "message": "Review and email PCAT evidence to App Owner.",
             "metrics": ticket.get("pcat_summary", {}),
             "ticket": ticket
         })
     
     summary.applied_fixes = applied_fixes
-    summary.upload_results = results
+    # upload_results will be set later in poll_inbox_for_reply
     summary.updated_csv_path = out_csv
     with open(report_path, 'w') as f:
         json.dump(summary.model_dump(), f, indent=2)

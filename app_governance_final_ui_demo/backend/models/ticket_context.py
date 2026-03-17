@@ -14,14 +14,14 @@ class Ticket(BaseModel):
     category: str
     subcategory: Optional[str] = None  # For hierarchical categories (e.g., PCAT under IAM)
     risk_level: str
-    sla_deadline: str
+    sla_deadline: Optional[str] = None
     created_on: str
     description: str
-    arm_id: str
+    arm_id: Optional[str] = None
     application_name: str
     application_owner: str
-    lob_owner: str
-    ait_owner: str
+    lob_owner: Optional[str] = None
+    ait_owner: Optional[str] = None
     contacts: List[str]
     status: str = "Open"
     owner: str = "Unassigned"
@@ -40,6 +40,11 @@ class Ticket(BaseModel):
     final_csv_path: Optional[str] = None
     closure_approved: Optional[bool] = False
     waitingForClosureConfirmation: Optional[bool] = False
+    waitingForReview: Optional[bool] = False
+    waitingForAdminUpdate: Optional[bool] = False
+    waitingForAppOwnerConfirmation: Optional[bool] = False
+    lastProcessedEmailId: Optional[str] = None
+    isPollingActive: Optional[bool] = False
 
 class TicketResponse(BaseModel):
     tickets: List[Ticket]

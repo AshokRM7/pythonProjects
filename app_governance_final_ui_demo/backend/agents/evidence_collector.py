@@ -94,11 +94,13 @@ class EvidenceCollectorAgent:
                     "body": msg.get_payload()[0].get_payload()
                 })
 
-            # Update Stage 7
+            # Update Stage 7 (Evidence Collection)
             for stage in t.stages:
                 if "Evidence Collection" in stage.name:
                     stage.status = "completed"
                     stage.message = f"Evidence Collection Agent: Prepared evidence emails for {len(emails)} recipients."
-            t.currentStage = 6  # Move to Stage 7
+            
+            # Move to Stage 7 (Review / Email)
+            t.currentStage = 6 
 
         return {"emails": emails}
