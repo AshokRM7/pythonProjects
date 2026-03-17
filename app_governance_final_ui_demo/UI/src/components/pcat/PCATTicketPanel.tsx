@@ -19,9 +19,17 @@ export const PCATTicketPanel: React.FC<PCATTicketPanelProps> = ({ ticket, onRefr
     const [confirmModalOpen, setConfirmModalOpen] = useState(false);
     const [previewData, setPreviewData] = useState<any>(null);
     const [isApplying, setIsApplying] = useState(false);
+    const [reminderConfirmOpen, setReminderConfirmOpen] = useState(false);
 
     // Decisions state: { [fix_id]: 'ACCEPTED' | 'REJECTED' }
     const [decisions, setDecisions] = useState<Record<string, string>>({});
+
+    // Email Modal state
+    const [emailModalOpen, setEmailModalOpen] = useState(false);
+    const [emailTo, setEmailTo] = useState('');
+    const [emailSubject, setEmailSubject] = useState('');
+    const [emailBody, setEmailBody] = useState('');
+    const [isSendingEmail, setIsSendingEmail] = useState(false);
 
     const actionHeaderRef = React.useRef<HTMLDivElement>(null);
     const lastAwaitingTicketId = React.useRef<string | null>(null);
@@ -94,13 +102,6 @@ export const PCATTicketPanel: React.FC<PCATTicketPanelProps> = ({ ticket, onRefr
         }
     };
 
-    const toggleDecision = (fixId: string) => {
-        setDecisions(prev => ({
-            ...prev,
-            [fixId]: prev[fixId] === 'ACCEPTED' ? 'REJECTED' : 'ACCEPTED'
-        }));
-    };
-
     const handleApplyFixes = async () => {
         setIsApplying(true);
         setConfirmModalOpen(false);
@@ -115,7 +116,7 @@ export const PCATTicketPanel: React.FC<PCATTicketPanelProps> = ({ ticket, onRefr
                 await pcatApi.saveFixDecisions(ticket.id, decisionList);
             }
 
-            const result = await pcatApi.applyFixes(ticket.id, {
+            await pcatApi.applyFixes(ticket.id, {
                 apply: true,
                 upload_to_pcat: true,
                 upload_to_rise: true,
@@ -133,6 +134,60 @@ export const PCATTicketPanel: React.FC<PCATTicketPanelProps> = ({ ticket, onRefr
     };
 
     const isAwaitingConfirmation = ticket.stages?.[7]?.status === 'awaiting_confirmation';
+    const isAwaitingReview = ticket.stages?.[8]?.status === 'awaiting_review';
+    const isPaused = ticket.stages?.[8]?.status === 'paused';
+    const isError = ticket.stages?.[8]?.status === 'error';
+    const isWaitingForReply = ticket.stages?.[8]?.status === 'in-progress';
+    const canShowEmailButton = isAwaitingReview || isPaused || isError || isWaitingForReply;
+
+    const handleOpenEmailModal = () => {
+        const errorCount = report?.error_count || 0;
+        const warningCount = report?.warning_count || 0;
+        const subject = `[${ticket.id}] Action Required: PCAT Evidence Review`;
+        const body = `Hello Application Owner,
++
++We have completed the PCAT metadata validation for your application (AIT: ${ticket.aitNumber || 'Unknown'}).
++The validation found ${errorCount} errors and ${warningCount} warnings that need your attention.
++
++Please review the recommended corrections. If you approve the necessary updates, please reply to this email with "Approved" or "Good to close" to proceed.
++
++Thank you,
++App Governance Team`;
+
+        const defaultTo = ticket.contacts && Array.isArray(ticket.contacts) && ticket.contacts.length > 0
+            ? ticket.contacts.join(', ')
+            : 'velmuruganpandian@outlook.com';
+
+        setEmailTo(defaultTo);
+        setEmailSubject(subject);
+        setEmailBody(body);
+        setEmailModalOpen(true);
+    };
+
+    const handleEmailButtonClick = () => {
+        if (isWaitingForReply || isPaused || isError) {
+            setReminderConfirmOpen(true);
+        } else {
+            handleOpenEmailModal();
+        }
+    };
+
+    const handleSendEmail = async () => {
+        setIsSendingEmail(true);
+        try {
+            await pcatApi.sendEmail(ticket.id, {
+                to: emailTo.split(',').map(e => e.trim()).filter(Boolean),
+                subject: emailSubject,
+                body: emailBody
+            });
+            setEmailModalOpen(false);
+            onRefresh();
+        } catch (err) {
+            setError('Failed to send email.');
+        } finally {
+            setIsSendingEmail(false);
+        }
+    };
 
     return (
         <div className="flex-1 overflow-y-auto p-6 space-y-8 bg-gray-50/50">
@@ -141,7 +196,7 @@ export const PCATTicketPanel: React.FC<PCATTicketPanelProps> = ({ ticket, onRefr
                 <div className="flex items-center gap-3">
                     <button
                         onClick={handleRunValidation}
-                        disabled={loading || ticket.status === 'PCAT Validation Completed' || ticket.status === 'Uploaded' || (ticket.currentStage > 0 && ticket.status === 'in-progress' && !isAwaitingConfirmation)}
+                        disabled={loading || ticket.status === 'PCAT Validation Completed' || ticket.status === 'Uploaded' || (ticket.currentStage > 0 && ticket.status === 'in-progress' && !isAwaitingConfirmation && !isAwaitingReview)}
                         className={`flex items-center gap-2 px-6 py-3 rounded-xl font-bold transition-all shadow-lg ${ticket.status === 'PCAT Validation Completed' || ticket.status === 'Uploaded'
                             ? 'bg-green-100 text-green-700 cursor-default'
                             : 'bg-[#012169] text-white hover:bg-[#00174F] active:scale-95 disabled:opacity-50'
@@ -149,13 +204,30 @@ export const PCATTicketPanel: React.FC<PCATTicketPanelProps> = ({ ticket, onRefr
                     >
                         {(ticket.status === 'PCAT Validation Completed' || ticket.status === 'Uploaded') ? (
                             <Bot className="w-5 h-5" />
-                        ) : (ticket.status === 'in-progress' && !isAwaitingConfirmation) ? (
+                        ) : (ticket.status === 'in-progress' && !isAwaitingConfirmation && !isAwaitingReview) ? (
                             <Loader2 className="w-5 h-5 animate-spin" />
                         ) : (
                             <Play className="w-5 h-5 fill-current" />
                         )}
                         {(ticket.status === 'PCAT Validation Completed' || ticket.status === 'Uploaded') ? 'Validation Finished' : 'Run PCAT Validation'}
                     </button>
+
+                    {canShowEmailButton && (
+                        <button
+                            onClick={handleEmailButtonClick}
+                            className={`flex items-center gap-2 px-6 py-3 text-white rounded-xl font-bold active:scale-95 transition-all shadow-lg ${isWaitingForReply ? 'bg-blue-600 hover:bg-blue-700' : isError ? 'bg-red-600 hover:bg-red-700' : isPaused ? 'bg-orange-600 hover:bg-orange-700' : 'bg-purple-600 hover:bg-purple-700 animate-pulse'}`}
+                        >
+                            <UploadCloud className="w-5 h-5" />
+                            {isWaitingForReply || isPaused || isError ? 'Send Reminder / Update' : 'Review & Email Evidence'}
+                        </button>
+                    )}
+
+                    {isWaitingForReply && !isError && !isPaused && (
+                        <div className="flex items-center gap-2 px-6 py-3 bg-blue-50 text-blue-700 border border-blue-200 rounded-xl font-bold shadow-sm">
+                            <Loader2 className="w-5 h-5 animate-spin" />
+                            Waiting for App Owner Reply...
+                        </div>
+                    )}
 
                     {(ticket.status === 'PCAT Validation Completed' || ticket.status === 'Uploaded' || isAwaitingConfirmation) && (
                         <>
@@ -173,8 +245,8 @@ export const PCATTicketPanel: React.FC<PCATTicketPanelProps> = ({ ticket, onRefr
                                         disabled={isApplying}
                                         className={`flex items-center gap-2 px-6 py-3 text-white rounded-xl font-bold active:scale-95 transition-all shadow-lg ${isAwaitingConfirmation ? 'bg-orange-600 hover:bg-orange-700 animate-pulse' : 'bg-blue-600 hover:bg-blue-700'}`}
                                     >
-                                        {isApplying ? <Loader2 className="w-5 h-5 animate-spin" /> : <UploadCloud className="w-5 h-5" />}
-                                        Apply Fixes & Upload
+                                        {isApplying ? <Loader2 className="w-5 h-5 animate-spin" /> : <Database className="w-5 h-5" />}
+                                        Apply Fixes & Prepare
                                     </button>
                                 </>
                             )}
@@ -229,11 +301,11 @@ export const PCATTicketPanel: React.FC<PCATTicketPanelProps> = ({ ticket, onRefr
                                 <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 transition-all ${stage.status === 'completed' ? 'bg-green-500 border-green-500 text-white' :
                                     stage.status === 'in-progress' ? 'bg-blue-500 border-blue-500 text-white animate-pulse' :
                                         stage.status === 'error' ? 'bg-red-500 border-red-500 text-white' :
-                                            stage.status === 'awaiting_confirmation' ? 'bg-orange-500 border-orange-500 text-white ring-4 ring-orange-100' :
+                                            stage.status === 'awaiting_confirmation' || stage.status === 'awaiting_review' ? 'bg-orange-500 border-orange-500 text-white ring-4 ring-orange-100' :
                                                 'border-gray-200 bg-white text-gray-300'
                                     }`}>
                                     {stage.status === 'completed' ? <Bot className="w-5 h-5" /> :
-                                        stage.status === 'awaiting_confirmation' ? <Wand2 className="w-4 h-4" /> : idx + 1}
+                                        stage.status === 'awaiting_confirmation' || stage.status === 'awaiting_review' ? <Wand2 className="w-4 h-4" /> : idx + 1}
                                 </div>
                                 {idx < ticket.stages.length - 1 && (
                                     <div className={`w-0.5 h-8 my-1 ${stage.status === 'completed' ? 'bg-green-200' : 'bg-gray-100'}`} />
@@ -359,7 +431,7 @@ export const PCATTicketPanel: React.FC<PCATTicketPanelProps> = ({ ticket, onRefr
                             </div>
                             <h2 className="text-2xl font-black text-gray-900 tracking-tight">Confirm Workflow</h2>
                             <p className="mt-2 text-gray-500 font-medium leading-relaxed px-4">
-                                Apply <span className="text-blue-600 font-bold">{Object.values(decisions).filter(d => d === 'ACCEPTED').length} corrections</span> and initiate portal uploads.
+                                Apply <span className="text-blue-600 font-bold">{Object.values(decisions).filter(d => d === 'ACCEPTED').length} corrections</span> and prepare the final CSV for review.
                             </p>
                         </div>
 
@@ -367,7 +439,7 @@ export const PCATTicketPanel: React.FC<PCATTicketPanelProps> = ({ ticket, onRefr
                             {[
                                 { icon: Bot, text: 'Apply accepted fixes to CSV', color: 'text-green-500' },
                                 { icon: Database, text: 'Refresh dashboard metrics', color: 'text-blue-500' },
-                                { icon: Bot, text: 'Upload to PCAT & RISE', color: 'text-purple-500' }
+                                { icon: UploadCloud, text: 'Prepare for App Owner Review', color: 'text-purple-500' }
                             ].map((item, i) => (
                                 <div key={i} className="flex items-center gap-3 p-3 bg-gray-50 rounded-2xl border border-gray-100">
                                     <item.icon className={`w-5 h-5 ${item.color}`} />
@@ -388,6 +460,106 @@ export const PCATTicketPanel: React.FC<PCATTicketPanelProps> = ({ ticket, onRefr
                                 className="flex-1 px-6 py-4 bg-blue-600 text-white rounded-2xl font-black text-xs tracking-widest hover:bg-blue-700 shadow-xl shadow-blue-200 active:scale-95 transition-all"
                             >
                                 PROCEED
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Email Modal */}
+            {emailModalOpen && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40 backdrop-blur-md animate-in fade-in duration-300">
+                    <div className="bg-white rounded-3xl w-full max-w-2xl p-8 shadow-2xl flex flex-col transition-all scale-100 border border-gray-100">
+                        <div className="flex justify-between items-center mb-6">
+                            <div>
+                                <h2 className="text-2xl font-black text-[#012169] tracking-tight">Review & Send Email</h2>
+                                <p className="text-sm text-gray-500 font-medium">Edit the content before sending it to the Application Owner.</p>
+                            </div>
+                            <button onClick={() => setEmailModalOpen(false)} className="p-2 hover:bg-gray-100 rounded-full transition-all">
+                                <X className="w-6 h-6 text-gray-400" />
+                            </button>
+                        </div>
+
+                        <div className="space-y-4 mb-8">
+                            <div>
+                                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">To</label>
+                                <input
+                                    type="text"
+                                    value={emailTo}
+                                    onChange={(e) => setEmailTo(e.target.value)}
+                                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all font-medium text-gray-900"
+                                    placeholder="velmuruganpandian@outlook.com"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Subject</label>
+                                <input
+                                    type="text"
+                                    value={emailSubject}
+                                    onChange={(e) => setEmailSubject(e.target.value)}
+                                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all font-medium text-gray-900"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Message Body</label>
+                                <textarea
+                                    value={emailBody}
+                                    onChange={(e) => setEmailBody(e.target.value)}
+                                    rows={8}
+                                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all font-medium text-gray-900 font-mono text-sm leading-relaxed"
+                                />
+                            </div>
+                        </div>
+
+                        <div className="flex gap-4">
+                            <button
+                                onClick={() => setEmailModalOpen(false)}
+                                disabled={isSendingEmail}
+                                className="flex-1 px-6 py-4 border-2 border-gray-100 text-gray-500 rounded-2xl font-black text-xs tracking-widest hover:bg-gray-50 transition-all"
+                            >
+                                CANCEL
+                            </button>
+                            <button
+                                onClick={handleSendEmail}
+                                disabled={isSendingEmail}
+                                className="flex-1 px-6 py-4 bg-[#012169] text-white rounded-2xl font-black text-xs tracking-widest hover:bg-[#00174F] shadow-xl active:scale-95 transition-all flex justify-center items-center gap-2 disabled:opacity-70"
+                            >
+                                {isSendingEmail ? <Loader2 className="w-5 h-5 animate-spin" /> : <UploadCloud className="w-5 h-5" />}
+                                SEND EMAIL
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+            {/* Reminder Confirmation Modal */}
+            {reminderConfirmOpen && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40 backdrop-blur-md animate-in fade-in duration-300">
+                    <div className="bg-white rounded-3xl w-full max-w-md p-10 shadow-2xl transition-all scale-100 border border-gray-100">
+                        <div className="flex flex-col items-center text-center mb-8">
+                            <div className="p-4 bg-blue-100 rounded-2xl mb-4 text-blue-600">
+                                <UploadCloud className="w-10 h-10" />
+                            </div>
+                            <h2 className="text-2xl font-black text-gray-900 tracking-tight">Send Reminder?</h2>
+                            <p className="mt-2 text-gray-500 font-medium leading-relaxed px-4">
+                                We already sent an email to the owner and are currently waiting for their response. Do you want to send a reminder email or update the request?
+                            </p>
+                        </div>
+
+                        <div className="flex gap-4">
+                            <button
+                                onClick={() => setReminderConfirmOpen(false)}
+                                className="flex-1 px-6 py-4 border-2 border-gray-100 text-gray-400 rounded-2xl font-black text-xs tracking-widest hover:bg-gray-50 hover:text-gray-600 transition-all"
+                            >
+                                NO, WAIT
+                            </button>
+                            <button
+                                onClick={() => {
+                                    setReminderConfirmOpen(false);
+                                    handleOpenEmailModal();
+                                }}
+                                className="flex-1 px-6 py-4 bg-blue-600 text-white rounded-2xl font-black text-xs tracking-widest hover:bg-blue-700 shadow-xl shadow-blue-200 active:scale-95 transition-all"
+                            >
+                                YES, SEND
                             </button>
                         </div>
                     </div>
