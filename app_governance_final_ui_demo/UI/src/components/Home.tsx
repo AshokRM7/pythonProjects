@@ -1399,6 +1399,17 @@ export default function Home({ currentUser, onSignOut }: HomeProps) {
 
                         // 4. Review Approval
                         if (selectedTicket.stages[6].status === 'in-progress' || selectedTicket.waitingForReview) {
+                          if ((selectedTicket as any).needsResendEmail) {
+                            return (
+                              <button
+                                onClick={() => handleShowEmailPreview(selectedTicket.id)}
+                                className="w-full bg-orange-600 text-white border border-orange-700 py-3 rounded-lg hover:bg-orange-700 transition flex items-center justify-center gap-2 shadow-lg font-bold"
+                              >
+                                <CheckCheck className="w-5 h-5" />
+                                Resend Email - Waiting for App Owner
+                              </button>
+                            );
+                          }
                           return (
                             <button
                               onClick={() => handleShowEmailPreview(selectedTicket.id)}
@@ -1412,6 +1423,17 @@ export default function Home({ currentUser, onSignOut }: HomeProps) {
 
                         // 5. Closure Confirmation
                         if (selectedTicket.stages[7].status === 'in-progress' || selectedTicket.waitingForClosureConfirmation) {
+                          if ((selectedTicket as any).needsResendEmail) {
+                            return (
+                              <button
+                                onClick={() => handleShowEmailPreview(selectedTicket.id)}
+                                className="w-full bg-orange-600 text-white border border-orange-700 py-3 rounded-lg hover:bg-orange-700 transition flex items-center justify-center gap-2 shadow-lg font-bold"
+                              >
+                                <CheckCheck className="w-5 h-5" />
+                                Resend Email - Waiting for App Owner
+                              </button>
+                            );
+                          }
                           return (
                             <button
                               onClick={() => setShowClosureModal(true)}

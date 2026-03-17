@@ -84,10 +84,20 @@ def extract_admin_details(email_body: str) -> dict:
     }
 
     try:
-        response = requests.post(api_url, headers=headers, json=payload, timeout=30)
+        response = requests.post(api_url, headers=headers, json=payload, timeout=60)
         response.raise_for_status()
         
         data = response.json()
+        
+        if 'choices' not in data or not data['choices']:
+            print(f"ERROR: LLM response missing 'choices': {json.dumps(data)}")
+            return {
+                "primary_admin_name": "",
+                "primary_nbkid": "",
+                "secondary_admin_name": "",
+                "secondary_nbkid": ""
+            }
+
         content = data['choices'][0]['message']['content']
         
         # Strip markdown formatting if present
@@ -145,25 +155,34 @@ def check_closure_response(email_body: str) -> dict:
         model_name = "gpt-4o-mini"
 
     prompt = f"""
-    Analyze the following email response regarding a ticket closure or admin details update.
+    Analyze the following email response to determine the sender's semantic intent regarding a ticket review or closure request.
     
-    Email Body:
+    Email Body (isolated human reply):
     \"\"\"{email_body}\"\"\"
     
-    Determine the user's intent and return a JSON object:
+    The goal is to understand the "heart" of the message. Quoted text and system boilerplate have been pre-stripped, but some may remain; ignore them and focus on the latest human input.
+    
+    Determine the user's intent. The input provided might be a "clean" snippet of the latest reply.
+    Ignore any remaining system headers, original message artifacts, or signatures.
+    
+    JSON object required:
     {{
-        "decision": "APPROVED" | "REJECTED" | "UPDATE_INFO" | "DELAY" | "UNCLEAR",
+        "decision": "APPROVED" | "REJECTED" | "UPDATE_INFO" | "WILL_UPDATE_LATER" | "OUT_OF_OFFICE" | "UNCLEAR",
         "reason": "short explanation"
     }}
 
-    Rules for Decision:
-    - APPROVED: The user explicitly says "close", "verified", "proceed", "looks good", "correct", or "approved".
-    - REJECTED: The user says "don't close", "stop", "incorrect", "cancel", "not right", or "rejected".
-    - UPDATE_INFO: The user provides new names, NBKIDs, or says "change details to...", "update to...".
-    - DELAY: The user says "wait", "give me time", "will provide later", "yet to provide", "in a few hours", "tomorrow".
-    - UNCLEAR: The response is empty, garbage, unrelated, or too ambiguous to act upon. 
+    Intent Categories:
+    - APPROVED: The sender's core meaning is one of confirmation, validation, agreement, or giving permission to proceed. They are satisfied with the current state and want to move forward.
+    - REJECTED: The sender's core meaning is one of disagreement, cancellation, or stopping the current process. They are not satisfied or believe the information is wrong.
+    - UPDATE_INFO: The sender is providing specific data updates (like names or IDs) or asking to change information.
+    - WILL_UPDATE_LATER: The sender is acknowledging the request but explicitly deferring action to the future.
+    - OUT_OF_OFFICE: The message is an automated response or the sender is unavailable.
+    - UNCLEAR: The message content is ambiguous, empty, or completely unrelated to the ticket.
     
-    IMPORTANT: If the email body is clearly an outgoing system notification (e.g. "Dear User, we have identified a gap...", "Regards, App Governance Team"), and it does not contain a nested human reply, then classify it as UNCLEAR.
+    STRICT RULE: Prioritize semantic intent over literal matching. Analyze the tone and purpose of the latest human reply.
+    
+    IMPORTANT: If the message is JUST the original system notification without any human response added, classify as UNCLEAR. 
+    However, if there is ANY human text, analyze its meaning and ignore the system part.
 
     Example:
     {{
@@ -185,14 +204,19 @@ def check_closure_response(email_body: str) -> dict:
     }
 
     try:
-        response = requests.post(api_url, headers=headers, json=payload, timeout=15)
+        response = requests.post(api_url, headers=headers, json=payload, timeout=45)
         response.raise_for_status()
         data = response.json()
+        
+        if 'choices' not in data or not data['choices']:
+            print(f"ERROR: LLM closure check response missing 'choices': {json.dumps(data)}")
+            return {"decision": "UNCLEAR", "reason": "Missing choices in API response"}
+
         content = data['choices'][0]['message']['content']
         result = json.loads(content)
         return {
-            "decision": result.get("decision", "UNCLEAR").upper(),
-            "reason": result.get("reason", "No reason provided")
+            "decision": str(result.get("decision", "UNCLEAR")).upper(),
+            "reason": str(result.get("reason", "No reason provided"))
         }
     except Exception as e:
         print(f"DEBUG: LLM closure check failed: {e}")

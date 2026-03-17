@@ -38,6 +38,12 @@ from backend.models.ticket_context import Ticket, TicketResponse, Stage
 from backend.pcat.api import router as pcat_router, init_pcat_api
 from backend.bre.api import router as bre_router, init_bre_api, load_bre_tickets_into_store
 
+# Email Handlers
+from backend.email_handlers.pcat_handler import handle_pcat_reply
+from backend.email_handlers.bre_handler import handle_bre_reply
+from backend.email_handlers.arm_handler import handle_arm_reply
+from backend.models.ticket_mapper import convert_ticket_to_frontend, convert_frontend_to_ticket
+
 # Load environment variables
 load_dotenv()
 
@@ -105,8 +111,8 @@ async def lifespan(app: FastAPI):
     # Initialize PCAT API (inject active_polls + poll function to avoid circular imports)
     init_pcat_api(current_tickets, manager.broadcast, active_polls, poll_inbox_for_reply)
 
-    # Initialize BRE API (inject shared store + broadcast)
-    init_bre_api(current_tickets, manager.broadcast)
+    # Initialize BRE API (inject shared store + broadcast + poll function)
+    init_bre_api(current_tickets, manager.broadcast, poll_inbox_for_reply)
     # Load BRE tickets from ticket_data.json into shared store
     load_bre_tickets_into_store()
 
@@ -150,97 +156,6 @@ def get_orchestrator():
         config_path = root_dir / "config" / "config.json"
         orchestrator = IAMOrchestrator(api_key, config_file=str(config_path))
     return orchestrator
-
-def convert_ticket_to_frontend(ticket: Ticket) -> dict:
-    """Convert Pydantic Ticket model to frontend dictionary format"""
-    raw_status = ticket.status.lower() if ticket.status else "not-started"
-    # Status Defense: If we have progressed stages but status is still 'open' or 'not-started',
-    # it means an agent clobbered the status. Promote to 'in-progress'.
-    status = raw_status
-    if (ticket.currentStage > 0 or any(s.status == 'completed' for s in (ticket.stages or []) if s.id > 1)) and raw_status in ["open", "not-started", "not started"]:
-        status = "in-progress"
-
-    return {
-        "id": ticket.ticket_id,
-        "title": ticket.description[:50] + "..." if len(ticket.description) > 50 else ticket.description,
-        "description": ticket.description,
-        "customer": ticket.application_owner or "Unknown",
-        "priority": ticket.risk_level.lower() if ticket.risk_level else "medium",
-        "status": status,
-        "owner": ticket.owner,
-        "createdAt": ticket.created_on,
-        "currentStage": ticket.currentStage,
-        "category": ticket.category,
-        "subcategory": ticket.subcategory,
-        "slaDeadline": ticket.sla_deadline,
-        "aitNumber": ticket.ait_number,
-        "deliverableType": ticket.deliverableType,
-        "applicationName": ticket.application_name,
-        "lobOwner": ticket.lob_owner,
-        "aitOwner": ticket.ait_owner,
-        "armId": ticket.arm_id,
-        "contacts": ticket.contacts,
-        "stages": [s.model_dump() for s in ticket.stages] if ticket.stages else [],
-        # New Optional Fields
-        "employeeId": ticket.employee_id,
-        "userEmail": ticket.user_email,
-        "targetSystem": ticket.target_system,
-        "requestedAction": ticket.requested_action,
-        # PCAT Specific
-        "pcat_csv_path": ticket.pcat_csv_path,
-        "final_csv_ready": ticket.final_csv_ready,
-        "final_csv_path": ticket.final_csv_path,
-        "pcat_summary": ticket.pcat_summary,
-        "ticket_type": ticket.ticket_type,
-        "closure_approved": ticket.closure_approved,
-        "waitingForClosureConfirmation": ticket.waitingForClosureConfirmation,
-        "waitingForReview": ticket.waitingForReview,
-        "waitingForAdminUpdate": ticket.waitingForAdminUpdate,
-        "waitingForAppOwnerConfirmation": ticket.waitingForAppOwnerConfirmation,
-        "lastProcessedEmailId": ticket.lastProcessedEmailId,
-        "isPollingActive": ticket.isPollingActive,
-    }
-
-
-
-def convert_frontend_to_ticket(data: dict) -> Ticket:
-    """Convert frontend dictionary to Pydantic Ticket model"""
-    return Ticket(
-        ticket_id=data["id"],
-        description=data["description"],
-        application_owner=data["customer"],
-        risk_level=data["priority"].upper(),
-        created_on=data["createdAt"],
-        category=data.get("category"),
-        subcategory=data.get("subcategory"),
-        sla_deadline=data.get("slaDeadline"),
-        ait_number=data.get("aitNumber"),
-        deliverableType=data.get("deliverableType", "IAM Category"),
-        application_name=data.get("applicationName"),
-        lob_owner=data.get("lobOwner"),
-        ait_owner=data.get("aitOwner"),
-        arm_id=data.get("armId"),
-        contacts=data.get("contacts", []),
-        status=data.get("status", "Open"),
-        owner=data.get("owner", "Unassigned"),
-        currentStage=data.get("currentStage", 0),
-        stages=[Stage(**s) for s in data.get("stages", [])],
-        employee_id=data.get("employeeId"),
-        user_email=data.get("userEmail"),
-        target_system=data.get("targetSystem"),
-        requested_action=data.get("requestedAction"),
-        final_csv_ready=data.get("final_csv_ready", False),
-        final_csv_path=data.get("final_csv_path"),
-        pcat_summary=data.get("pcat_summary"),
-        ticket_type=data.get("ticket_type", "IAM"),
-        closure_approved=data.get("closure_approved", False),
-        waitingForClosureConfirmation=data.get("waitingForClosureConfirmation", False),
-        waitingForReview=data.get("waitingForReview", False),
-        waitingForAdminUpdate=data.get("waitingForAdminUpdate", False),
-        waitingForAppOwnerConfirmation=data.get("waitingForAppOwnerConfirmation", False),
-        lastProcessedEmailId=data.get("lastProcessedEmailId"),
-        isPollingActive=data.get("isPollingActive", False)
-    )
 
 
 def save_tickets_to_disk():
@@ -864,7 +779,7 @@ async def poll_inbox_for_reply(ticket_id: str, ait_number: str, max_wait_mins: i
         })
 
     try:
-        while attempts < max_polls:
+        while attempts < max_polls and ait_number in active_polls:
             try:
                 await asyncio.sleep(poll_interval)
                 attempts += 1
@@ -967,286 +882,53 @@ async def poll_inbox_for_reply(ticket_id: str, ait_number: str, max_wait_mins: i
                 decision_data = get_closure_decision(body)
                 decision = decision_data.get("decision", "UNCLEAR")
                 reason = decision_data.get("reason", "")
+                print(f"DEBUG: LLM Decision for {ticket_id}: {decision} (Reason: {reason})")
                 
                 # Parse admin names
                 from backend.services.inbox_reader import parse_admin_names_from_body
                 parsed_names = parse_admin_names_from_body(body)
-                p_name = parsed_names.get("primary_admin_name", "").strip()
-                s_name = parsed_names.get("secondary_admin_name", "").strip()
-                is_admin_update = bool(p_name or s_name)
                 
-                is_waiting_for_closure = ticket.get("waitingForClosureConfirmation", False)
                 is_pcat = ticket.get("ticket_type") == "PCAT"
-
-                # --- PCAT SPECIFIC HANDLING ---
-                if is_pcat:
-                    ticket["lastProcessedEmailId"] = e_id
-                    if decision == "APPROVED":
-                        print(f"INFO: PCAT Approval received for {ticket_id}")
-                        ticket["stages"][8]["status"] = "completed"
-                        # Execute final portal uploads (Original Stage 8 Logic)
-                        from backend.pcat.mock_portal_clients import upload_to_pcat_portal, upload_to_rise_portal
-                        csv_path = ticket.get("final_csv_path")
-                        
-                        ticket["currentStage"] = 8
-                        ticket["status"] = "Completed"
-                        
-                        if csv_path and os.path.exists(csv_path):
-                            upload_to_pcat_portal(ticket_id, csv_path)
-                            upload_to_rise_portal(ticket_id, csv_path)
-                            ticket["stages"][8]["message"] = f"✅ Approved by App Owner ({sender}): {reason}. Evidence successfully uploaded to PCAT & RISE portals."
-                        else:
-                            ticket["stages"][8]["message"] = f"✅ Approved by App Owner ({sender}): {reason}. Uploaded to portals (simulated)."
-
-                        await manager.broadcast({
-                            "type": "pcat_stage_update",
-                            "ticket_id": ticket_id,
-                            "stage_id": 8,
-                            "status": "completed",
-                            "message": ticket["stages"][8]["message"],
-                            "ticket": ticket
-                        })
-                        save_tickets_to_disk()
-                        active_polls.pop(ait_number, None)
-                        return
-                    
-                    elif decision == "REJECTED":
-                        print(f"INFO: PCAT Rejection received for {ticket_id}")
-                        ticket["stages"][8]["status"] = "failed"
-                        ticket["stages"][8]["message"] = f"❌ Rejected by App Owner ({sender}): {reason}. Manual adjustment required."
-                        ticket["status"] = "Review Required"
-                        
-                        await manager.broadcast({
-                            "type": "pcat_stage_update",
-                            "ticket_id": ticket_id,
-                            "stage_id": 8,
-                            "status": "failed",
-                            "message": ticket["stages"][8]["message"],
-                            "ticket": ticket
-                        })
-                        save_tickets_to_disk()
-                        active_polls.pop(ait_number, None)
-                        return
-                    
-                    elif decision == "DELAY":
-                        print(f"INFO: PCAT Delay requested for {ticket_id}")
-                        ticket["stages"][8]["message"] = f"⏳ App Owner ({sender}) requested to wait: {reason}. Still polling..."
-                        
-                        # Enhancement: Send follow-up email for DELAY
-                        followup_body = (
-                            f"Dear App Owner,\n\n"
-                            f"Thank you for the update regarding {ticket_id}.\n\n"
-                            f"We have noted that you need more time. We currently await your final approval to proceed with the PCAT evidence upload to the portals.\n\n"
-                            f"Please reply with 'Approved' or 'Good to close' as soon as possible to avoid further delays in the compliance process.\n\n"
-                            f"Regards,\n"
-                            f"App Governance Compliance Team"
-                        )
-                        from backend.services.email_service import send_email
-                        send_email([sender], f"Reminder: Approval Required for {ticket_id}", followup_body)
-
-                        await manager.broadcast({
-                            "type": "pcat_stage_update",
-                            "ticket_id": ticket_id,
-                            "stage_id": 8,
-                            "status": "in-progress",
-                            "message": ticket["stages"][8]["message"],
-                            "ticket": ticket
-                        })
-                        save_tickets_to_disk()
-                        continue
-
-                    elif decision == "UNCLEAR" or decision == "UPDATE_INFO":
-                        print(f"INFO: PCAT Unclear/Update received for {ticket_id}")
-                        ticket["lastProcessedEmailId"] = e_id
-                        ticket["stages"][8]["message"] = f"❓ Ambiguous reply from App Owner ({sender}). Requesting clarification..."
-                        
-                        clarify_body = (
-                            f"Dear App Owner,\n\n"
-                            f"We received your recent response regarding {ticket_id}, but we require further clarification to proceed with the PCAT metadata validation upload.\n\n"
-                            f"Please confirm if you approve the recommended corrections so we can finalize the evidence submission.\n\n"
-                            f"Regards,\n"
-                            f"App Governance Compliance Team"
-                        )
-                        from backend.services.email_service import send_email
-                        send_email([sender], f"Clarification Required: {ticket_id}", clarify_body)
-                        
-                        await manager.broadcast({
-                            "type": "pcat_stage_update",
-                            "ticket_id": ticket_id,
-                            "stage_id": 8,
-                            "status": "in-progress",
-                            "message": ticket["stages"][8]["message"],
-                            "ticket": ticket
-                        })
-                        save_tickets_to_disk()
-                        continue
-
-                # --- LEGACY ARM/BRE HANDLING ---
+                is_bre_new = ticket.get("deliverableType") == "BRE-NEW"
                 
-                # CASE 0: Review Response (waitingForAppOwnerConfirmation)
-                is_waiting_for_review_reply = ticket.get("waitingForAppOwnerConfirmation", False)
-                if is_waiting_for_review_reply and decision in ("APPROVED", "REJECTED"):
-                    ticket["lastProcessedEmailId"] = e_id
-                    if decision == "APPROVED":
-                        print(f"INFO: Review Response APPROVED for {ticket_id}")
-                        await update_stage_progress(ticket_id, 6, "completed", f"✅ Review response received from {sender}: {reason}. Proceeding to closure...")
-                        ticket["waitingForAppOwnerConfirmation"] = False
-                        
-                        # ── FIX: Pause the pipeline for "Confirm Closure" button ──
-                        # Instead of blindly continuing to process_individual_ticket, 
-                        # update ticket state to show Stage 7 is waiting for confirmation.
-                        ticket["currentStage"] = 7
-                        ticket["waitingForClosureConfirmation"] = True
-                        await update_stage_progress(ticket_id, 7, "in-progress", "Ticket Closure Agent: Waiting for final closure confirmation...")
-                        
-                        await manager.broadcast({
-                            "type": "ticket_update",
-                            "ticket": ticket,
-                            "message": f"✅ Approval received from {sender}. Ready for Ticket Closure."
-                        })
-                    else:
-                        print(f"INFO: Review Response REJECTED for {ticket_id}")
-                        await update_stage_progress(ticket_id, 6, "failed", f"❌ Review response REJECTED by {sender}: {reason}. Manual review required.")
-                        ticket["waitingForAppOwnerConfirmation"] = False
-                        ticket["status"] = "Review Rejected"
+                # --- Shared Context for Handlers ---
+                from backend.email_handlers import EmailHandlerContext
+                
+                def stop_polling(ait: str):
+                    active_polls.pop(ait, None)
                     
-                    save_tickets_to_disk()
-                    active_polls.pop(ait_number, None)
-                    return
+                async def trigger_processing(tid: str):
+                    asyncio.create_task(process_individual_ticket(tid))
+                
+                ctx = EmailHandlerContext(
+                    ticket_id=ticket_id,
+                    ait_number=ait_number,
+                    ticket=ticket,
+                    decision=decision,
+                    reason=reason,
+                    sender=sender,
+                    e_id=e_id,
+                    parsed_names=parsed_names,
+                    broadcaster=manager.broadcast,
+                    save_tickets=save_tickets_to_disk,
+                    update_stage=update_stage_progress,
+                    stop_polling=stop_polling,
+                    trigger_processing=trigger_processing,
+                    arm_admin_agent=arm_admin_agent
+                )
+                
+                # --- Route to Deliverable-Specific Handlers ---
+                if is_pcat:
+                    await handle_pcat_reply(ctx)
+                elif is_bre_new:
+                    await handle_bre_reply(ctx)
+                else:
+                    await handle_arm_reply(ctx)
 
-                # CASE 1: Closure (APPROVED/REJECTED)
-                if is_waiting_for_closure and decision in ("APPROVED", "REJECTED"):
-                    ticket["lastProcessedEmailId"] = e_id
-                    if decision == "APPROVED":
-                        print(f"INFO: Closure APPROVED for {ticket_id}")
-                        ticket["closure_approved"] = True
-                        ticket["waitingForClosureConfirmation"] = False
-                        await manager.broadcast({
-                            "type": "ticket_update",
-                            "ticket": ticket,
-                            "message": f"✅ Approval received from {sender}: {reason}. Closing ticket..."
-                        })
-                        asyncio.create_task(process_individual_ticket(ticket_id))
-                    else:
-                        print(f"INFO: Closure REJECTED for {ticket_id}")
-                        ticket["waitingForClosureConfirmation"] = False
-                        ticket["status"] = "Rejected/Manual Review"
-                        await manager.broadcast({
-                            "type": "ticket_update",
-                            "ticket": ticket,
-                            "message": f"❌ Closure REJECTED by {sender}: {reason}. Manual review required."
-                        })
-                    
-                    save_tickets_to_disk()
-                    active_polls.pop(ait_number, None)
-                    return
-
-                # CASE 2: User Requested Delay
-                if decision == "DELAY":
-                    current_tickets[ticket_id]["lastProcessedEmailId"] = e_id
-                    print(f"INFO: User requested DELAY for {ticket_id}")
-                    
-                    deadline = ticket.get("sla_deadline", "the upcoming deadline")
-                    followup_body = (
-                        f"Dear User,\n\n"
-                        f"Thank you for the update regarding {ticket_id} ({ait_number}).\n\n"
-                        f"We have noted your request for a delay. We will check the inbox again shortly. "
-                        f"However, please ensure the required details are provided as soon as possible to maintain our compliance SLA (Deadline: {deadline}).\n\n"
-                        f"We look forward to your response.\n\n"
-                        f"Regards,\n"
-                        f"App Governance Compliance Team"
-                    )
-                    
-                    send_email([sender], f"Acknowledgment: Delay requested for {ticket_id}", followup_body)
-                    save_tickets_to_disk() 
-                    
-                    await manager.broadcast({
-                        "type": "ticket_update",
-                        "ticket": current_tickets[ticket_id],
-                        "message": f"⏳ Delay requested by {sender}. Professional acknowledgment sent."
-                    })
-                    continue 
-
-                # CASE 3: Admin Updates or explicit UPDATE_INFO
-                if is_admin_update or decision == "UPDATE_INFO":
-                    current_tickets[ticket_id]["lastProcessedEmailId"] = e_id
-                    print(f"INFO: Update info received for {ticket_id}")
-                    
-                    p_id = parsed_names.get("primary_nbkid")
-                    s_id = parsed_names.get("secondary_nbkid")
-                    arm_admin_agent.update_admin_names(ait_number, p_name, p_id, s_name, s_id)
-
-                    ticket_obj = convert_frontend_to_ticket(ticket)
-                    ticket_context = TicketResponse(tickets=[ticket_obj])
-                    agent_result = arm_admin_agent.invoke(ticket_context)
-                    
-                    if agent_result.tickets:
-                        updated_ticket_obj = agent_result.tickets[0]
-                        updated_ticket = convert_ticket_to_frontend(updated_ticket_obj)
-                        updated_ticket["inboxReplyReceived"] = True
-                        updated_ticket["inboxReplyFrom"] = sender
-                        updated_ticket["inboxAdminData"] = parsed_names
-                        current_tickets[ticket_id] = updated_ticket
-                        ticket = updated_ticket # Update local reference too
-                        
-                        rem_stage = next((s for s in updated_ticket_obj.stages if "IAM Remediation" in s.name), None)
-                        agent_feedback = rem_stage.message if rem_stage else "Processing your update..."
-                        is_done = (rem_stage.status == "completed") if rem_stage else False
-
-                        msg = f"📩 Update received from {sender}: {reason}. {agent_feedback}"
-                        
-                        if not is_done:
-                            deadline = updated_ticket.get("slaDeadline", updated_ticket.get("sla_deadline", "compliance deadline"))
-                            followup_body = (
-                                f"Dear User,\n\n"
-                                f"Thank you for providing the admin updates for {ait_number}.\n\n"
-                                f"Our validation engine has identified the following items that still require your attention:\n\n"
-                                f"{agent_feedback}\n\n"
-                                f"Please reply to this email with the corrected or missing information so we can complete the remediation by the SLA deadline ({deadline}).\n\n"
-                                f"Regards,\n"
-                                f"App Governance Compliance Team"
-                            )
-                            send_email([sender], f"Action Required: Admin Details for {ticket_id}", followup_body)
-
-                        save_tickets_to_disk()
-                        await manager.broadcast({
-                            "type": "ticket_update",
-                            "ticket": ticket,
-                            "message": msg
-                        })
-
-                        if is_done:
-                            print(f"INFO: ARM Remediation COMPLETED for {ticket_id}")
-                            active_polls.pop(ait_number, None)
-                            return
-                        else:
-                            continue 
-
-                # CASE 4: Unclear Response
-                if len(body.strip()) > 30: 
-                    ticket["lastProcessedEmailId"] = e_id
-                    print(f"WARN: Unclear reply received from {sender}")
-                    
-                    rem_stage = next((s for s in ticket.get("stages", []) if "IAM Remediation" in s["name"]), None)
-                    reminder_context = rem_stage["message"] if rem_stage else "Please provide admin names and NBKIDs."
-                    
-                    await manager.broadcast({
-                        "type": "ticket_update",
-                        "ticket": ticket,
-                        "message": f"❓ Ambiguous reply received from {sender}. Requesting clarification..."
-                    })
-                    
-                    clarify_body = (
-                        f"Dear User,\n\n"
-                        f"We received your recent response regarding {ticket_id}, but we require further clarification to proceed with the remediation.\n\n"
-                        f"Current Status:\n{reminder_context}\n\n"
-                        f"Please provide the requested details at your earliest convenience.\n\n"
-                        f"Regards,\n"
-                        f"App Governance Compliance Team"
-                    )
-                    send_email([sender], f"Clarification Required: {ticket_id}", clarify_body)
-                    save_tickets_to_disk()
-                    continue
+                # ── Update tracking to prevent infinite loops ──
+                current_tickets[ticket_id]["lastProcessedEmailId"] = e_id
+                save_tickets_to_disk()
+                print(f"DEBUG: Processed email {e_id} for ticket {ticket_id}. Moving forward.")
 
             except Exception as e:
                 print(f"ERROR: Exception within polling loop for {ticket_id}: {e}")
@@ -1593,6 +1275,7 @@ async def send_ticket_email(ticket_id: str, email_req: EmailRequest):
                 msg = f"✅ Review email sent successfully ({mode}). Awaiting App Owner response to finalize..."
                 current_tickets[ticket_id]["waitingForAppOwnerConfirmation"] = True
                 current_tickets[ticket_id]["status"] = "Waiting for App Owner"
+                current_tickets[ticket_id].pop("needsResendEmail", None)
             else:
                 msg = f"✅ Email sent successfully ({mode})\nRecipients: {recipients}"
                 msg += f"\nTimestamp: {timestamp}"

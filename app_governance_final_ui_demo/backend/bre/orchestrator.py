@@ -72,6 +72,9 @@ class BREOrchestrator:
         # WebSocket broadcast callback (injected from api_server.py)
         self._broadcast: BroadcastFn = None
 
+        # Inbox poll callback (injected from api_server.py)
+        self._poll_fn: Optional[Callable[[str, str], Awaitable[None]]] = None
+
         # Shared ticket store reference (injected from api_server.py)
         self._current_tickets: Optional[Dict[str, Any]] = None
 
@@ -82,6 +85,10 @@ class BREOrchestrator:
         """Inject WebSocket broadcast callback and shared ticket store"""
         self._broadcast = broadcast_fn
         self._current_tickets = current_tickets
+
+    def set_poll_fn(self, poll_fn: Callable[[str, str], Awaitable[None]]):
+        """Inject shared inbox polling function"""
+        self._poll_fn = poll_fn
     
     def _load_states(self):
         """Load workflow states from file"""
@@ -763,12 +770,10 @@ class BREOrchestrator:
             })
 
         return {
-            "success": True,
-            "deliverable_id": deliverable_id,
-            "current_step": "completed",
             "message": "BRE workflow completed",
             "workflow_state": state.model_dump(mode="json"),
         }
+
     async def finalize_remediation_async(self, deliverable_id: str) -> Dict[str, Any]:
         """
         Stage 7: Archive & Close Agent
@@ -797,27 +802,28 @@ class BREOrchestrator:
                 self.logger_agent.invoke(tr)
             
             # Ensure final stage is marked completed
-            for s in ticket["stages"]:
-                if s["id"] == 7:
-                    s["status"] = "completed"
-                    s["message"] = "Archive & Close Agent: Successfully archived remediation evidence and closed ticket."
+            if 7 < len(ticket["stages"]):
+                ticket["stages"][7]["status"] = "completed"
+                ticket["stages"][7]["message"] = "✅ Remediation audit trail archived. Ticket closed successfully."
             
-            # Final broadcast
+            await self._broadcast_stage(deliverable_id, 7, "completed", ticket["stages"][7].get("message", "Remediation finalized"))
+            
+            self._save_states()
+            
             if self._broadcast:
                 await self._broadcast({
                     "type": "bre_completed",
                     "deliverable_id": deliverable_id,
-                    "message": f"BRE deliverable {deliverable_id} remediation fully processed and closed",
+                    "message": f"BRE-NEW remediation finalized and closed",
                     "ticket": ticket,
                 })
 
         state.current_step = "completed"
         self._save_states()
         
-        await self._broadcast_stage(deliverable_id, 7, "completed", " Remediation archived and ticket closed successfully")
-        
         return {
             "success": True,
             "deliverable_id": deliverable_id,
-            "status": "closed"
+            "current_step": "completed",
+            "message": "BRE-NEW remediation finalized"
         }

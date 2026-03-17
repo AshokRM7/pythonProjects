@@ -39,6 +39,7 @@ orchestrator = BREOrchestrator(llm=_build_llm())
 # Shared references injected from api_server.py (like PCAT pattern)
 _current_tickets: Optional[Dict[str, Any]] = None
 _broadcast: Optional[Callable[[dict], Awaitable[None]]] = None
+_poll_fn: Optional[Callable[[str, str], Awaitable[None]]] = None
 
 # Per-deliverable WebSocket connections
 _bre_ws_connections: Dict[str, List[WebSocket]] = {}
@@ -47,12 +48,16 @@ _bre_ws_connections: Dict[str, List[WebSocket]] = {}
 def init_bre_api(
     current_tickets: Dict[str, Any],
     broadcast: Callable[[dict], Awaitable[None]],
+    poll_fn: Optional[Callable[[str, str], Awaitable[None]]] = None,
 ):
-    """Inject shared ticket store and broadcast function (called from api_server lifespan)."""
-    global _current_tickets, _broadcast
+    """Inject shared ticket store, broadcast function, and poll function."""
+    global _current_tickets, _broadcast, _poll_fn
     _current_tickets = current_tickets
     _broadcast = broadcast
+    _poll_fn = poll_fn
     orchestrator.set_broadcast(broadcast, current_tickets)
+    if poll_fn:
+        orchestrator.set_poll_fn(poll_fn)
 
 
 def _seed_bre_ticket(ticket_id: str, ticket_data: dict):
@@ -732,8 +737,22 @@ async def submit_bre_remediation(deliverable_id: str, req: BRESubmitRequest) -> 
                 "ticket": _current_tickets.get(deliverable_id) if _current_tickets else {},
             })
 
-        # Trigger final Archive & Close stage logic in background
-        asyncio.create_task(orchestrator.finalize_remediation_async(deliverable_id))
+        # --- BRE-NEW Email Parity: Pause and Poll ---
+        if _current_tickets and deliverable_id in _current_tickets:
+            ticket = _current_tickets[deliverable_id]
+            if ticket.get("deliverableType") == "BRE-NEW":
+                ticket["waitingForAppOwnerConfirmation"] = True
+                ticket["status"] = "Waiting for App Owner"
+                
+                # Update Stage 6 message to reflect waiting state
+                if len(ticket["stages"]) > 6:
+                    ticket["stages"][6]["status"] = "in-progress"
+                    ticket["stages"][6]["message"] = "📧 Consolidated email sent with screenshot. Waiting for App Owner approval (APPROVE/REJECT)..."
+                
+                # Trigger inbox polling via orchestrator
+                if _poll_fn:
+                    asyncio.create_task(_poll_fn(deliverable_id, ait_number))
+                    print(f"INFO: Started inbox poll for BRE-NEW ticket {deliverable_id}")
 
         return result
 

@@ -316,7 +316,8 @@ class BRERemediationAgent:
         subject = f"BRE Remediation Completed – {deliverable_id}"
         body = (
             f"Dear {app_owner.get('name', 'Application Owner')},\n\n"
-            f"The BRE Remediation process for deliverable {deliverable_id} has been completed.\n\n"
+            f"The BRE Remediation process for deliverable {deliverable_id} has been completed.\n"
+            f"Please review the attached remediation screenshot showing which permissions have been certified vs removed.\n\n"
             f"Summary:\n"
             f"  ✅ Certified: {len(certified)} permission(s)\n"
             f"  ❌ Removed: {len(removed)} permission(s)\n\n"
@@ -325,7 +326,9 @@ class BRERemediationAgent:
         for d in decisions:
             body += f"  • [{d.get('action', '').upper()}] {d.get('permission_name', '')} – {d.get('comment', '')}\n"
         body += (
-            f"\nA screenshot showing all decisions has been attached to JIRA ticket {deliverable_id}.\n\n"
+            f"\nACTION REQUIRED:\n"
+            f"Please reply to this email with either 'APPROVE' or 'REJECT' to finalize this remediation.\n"
+            f"Once approved, the ticket will be closed automatically.\n\n"
             f"This is an automated notification from the App Governance BRE Platform.\n"
         )
 
