@@ -24,67 +24,58 @@ async def handle_arm_reply(ctx: EmailHandlerContext) -> None:
     s_name = parsed_names.get("secondary_admin_name", "").strip()
     is_admin_update = bool(p_name or s_name)
 
-    # CASE 0: Review Response (waitingForAppOwnerConfirmation)
-    if is_waiting_for_review_reply and decision in ("APPROVED", "REJECTED"):
-        print(f"DEBUG: handle_arm_reply matched CASE 0 (Review Response). Decision: {decision}")
+    # ─── THE NEW CONSOLIDATED APPROVAL/REJECTION LOGIC (Direct Closure & Reset) ───
+    if (is_waiting_for_review_reply or is_waiting_for_closure) and decision in ("APPROVED", "REJECTED"):
         if decision == "APPROVED":
-            print(f"INFO: Review Response APPROVED for {ticket_id}")
-            await ctx.update_stage(ticket_id, 6, "completed", f"✅ Review response received from {sender}: {reason}. Proceeding to closure...")
-            ticket["waitingForAppOwnerConfirmation"] = False
-            ticket["inboxReplyReceived"] = True
-            ticket["inboxReplyFrom"] = sender
-            
-            # Pause the pipeline for "Confirm Closure" button
+            print(f"INFO: ARM Approval received for {ticket_id}")
+            # Direct Closure: Mark Evidence (6), Closure (7), and Logging (8) as completed
+            if len(ticket["stages"]) > 6:
+                ticket["stages"][6]["status"] = "completed"
+                ticket["stages"][6]["message"] = f"✅ Approved by App Owner ({sender}): {reason}. Direct closure triggered."
+            if len(ticket["stages"]) > 7:
+                ticket["stages"][7]["status"] = "completed"
+                ticket["stages"][7]["message"] = "✅ Auto-closed based on App Owner approval."
+            if len(ticket["stages"]) > 8:
+                ticket["stages"][8]["status"] = "completed"
+                ticket["stages"][8]["message"] = "✅ Execution results logged."
+                
             ticket["currentStage"] = 7
-            ticket["waitingForClosureConfirmation"] = True
-            await ctx.update_stage(ticket_id, 7, "in-progress", "Ticket Closure Agent: Waiting for final closure confirmation...")
+            ticket["status"] = "completed"
+            ticket.pop("needsResendEmail", None)
+            ticket.pop("waitingForAppOwnerConfirmation", None)
+            ticket.pop("waitingForReview", None)
+            ticket.pop("waitingForClosureConfirmation", None)
+            ticket["isPollingActive"] = False
             
-            await ctx.broadcaster({
-                "type": "ticket_update",
-                "ticket": ticket,
-                "message": f"✅ Approval received from {sender}. Ready for Ticket Closure."
-            })
-        else:
-            print(f"INFO: Review Response REJECTED for {ticket_id}")
-            await ctx.update_stage(ticket_id, 6, "failed", f"❌ Review response REJECTED by {sender}: {reason}. Manual review required.")
-            ticket["waitingForAppOwnerConfirmation"] = False
-            ticket["inboxReplyReceived"] = True
-            ticket["inboxReplyFrom"] = sender
-            ticket["status"] = "Review Rejected"
-        
-        ctx.save_tickets()
-        ctx.stop_polling(ctx.ait_number)
-        return
+            ctx.stop_polling(ctx.ait_number)
+            await ctx.broadcaster({"type": "ticket_update", "ticket": ticket})
+            ctx.save_tickets()
 
-    # CASE 1: Closure (APPROVED/REJECTED)
-    if is_waiting_for_closure and decision in ("APPROVED", "REJECTED"):
-        if decision == "APPROVED":
-            print(f"INFO: Closure APPROVED for {ticket_id}")
-            ticket["closure_approved"] = True
-            ticket["waitingForClosureConfirmation"] = False
-            ticket["inboxReplyReceived"] = True
-            ticket["inboxReplyFrom"] = sender
-            await ctx.broadcaster({
-                "type": "ticket_update",
-                "ticket": ticket,
-                "message": f"✅ Approval received from {sender}: {reason}. Closing ticket..."
-            })
-            # Trigger final pipeline processing
-            await ctx.trigger_processing(ticket_id)
-        else:
-            print(f"INFO: Closure REJECTED for {ticket_id}")
-            ticket["waitingForClosureConfirmation"] = False
-            ticket["inboxReplyReceived"] = True
-            ticket["inboxReplyFrom"] = sender
-            ticket["status"] = "Rejected/Manual Review"
-            await ctx.broadcaster({
-                "type": "ticket_update",
-                "ticket": ticket,
-                "message": f"❌ Closure REJECTED by {sender}: {reason}. Manual review required."
-            })
-        
-        ctx.save_tickets()
-        ctx.stop_polling(ctx.ait_number)
+        else: # REJECTED
+            print(f"INFO: ARM Rejection received for {ticket_id}")
+            # Reset to Start: Mark current stage as error and reset status to 'not-started'
+            if len(ticket["stages"]) > 6:
+                ticket["stages"][6]["status"] = "error"
+                ticket["stages"][6]["message"] = f"❌ Rejected by App Owner ({sender}): {reason}. Resetting process."
+            
+            ticket["status"] = "not started"
+            ticket["currentStage"] = 0
+            
+            # Reset all stages from index 1 (id 2) onwards to pending
+            for i, s in enumerate(ticket["stages"]):
+                if i > 0:
+                    s["status"] = "pending"
+                    s["message"] = ""
+            
+            ticket.pop("needsResendEmail", None)
+            ticket.pop("waitingForAppOwnerConfirmation", None)
+            ticket.pop("waitingForReview", None)
+            ticket.pop("waitingForClosureConfirmation", None)
+            ticket["isPollingActive"] = False
+            
+            ctx.stop_polling(ctx.ait_number)
+            await ctx.broadcaster({"type": "ticket_update", "ticket": ticket})
+            ctx.save_tickets()
         return
 
     # CASE 2: User Requested Delay or OOO
@@ -163,7 +154,10 @@ async def handle_arm_reply(ctx: EmailHandlerContext) -> None:
                 await ctx.trigger_processing(ticket_id)
             else:
                 ticket["waitingForAdminUpdate"] = False
+                ticket.pop("needsResendEmail", None)  # Clear delay/waiting flag
                 await ctx.update_stage(ticket_id, 5, "completed", msg)
+                # Advance to next stage (Review)
+                await ctx.trigger_processing(ticket_id)
 
             await ctx.broadcaster({
                 "type": "ticket_update",

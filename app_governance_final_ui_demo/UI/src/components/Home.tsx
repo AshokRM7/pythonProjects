@@ -253,9 +253,10 @@ export default function Home({ currentUser, onSignOut }: HomeProps) {
       setAdminDetails(null);
     }
     setAdminUpdateResult(null);
+    setIsPollingInbox(false); // Reset polling state on open to enable the Begin Communication button if it was a simulation
     setCurrentAdminStep(1); // Reset to first step
     setSelectedService(null);
-    
+
     // Initialize default email body
     const appName = (selectedTicket as any).applicationName || (selectedTicket as any).application_name || 'Your Application';
     const ownerName = (selectedTicket as any).lobOwner || 'App Owner';
@@ -263,6 +264,10 @@ export default function Home({ currentUser, onSignOut }: HomeProps) {
     setAdminEmailBody(defaultBody);
 
     setShowAdminModal(true);
+  };
+
+  const handleCloseBREModal = () => {
+    setShowBRERemediationModal(false);
   };
 
   const handleAdminNextStep = () => {
@@ -435,6 +440,27 @@ export default function Home({ currentUser, onSignOut }: HomeProps) {
     }
   };
 
+  const handleResetBRE = async () => {
+    if (!selectedTicket) return;
+    const ticketId = selectedTicket.id;
+    try {
+      const res = await fetch(`http://localhost:8000/api/tickets/${ticketId}/reset-flow`, {
+        method: 'POST'
+      });
+      if (res.ok) {
+        // Clear BRE related state
+        setShowBRERemediationModal(false);
+        fetchTickets();
+        setAdminToastMessage(`🔄 BRE Ticket ${ticketId} Flow Reset!`);
+        setShowAdminToast(true);
+        setTimeout(() => setShowAdminToast(false), 5000);
+      }
+    } catch (err) {
+      console.error('Error resetting BRE ticket:', err);
+    }
+  };
+
+
   const handleConfirmClosure = async (ticketId: string) => {
     try {
       setStatusMessage(`Confirming closure for ticket ${ticketId}...`);
@@ -528,6 +554,16 @@ export default function Home({ currentUser, onSignOut }: HomeProps) {
 
       // Backend auto-starts polling if EMAIL_SENDING_ENABLED=true
       setIsPollingInbox(true);
+
+      // ARM FORM NO ADMIN logic: Stay in modal to show the spinner
+      const subcap = (selectedTicket as any)?.subcategory?.toUpperCase() || '';
+      const delType = (selectedTicket as any)?.deliverableType?.toUpperCase() || '';
+      const isArmNoAdmin = subcap.includes('ARM FORM') || delType.includes('ARM FORM');
+
+      if (!isArmNoAdmin) {
+        setShowAdminModal(false); // Only close for standard tickets
+      }
+      
       setStatusMessage('✅ Email sent successfully. Waiting for reply...');
 
     } catch (error) {
@@ -568,7 +604,7 @@ export default function Home({ currentUser, onSignOut }: HomeProps) {
       const data = await response.json();
       console.log('Email sent/simulated:', data);
 
-      setShowEmailModal(false);
+      setShowEmailModal(false); // Ensure modal is closed
       setStatusMessage(data.message);
 
       // If this was a real ARM Forms NO ADMIN email (not simulated), switch UI to
@@ -576,7 +612,7 @@ export default function Home({ currentUser, onSignOut }: HomeProps) {
       const subcap = (selectedTicket as any)?.subcategory?.toUpperCase() || '';
       const delType = (selectedTicket as any)?.deliverableType?.toUpperCase() || '';
       const isArmNoAdmin = subcap.includes('ARM FORM') || delType.includes('ARM FORM');
-      
+
       if (data.status === 'success' && data.sent === true && isArmNoAdmin) {
         // Real email was sent, show the inbox-waiting spinner in the wizard
         setIsPollingInbox(true);
@@ -881,20 +917,17 @@ export default function Home({ currentUser, onSignOut }: HomeProps) {
       (selectedTicket as any).deliverableType === 'ARM FORMS NO ADMIN' ||
       (selectedTicket as any).waitingForAdminUpdate;
 
-    // Stage 5 Triggers (Legacy & Admin Forms)
+    // Stage 5 Triggers (BRE-NEW Remediation & ARM No Admin)
     if (selectedTicket.currentStage === 5 && selectedTicket.stages[5]?.status === 'in-progress') {
       if (isArmNoAdmin) {
         handleOpenAdminModal();
-      } else if (!isBreNew && !isPCATTicket(selectedTicket)) {
+      } else if (isBreNew) {
+        if (!showBRERemediationModal) setShowBRERemediationModal(true);
+      } else if (!isPCATTicket(selectedTicket)) {
         setShowRemediationModal(true);
       }
     }
-
-    // Stage 6 Triggers (BRE-NEW Remediation)
-    if (isBreNew && selectedTicket.currentStage === 6 && selectedTicket.stages[6]?.status === 'in-progress') {
-      setShowBRERemediationModal(true);
-    }
-  }, [selectedTicket?.currentStage, selectedTicket?.stages?.[5]?.status, selectedTicket?.stages?.[6]?.status]);
+  }, [selectedTicket?.id, selectedTicket?.currentStage, selectedTicket?.stages?.[5]?.status, selectedTicket?.stages?.[6]?.status]);
 
   // Handle ticket selection from URL
 
@@ -1334,6 +1367,16 @@ export default function Home({ currentUser, onSignOut }: HomeProps) {
                             Reset
                           </button>
                         )}
+                        {isBRENewTicket(selectedTicket) && (
+                          <button
+                            onClick={handleResetBRE}
+                            className="flex items-center gap-1.5 px-2 py-1 bg-red-50 text-red-600 border border-red-100 rounded text-[10px] font-black uppercase hover:bg-red-100 transition-all active:scale-95 shadow-sm"
+                            title="Reset BRE Ticket Flow"
+                          >
+                            <RotateCcw className="w-3 h-3" />
+                            Reset
+                          </button>
+                        )}
                       </div>
                       <button
                         onClick={handleCloseTicket}
@@ -1397,8 +1440,35 @@ export default function Home({ currentUser, onSignOut }: HomeProps) {
                           );
                         }
 
-                        // 4. Review Approval
-                        if (selectedTicket.stages[6].status === 'in-progress' || selectedTicket.waitingForReview) {
+                        // 4. IAM Remediation (Stage 5)
+                        if (selectedTicket.currentStage === 5 && (selectedTicket.stages[5].status === 'in-progress' || (selectedTicket as any).waitingForRemediation || (selectedTicket as any).waitingForAdminUpdate)) {
+                          if (isBRENewTicket(selectedTicket)) {
+                            return (
+                              <button
+                                onClick={() => setShowBRERemediationModal(true)}
+                                className="w-full bg-[#012169] text-white border border-[#012169] py-3 rounded-lg hover:bg-[#00174F] transition flex items-center justify-center gap-2 shadow-lg font-bold"
+                              >
+                                <Play className="w-5 h-5" />
+                                Remediation process continue
+                              </button>
+                            );
+                          }
+                        }
+
+                        // 5. Review Approval / Evidence (Stage 6)
+                        if (selectedTicket.currentStage === 6 && (selectedTicket.stages[6].status === 'in-progress' || selectedTicket.waitingForReview || (selectedTicket as any).waitingForAppOwnerConfirmation)) {
+                          if (isBRENewTicket(selectedTicket)) {
+                            return (
+                              <button
+                                onClick={() => handleShowEmailPreview(selectedTicket.id)}
+                                className="w-full bg-[#012169] text-white border border-[#012169] py-3 rounded-lg hover:bg-[#00174F] transition flex items-center justify-center gap-2 shadow-lg font-bold"
+                              >
+                                <CheckCheck className="w-5 h-5" />
+                                Review email and approve
+                              </button>
+                            );
+                          }
+
                           if ((selectedTicket as any).needsResendEmail) {
                             return (
                               <button
@@ -1421,8 +1491,19 @@ export default function Home({ currentUser, onSignOut }: HomeProps) {
                           );
                         }
 
-                        // 5. Closure Confirmation
-                        if (selectedTicket.stages[7].status === 'in-progress' || selectedTicket.waitingForClosureConfirmation) {
+                        // 6. Closure Confirmation (Stage 7)
+                        if (selectedTicket.currentStage === 7 && (selectedTicket.stages[7].status === 'in-progress' || selectedTicket.waitingForClosureConfirmation)) {
+                          if (isBRENewTicket(selectedTicket)) {
+                            return (
+                              <button
+                                onClick={() => handleProcessTicket(selectedTicket.id)}
+                                className="w-full bg-[#012169] text-white border border-[#012169] py-3 rounded-lg hover:bg-[#00174F] transition flex items-center justify-center gap-2 shadow-lg font-bold"
+                              >
+                                <Play className="w-5 h-5" />
+                                Finalize Remediation & Close
+                              </button>
+                            );
+                          }
                           if ((selectedTicket as any).needsResendEmail) {
                             return (
                               <button
@@ -1923,7 +2004,6 @@ export default function Home({ currentUser, onSignOut }: HomeProps) {
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
           <div
             className="absolute inset-0 bg-[#012169]/60 backdrop-blur-md animate-in fade-in duration-500"
-            onClick={() => setShowRemediationModal(false)}
           />
           <div className="relative bg-white w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden border border-gray-200 animate-in zoom-in-95 slide-in-from-bottom-5 duration-500 max-h-[90vh] flex flex-col">
             {/* Header */}
@@ -1982,7 +2062,7 @@ export default function Home({ currentUser, onSignOut }: HomeProps) {
       {/* ARM Admin Remediation Modal (Centered V2) */}
       {showAdminModal && selectedTicket && createPortal(
         <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 overflow-hidden">
-          <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300" onClick={() => setShowAdminModal(false)} />
+          <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300" />
 
           <div className="relative w-full max-w-2xl bg-white shadow-2xl rounded-2xl overflow-hidden animate-in zoom-in-95 duration-300 ease-out border border-slate-200 max-h-[90vh] flex flex-col">
 
@@ -2732,10 +2812,10 @@ export default function Home({ currentUser, onSignOut }: HomeProps) {
       {/* BRE Remediation Wizard Global Modal */}
       {showBRERemediationModal && selectedTicket && createPortal(
         <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 overflow-hidden">
-          <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300" onClick={() => setShowBRERemediationModal(false)} />
+          <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300" />
           <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col animate-in zoom-in-95 duration-300">
             <button
-              onClick={() => setShowBRERemediationModal(false)}
+              onClick={handleCloseBREModal}
               className="absolute top-6 right-6 p-2 bg-slate-100 rounded-full text-slate-400 hover:text-slate-800 hover:bg-slate-200 transition-all z-20"
             >
               <X className="w-6 h-6" />

@@ -180,7 +180,7 @@ class BRERemediationAgent:
         # Get app owner
         app_owner = self._get_app_owner(application_id) or {
             "name": "Application Owner",
-            "email": "app.owner@company.com",
+            "email": "velveil@outlook.com",
         }
 
         # Send emails

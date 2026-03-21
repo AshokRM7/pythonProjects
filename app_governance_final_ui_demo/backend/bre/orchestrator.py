@@ -24,6 +24,7 @@ from backend.agents.logger import LoggerAgent
 BroadcastFn = Optional[Callable[[dict], Awaitable[None]]]
 
 # BRE workflow stage definitions (mirrors IAM stages structure)
+# Original Legacy Order
 BRE_STAGES = [
     {"id": 0, "name": "BRE Ticket Intake",            "status": "pending", "message": ""},
     {"id": 1, "name": "Deliverable Intake Agent",     "status": "pending", "message": ""},
@@ -32,6 +33,18 @@ BRE_STAGES = [
     {"id": 4, "name": "Certification Submission Agent","status": "pending","message": ""},
     {"id": 5, "name": "Evidence & Closure Agent",     "status": "pending", "message": ""},
     {"id": 6, "name": "BRE Remediation Agent",        "status": "pending", "message": ""},
+    {"id": 7, "name": "Archive & Close Agent",        "status": "pending", "message": ""},
+]
+
+# New Sequence for BRE-NEW: Remediation BEFORE Evidence
+BRE_NEW_STAGES = [
+    {"id": 0, "name": "BRE Ticket Intake",            "status": "pending", "message": ""},
+    {"id": 1, "name": "Deliverable Intake Agent",     "status": "pending", "message": ""},
+    {"id": 2, "name": "BRE Portal Check Agent",       "status": "pending", "message": ""},
+    {"id": 3, "name": "Soft Review Agent",            "status": "pending", "message": ""},
+    {"id": 4, "name": "Certification Submission Agent","status": "pending","message": ""},
+    {"id": 5, "name": "BRE Remediation Agent",        "status": "pending", "message": ""},
+    {"id": 6, "name": "Evidence & Closure Agent",     "status": "pending", "message": ""},
     {"id": 7, "name": "Archive & Close Agent",        "status": "pending", "message": ""},
 ]
 

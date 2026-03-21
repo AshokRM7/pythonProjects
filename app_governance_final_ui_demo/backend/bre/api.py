@@ -15,8 +15,10 @@ from backend.bre.models import (
     BREProcessRequest,
     BREProcessResponse,
     BREWorkflowState,
+    BRESubmitRequest,
+    DecisionModel,
 )
-from backend.bre.orchestrator import BREOrchestrator, BRE_STAGES
+from backend.bre.orchestrator import BREOrchestrator, BRE_STAGES, BRE_NEW_STAGES
 
 # Create router
 router = APIRouter(prefix="/api/bre", tags=["BRE Rule Certification"])
@@ -37,7 +39,7 @@ def _build_llm() -> ChatOpenAI:
 orchestrator = BREOrchestrator(llm=_build_llm())
 
 # Shared references injected from api_server.py (like PCAT pattern)
-_current_tickets: Optional[Dict[str, Any]] = None
+_current_tickets: Dict[str, Any] = {}
 _broadcast: Optional[Callable[[dict], Awaitable[None]]] = None
 _poll_fn: Optional[Callable[[str, str], Awaitable[None]]] = None
 
@@ -62,12 +64,16 @@ def init_bre_api(
 
 def _seed_bre_ticket(ticket_id: str, ticket_data: dict):
     """Ensure a BRE ticket is present in the shared ticket store with stage scaffold."""
-    if _current_tickets is None or ticket_id in _current_tickets:
+    if ticket_id in _current_tickets:
         return
     is_bre_new = ticket_data.get("deliverableType") == "BRE-NEW"
-    # Stage 6 is for BRE-NEW only. Legacy BRE tickets keep stages 0-5.
-    max_stages = 7 if is_bre_new else 6
-    stages = [dict(s) for s in BRE_STAGES[:max_stages]]  # fresh copy correctly sized
+    
+    # Use appropriate stage template based on deliverable type
+    base_stages = BRE_NEW_STAGES if is_bre_new else BRE_STAGES
+    
+    # Legacy BRE tickets keep stages 0-5, BRE-NEW allows all 8 stages
+    max_stages = 8 if is_bre_new else 6
+    stages = [dict(s) for s in base_stages[:max_stages]]  # fresh copy correctly sized
     _current_tickets[ticket_id] = {
         **ticket_data,
         "id": ticket_id,
@@ -85,8 +91,6 @@ def load_bre_tickets_into_store():
     Load all BRE tickets from ticket_data.json into the shared ticket store.
     Called during api_server lifespan startup.
     """
-    if _current_tickets is None:
-        return
     data_path = Path(__file__).resolve().parents[2] / "data" / "ticket_data.json"
     try:
         with open(data_path, "r", encoding="utf-8") as f:
@@ -94,7 +98,7 @@ def load_bre_tickets_into_store():
         count = 0
         for t in tickets:
             is_bre = t.get("category", "").upper() == "BRE" or (t.get("category", "").upper() == "IAM" and t.get("subcategory", "").upper() == "BRE")
-            if is_bre:
+            if is_bre and _current_tickets is not None:
                 tid = t["ticket_id"]
                 if tid not in _current_tickets:
                     _seed_bre_ticket(tid, t)
@@ -638,11 +642,82 @@ async def simulate_bre_owner_response(deliverable_id: str) -> Dict[str, Any]:
             "deliverable_id": deliverable_id,
             "ait_number": ait_number,
             "decisions": decisions,
-            "message": "App Owner response simulated. Review and click Submit to proceed.",
+            "message": "App Owner response simulated. Review decisions then click 'Refresh' or proceed.",
         }
 
     except HTTPException:
         raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/remediation/{deliverable_id}/send-decision-request")
+async def send_bre_decision_request(deliverable_id: str) -> Dict[str, Any]:
+    """
+    Send an email to the App Owner asking for Certify/Remove decisions for invalid permissions.
+    This starts the polling process for BRE-NEW deliverables.
+    """
+    try:
+        ait_number = None
+        application_id = None
+        if _current_tickets and deliverable_id in _current_tickets:
+            t = _current_tickets[deliverable_id]
+            ait_number = t.get("ait_number") or t.get("aitNumber")
+            application_id = t.get("application_id") or t.get("applicationId")
+
+        if not ait_number:
+            raise HTTPException(status_code=404, detail="AIT number not found")
+
+        # Get App Owner info and Permissions
+        agent = orchestrator.remediation_agent
+        perms_data = agent.get_invalid_permissions(ait_number)
+        app_owner = agent._get_app_owner(application_id or "") or {
+            "name": "Application Owner",
+            "email": "velveil@outlook.com",
+        }
+
+        # Format Email
+        permissions_list = "\n".join([f"  • {p['permission_name']} ({p['permission_id']})" for p in perms_data["invalid_permissions"]])
+        subject = f"ACTION REQUIRED: BRE Certification Decisions for {application_id or ait_number}"
+        body = (
+            f"Dear {app_owner['name']},\n\n"
+            f"The following permissions for your application ({ait_number}) have been identified as violating BRE business rules.\n"
+            f"Please reply to this email specifying for each permission whether it should be 'CERTIFIED' or 'REMOVED'.\n\n"
+            f"Permissions needing review:\n"
+            f"{permissions_list}\n\n"
+            f"Example reply:\n"
+            f"  {perms_data['invalid_permissions'][0]['permission_name']}: Certify\n\n"
+            f"Thank you,\n"
+            f"App Governance Team"
+        )
+
+        from backend.services.email_service import send_email
+        res = send_email([app_owner["email"]], subject, body)
+
+        if _current_tickets and deliverable_id in _current_tickets:
+            ticket = _current_tickets[deliverable_id]
+            if isinstance(ticket, dict):
+                ticket["waitingForBreOwnerDecisions"] = True
+                ticket["status"] = "Waiting for Owner Decisions"
+                
+                # Update Stage 6 message
+                if "stages" in ticket and isinstance(ticket["stages"], list) and len(ticket["stages"]) > 6:
+                    ticket["stages"][6]["status"] = "in-progress"
+                    ticket["stages"][6]["message"] = "📧 Decision request email sent. Waiting for App Owner to specify Certify/Remove for each item..."
+
+        # Start Poll
+        if _poll_fn:
+            asyncio.create_task(_poll_fn(deliverable_id, ait_number))
+
+        if _broadcast:
+            await _broadcast({
+                "type": "bre_decision_request_sent",
+                "deliverable_id": deliverable_id,
+                "ticket": _current_tickets.get(deliverable_id) if _current_tickets else {}
+            })
+
+        return {"success": True, "message": "Decision request email sent", "email_result": res}
+
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -683,7 +758,7 @@ async def submit_bre_remediation(deliverable_id: str, req: BRESubmitRequest) -> 
         if not ait_number:
             raise HTTPException(status_code=404, detail=f"AIT number not found for {deliverable_id}")
 
-        # Broadcast: stage 6 in-progress
+        # Broadcast: stage 5 in-progress
         if _broadcast:
             await _broadcast({
                 "type": "bre_remediation_submitting",
@@ -704,24 +779,38 @@ async def submit_bre_remediation(deliverable_id: str, req: BRESubmitRequest) -> 
         if not result.get("success"):
             raise HTTPException(status_code=500, detail=result.get("message", "Submission failed"))
 
-        # Update shared ticket store: mark remediation complete and advance to Stage 7
+        # Update shared ticket store: mark remediation complete and advance stage
         if _current_tickets and deliverable_id in _current_tickets:
             ticket = _current_tickets[deliverable_id]
-            ticket["bre_remediation_completed"] = True
-            ticket["bre_remediation_result"] = {
-                "certified_count": result["certified_count"],
-                "removed_count": result["removed_count"],
-                "screenshot": result["screenshot"].get("filename"),
-                "timestamp": result["timestamp"],
-            }
-            
-            # Advance to Stage 7 (Archive & Close)
-            ticket["currentStage"] = 7
-            if len(ticket["stages"]) > 7:
-                # Stage 6 was remediation
-                ticket["stages"][6]["status"] = "completed"
-                ticket["stages"][7]["status"] = "in-progress"
-                ticket["status"] = "Remediated"
+            if isinstance(ticket, dict):
+                is_bre_new = ticket.get("deliverableType") == "BRE-NEW"
+                ticket["bre_remediation_completed"] = True
+                ticket["bre_remediation_result"] = {
+                    "certified_count": result["certified_count"],
+                    "removed_count": result["removed_count"],
+                    "screenshot": result["screenshot"].get("filename") if result.get("screenshot") else None,
+                    "timestamp": result["timestamp"],
+                }
+                
+                if is_bre_new:
+                    # For BRE-NEW: Stage 5 is Remediation, Stage 6 is Evidence & Closure
+                    ticket["currentStage"] = 6
+                    if "stages" in ticket and isinstance(ticket["stages"], list) and len(ticket["stages"]) > 6:
+                        ticket["stages"][5]["status"] = "completed"
+                        ticket["stages"][6]["status"] = "in-progress"
+                        ticket["status"] = "Remediated"
+                        ticket["waitingForRemediation"] = False
+                else:
+                    # For Legacy: Stage 6 is Remediation, Stage 5 is Evidence (usually already done or skipped)
+                    # We'll mark Stage 6 (Remediation) as completed. 
+                    if "stages" in ticket and isinstance(ticket["stages"], list) and len(ticket["stages"]) > 6:
+                        ticket["stages"][6]["status"] = "completed"
+                        # If there's a Stage 7, move to it, else mark as closed
+                        if len(ticket["stages"]) > 7:
+                            ticket["currentStage"] = 7
+                            ticket["stages"][7]["status"] = "in-progress"
+                        else:
+                            ticket["status"] = "Closed"
 
         # Broadcast completion and stage advance
         if _broadcast:
@@ -740,12 +829,12 @@ async def submit_bre_remediation(deliverable_id: str, req: BRESubmitRequest) -> 
         # --- BRE-NEW Email Parity: Pause and Poll ---
         if _current_tickets and deliverable_id in _current_tickets:
             ticket = _current_tickets[deliverable_id]
-            if ticket.get("deliverableType") == "BRE-NEW":
+            if ticket and ticket.get("deliverableType") == "BRE-NEW":
                 ticket["waitingForAppOwnerConfirmation"] = True
                 ticket["status"] = "Waiting for App Owner"
                 
                 # Update Stage 6 message to reflect waiting state
-                if len(ticket["stages"]) > 6:
+                if "stages" in ticket and len(ticket["stages"]) > 6:
                     ticket["stages"][6]["status"] = "in-progress"
                     ticket["stages"][6]["message"] = "📧 Consolidated email sent with screenshot. Waiting for App Owner approval (APPROVE/REJECT)..."
                 

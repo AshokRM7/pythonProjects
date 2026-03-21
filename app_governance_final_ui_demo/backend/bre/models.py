@@ -166,3 +166,17 @@ class BREProcessResponse(BaseModel):
     message: str
     workflow_state: Optional[BREWorkflowState] = None
     error: Optional[str] = None
+
+
+class DecisionModel(BaseModel):
+    """Model for a single Certify/Remove decision"""
+    permission_id: str
+    permission_name: str
+    action: Literal["certify", "remove", ""]
+    comment: Optional[str] = ""
+
+
+class BRESubmitRequest(BaseModel):
+    """Request to submit remediation decisions"""
+    deliverable_id: str
+    decisions: List[DecisionModel]

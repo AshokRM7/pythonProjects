@@ -3,8 +3,11 @@ from datetime import datetime
 
 class AgentLogger:
     @staticmethod
-    def log_pipeline_start(ticket_id):
-        print(f"[{datetime.now().isoformat()}] Pipeline started for ticket {ticket_id}")
+    def log_pipeline_start(ticket_id, category=None):
+        msg = f"Pipeline started for ticket {ticket_id}"
+        if category:
+            msg += f" (Category: {category})"
+        print(f"[{datetime.now().isoformat()}] {msg}")
 
     @staticmethod
     def log_pipeline_end(ticket_id, status="Success"):
@@ -23,7 +26,7 @@ class AgentTimer:
         self.agent_name = agent_name
         self.ticket_id = ticket_id
         self.action = action
-        self.start_time = None
+        self.start_time = 0.0
 
     def __enter__(self):
         self.start_time = time.time()

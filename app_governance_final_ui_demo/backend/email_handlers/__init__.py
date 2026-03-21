@@ -16,6 +16,7 @@ class EmailHandlerContext:
     decision: str
     reason: str
     sender: str
+    body: str
     e_id: str
     parsed_names: Dict[str, str]
     

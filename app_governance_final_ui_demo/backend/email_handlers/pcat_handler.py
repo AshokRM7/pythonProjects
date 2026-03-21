@@ -14,17 +14,22 @@ async def handle_pcat_reply(ctx: EmailHandlerContext) -> None:
     
     if decision == "APPROVED":
         print(f"INFO: PCAT Approval received for {ticket_id}")
+        # Direct Closure: Mark stages as completed
         if len(ticket["stages"]) > 8:
             ticket["stages"][8]["status"] = "completed"
-        
+            
         # Execute final portal uploads
         from backend.pcat.mock_portal_clients import upload_to_pcat_portal, upload_to_rise_portal
         csv_path = ticket.get("final_csv_path")
         
         ticket["currentStage"] = 8
-        ticket["status"] = "Completed"
+        ticket["status"] = "completed"
         ticket["inboxReplyReceived"] = True
         ticket["inboxReplyFrom"] = sender
+        ticket.pop("needsResendEmail", None)
+        ticket.pop("waitingForReview", None)
+        ticket.pop("waitingForClosureConfirmation", None)
+        ticket["isPollingActive"] = False
         
         if csv_path and os.path.exists(csv_path):
             upload_to_pcat_portal(ticket_id, csv_path)
@@ -48,26 +53,30 @@ async def handle_pcat_reply(ctx: EmailHandlerContext) -> None:
         ctx.stop_polling(ctx.ait_number)
         return
         
-    elif decision == "REJECTED":
-        print(f"INFO: PCAT Rejection received for {ticket_id}")
+    elif decision in ("REJECTED", "CANCELED"):
+        print(f"INFO: PCAT {decision} received for {ticket_id}")
+        # Reset to Start: Mark stage 8 as error and reset status to 'not-started'
         if len(ticket["stages"]) > 8:
-            ticket["stages"][8]["status"] = "failed"
-            ticket["stages"][8]["message"] = f"❌ Rejected by App Owner ({sender}): {reason}. Manual adjustment required."
+            ticket["stages"][8]["status"] = "error"
+            ticket["stages"][8]["message"] = f"❌ Rejected by App Owner ({sender}): {reason}. Resetting process."
             
-        ticket["status"] = "Review Required"
-        ticket["inboxReplyReceived"] = True
-        ticket["inboxReplyFrom"] = sender
+        ticket["status"] = "not started"
+        ticket["currentStage"] = 0
         
-        await ctx.broadcaster({
-            "type": "pcat_stage_update",
-            "ticket_id": ticket_id,
-            "stage_id": 8,
-            "status": "failed",
-            "message": ticket["stages"][8]["message"] if len(ticket["stages"]) > 8 else "Rejected",
-            "ticket": ticket
-        })
-        ctx.save_tickets()
+        # Reset all stages from index 1 (id 1/2) onwards to pending
+        for i, s in enumerate(ticket["stages"]):
+            if i > 0:
+                s["status"] = "pending"
+                s["message"] = ""
+        
+        ticket.pop("needsResendEmail", None)
+        ticket.pop("waitingForReview", None)
+        ticket.pop("waitingForClosureConfirmation", None)
+        ticket["isPollingActive"] = False
+        
         ctx.stop_polling(ctx.ait_number)
+        await ctx.broadcaster({"type": "pcat_stage_update", "ticket_id": ticket_id, "stage_id": 8, "status": "error", "message": "Process reset due to rejection.", "ticket": ticket})
+        ctx.save_tickets()
         return
         
     elif decision in ("DELAY", "WILL_UPDATE_LATER", "OUT_OF_OFFICE"):
@@ -117,6 +126,7 @@ async def handle_pcat_reply(ctx: EmailHandlerContext) -> None:
         ticket["status"] = "Review Required"
         ticket["inboxReplyReceived"] = True
         ticket["inboxReplyFrom"] = sender
+        ticket.pop("needsResendEmail", None)
         
         await ctx.broadcaster({
             "type": "pcat_stage_update",

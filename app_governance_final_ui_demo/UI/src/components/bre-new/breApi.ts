@@ -14,6 +14,14 @@ export const breApi = {
         return response.json();
     },
 
+    sendDecisionRequest: async (deliverableId: string) => {
+        const response = await fetch(`${BASE_URL}/remediation/${deliverableId}/send-decision-request`, {
+            method: 'POST'
+        });
+        if (!response.ok) throw new Error('Failed to send decision request');
+        return response.json();
+    },
+
     simulateOwnerResponse: async (deliverableId: string) => {
         const response = await fetch(`${BASE_URL}/remediation/${deliverableId}/simulate-owner-response`, {
             method: 'POST'
