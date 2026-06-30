@@ -1,6 +1,6 @@
 import React from 'react';
 import { Shield, LogOut, Bell, Settings, Search, LayoutGrid, HelpCircle } from 'lucide-react';
-import bofaFlag from '../assets/bofa-flag.png';
+import accentureFlag from '../assets/accenture-logo.png';
 
 
 interface HeaderProps {
@@ -55,15 +55,15 @@ export default function Header({ currentUser, onSignOut, onSearch, searchValue }
           <div className="flex items-center gap-6 group cursor-pointer" onClick={() => window.location.href = '/'}>
             <div className="flex items-center justify-center group-hover:scale-105 transition-transform duration-300">
               <img
-                src={bofaFlag}
-                alt="Bank of America"
+                src={accentureFlag}
+                alt="Accenture"
                 className="h-16 w-auto object-contain"
               />
             </div>
             <div className="hidden sm:block h-10 w-px bg-gray-200" />
             <div className="hidden sm:flex flex-col text-left">
               <span className="text-xl font-black text-[#012169] tracking-tight leading-none">
-                App Governance
+                Application Governance
               </span>
               <span className="text-[#E31837] font-bold text-[10px] uppercase tracking-[0.2em] mt-1">
                 Internal Access Portal

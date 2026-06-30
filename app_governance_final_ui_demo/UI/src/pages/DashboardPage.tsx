@@ -29,7 +29,7 @@ const normalizeStatus = (apiStatus: string) => {
 export const DashboardPage = () => {
   const [category, setCategory] = useState<string[]>(["all"]);
   const [owner, setOwner] = useState<string[]>(["all"]); // Array state
-  const [timeline, setTimeline] = useState("90");
+  const [timeline, setTimeline] = useState("365");
   const [pastDueOptions, setPastDueOptions] = useState<string[]>(["all"]);
   const [apiTickets, setApiTickets] = useState<any[]>([]);
   const navigate = useNavigate();

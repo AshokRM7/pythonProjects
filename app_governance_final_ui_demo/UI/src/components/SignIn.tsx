@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { UserPlus, LogIn, Lock, ChevronRight, CheckCircle, Loader2 } from 'lucide-react';
-import bofaFlag from '../assets/bofa-flag.png';
+import accentureFlag from '../assets/accenture-logo.png';
 
 
 
@@ -75,11 +75,11 @@ export default function SignIn({ onSignIn }: SignInProps) {
           {/* Brand Header */}
           <div className="mb-8 flex flex-col items-center">
             <div className="group cursor-default mb-4">
-              <img src={bofaFlag} alt="Bank of America" className="h-24 w-auto object-contain mx-auto" />
+              <img src={accentureFlag} alt="Accenture" className="h-24 w-auto object-contain mx-auto" />
             </div>
             <div className="h-1 w-16 bg-[#E31837] mb-6 rounded-full" />
             <h1 className="text-2xl font-black text-[#012169] tracking-tighter text-center uppercase leading-none">
-              App Governance <span className="text-[#E31837]">Portal</span>
+              Application Governance <span className="text-[#E31837]">Portal</span>
             </h1>
           </div>
 
@@ -150,7 +150,7 @@ export default function SignIn({ onSignIn }: SignInProps) {
                   }}
                   className="w-full py-2 text-sm font-bold text-[#012169] hover:text-[#E31837] transition-colors flex items-center justify-center gap-1 group"
                 >
-                  {isCreatingUser ? 'Already have an account? Sign In' : "New to App Governance? Create Profile"}
+                  {isCreatingUser ? 'Already have an account? Sign In' : "New to Application Governance? Create Profile"}
                   <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                 </button>
               </div>
@@ -158,7 +158,7 @@ export default function SignIn({ onSignIn }: SignInProps) {
           </div>
 
           <p className="text-center text-xs text-gray-400 mt-10 font-bold uppercase tracking-[0.2em]">
-            Bank of America &copy; 2025 • Internal Governance Use Only
+            Accenture &copy; 2001-2026 • Internal Governance Use Only
           </p>
         </div>
       </main>
@@ -175,9 +175,9 @@ export default function SignIn({ onSignIn }: SignInProps) {
           <div className="relative z-10 flex flex-col items-center text-center px-6">
             <div className="mb-12 relative">
               <div className="p-8 bg-white rounded-[2.5rem] flex flex-col items-center justify-center shadow-2xl animate-bounce gap-4">
-                <img src={bofaFlag} alt="Bank of America" className="h-24 w-auto object-contain" />
+                <img src={accentureFlag} alt="Accenture" className="h-24 w-auto object-contain" />
                 <div className="h-0.5 w-12 bg-[#E31837] rounded-full" />
-                <span className="text-[#012169] font-black tracking-widest text-[10px] uppercase">App Governance</span>
+                <span className="text-[#012169] font-black tracking-widest text-[10px] uppercase">Application Governance</span>
               </div>
               <div className="absolute -inset-4 border-2 border-white/20 rounded-[3rem] animate-[spin_10s_linear_infinite]" />
             </div>
@@ -196,7 +196,7 @@ export default function SignIn({ onSignIn }: SignInProps) {
             </div>
 
             <div className="mt-8 text-white/40 text-xs font-bold uppercase tracking-[0.3em]">
-              Bank of America Global Technology
+              Accenture
             </div>
           </div>
 

@@ -1,6 +1,6 @@
 import React from 'react';
 import { Shield, Mail, Phone, MapPin } from 'lucide-react';
-import bofaLogo from '../assets/bofa-logo.png';
+import accentureLogo from '../assets/accenture-logo.png';
 
 export default function Footer() {
   const currentYear = new Date().getFullYear();
@@ -13,11 +13,11 @@ export default function Footer() {
           <div className="col-span-1 md:col-span-2">
             <div className="flex items-center gap-3 mb-4">
               <div className="flex items-center justify-center p-2 bg-white rounded-lg">
-                <img src={bofaLogo} alt="Bank of America" className="w-8 h-auto object-contain" />
+                <img src={accentureLogo} alt="Accenture" className="w-8 h-auto object-contain" />
               </div>
               <div>
-                <h2 className="text-white font-bold text-lg">Bank of America</h2>
-                <p className="text-gray-300 text-sm">App Governance</p>
+                <h2 className="text-white font-bold text-lg">Accenture</h2>
+                <p className="text-gray-300 text-sm">Application Governance</p>
               </div>
             </div>
             <p className="text-gray-300 text-sm max-w-md">
@@ -57,7 +57,7 @@ export default function Footer() {
         <div className="pt-6 border-t border-blue-800/50">
           <div className="flex flex-col md:flex-row justify-between items-center gap-4 text-xs text-gray-400">
             <p>
-              © {currentYear} Bank of America Corporation. All rights reserved. Member FDIC.
+              © {currentYear} Accenture. All rights reserved. Accenture Confidential. For internal use only.
             </p>
             <div className="flex gap-6">
               <a href="#" className="hover:text-white transition">Careers</a>
