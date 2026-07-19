@@ -1,0 +1,45 @@
+# .gitignore — files git should NEVER track.
+# Rule of thumb: commit source code and docs; ignore anything that is
+# (a) machine-generated, (b) machine-specific, or (c) secret.
+
+# ── Python ────────────────────────────────────────────────────────────
+# Virtual environments: huge, machine-specific, fully recreatable from
+# requirements.txt — never commit them.
+.venv/
+venv/
+env/
+
+# Bytecode caches Python creates automatically when it runs your code.
+__pycache__/
+*.py[cod]
+
+# Test / tooling caches
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# ── Secrets ──────────────────────────────────────────────────────────
+# .env files hold API keys and passwords. NEVER commit these — a leaked
+# key on GitHub gets found by bots within minutes.
+.env
+.env.*
+
+# ── Node / React (needed from Step 3 on) ─────────────────────────────
+# node_modules is the npm equivalent of .venv: thousands of files,
+# recreatable from package.json with `npm install`.
+node_modules/
+dist/
+build/
+
+# ── Databases (needed from Step 5 on) ────────────────────────────────
+*.db
+*.sqlite3
+
+# ── Editor / OS / tool leftovers ─────────────────────────────────────
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Claude Code local settings (personal to this machine)
+.claude/settings.local.json

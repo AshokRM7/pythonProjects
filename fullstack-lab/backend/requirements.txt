@@ -1,0 +1,5 @@
+# requirements.txt — the list of packages this backend needs.
+# Anyone (including future you) can recreate the environment with:
+#   pip install -r requirements.txt
+fastapi
+uvicorn[standard]
