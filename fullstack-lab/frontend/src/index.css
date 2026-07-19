@@ -1,0 +1,93 @@
+/* index.css — plain CSS, kept deliberately small.
+   Styling is not the focus of Step 3; skim this, don't study it. */
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: system-ui, sans-serif;
+  background: #f4f5f7;
+  color: #1a1a2e;
+}
+
+main {
+  max-width: 480px;
+  margin: 3rem auto;
+  padding: 1.5rem;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+}
+
+h1 {
+  margin-bottom: 1rem;
+}
+
+form {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+form input {
+  flex: 1;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  font-size: 1rem;
+}
+
+button {
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 8px;
+  background: #4f46e5;
+  color: white;
+  font-size: 1rem;
+  cursor: pointer;
+}
+
+ul {
+  list-style: none;
+}
+
+.todo {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.5rem 0.25rem;
+  border-bottom: 1px solid #eee;
+}
+
+.todo span {
+  flex: 1;
+}
+
+/* When a todo is done, strike it through and fade it */
+.todo.done span {
+  text-decoration: line-through;
+  color: #999;
+}
+
+.todo button {
+  background: transparent;
+  color: #c0392b;
+  padding: 0.2rem 0.5rem;
+}
+
+.error {
+  background: #fdecea;
+  color: #c0392b;
+  padding: 0.6rem 0.8rem;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+}
+
+.empty {
+  color: #888;
+  text-align: center;
+  padding: 1rem 0;
+}

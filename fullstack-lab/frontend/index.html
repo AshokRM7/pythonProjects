@@ -1,0 +1,22 @@
+<!doctype html>
+<!-- index.html — the ONLY html page in the whole app.
+
+     React apps are "single-page applications" (SPA): the browser loads
+     this one nearly-empty page, then JavaScript builds and updates all
+     the visible UI inside the <div id="root"> below.                    -->
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <!-- Makes the page scale properly on phones -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Fullstack Lab — Todos</title>
+  </head>
+  <body>
+    <!-- React takes over this empty div and renders everything into it -->
+    <div id="root"></div>
+
+    <!-- The Vite dev server serves this file, sees this script tag, and
+         loads our JavaScript entry point (which loads everything else). -->
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>

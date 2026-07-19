@@ -14,6 +14,11 @@ from fastapi import FastAPI, HTTPException
 # a declared shape that incoming/outgoing data must match.
 from pydantic import BaseModel
 
+# Middleware = code that runs on EVERY request, before/after your route
+# functions. CORSMiddleware adds the headers browsers demand before they
+# let a page from one origin call an API on another (see Step 3 doc).
+from fastapi.middleware.cors import CORSMiddleware
+
 # ── Create the application ────────────────────────────────────────────────
 # This single object IS your backend. Every route (URL) we define gets
 # attached to it. When uvicorn runs, it hands every incoming HTTP request
@@ -22,6 +27,21 @@ app = FastAPI(
     title="Learning Lab API",
     description="Step 1: understanding how a backend works.",
     version="0.1.0",
+)
+
+# ── CORS (Step 3) ─────────────────────────────────────────────────────────
+# Our React dev server runs at http://localhost:5173 — a different *origin*
+# than this API (http://127.0.0.1:8000). Browsers block JavaScript on one
+# origin from reading responses from another, UNLESS the API explicitly
+# allows it. This middleware adds the "yes, localhost:5173 is allowed"
+# headers to every response. Full story: docs/03-react-frontend.md §6.
+app.add_middleware(
+    CORSMiddleware,
+    # Exactly which frontend origins may call us. Never use ["*"] together
+    # with credentials in a real app — be explicit.
+    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
+    allow_methods=["*"],   # allow GET, POST, PUT, DELETE, ...
+    allow_headers=["*"],   # allow content-type, etc.
 )
 
 # ── Route #1: the root ────────────────────────────────────────────────────

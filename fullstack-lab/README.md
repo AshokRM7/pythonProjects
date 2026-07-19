@@ -10,20 +10,27 @@ is understood. Every step has code + a concept doc in `docs/`.
 
 ```
 fullstack-lab/
-├── backend/          # Python + FastAPI + uvicorn
-│   ├── .venv/        # isolated Python environment (never edit, never commit)
-│   ├── main.py       # the API — start reading here
+├── backend/            # Python + FastAPI + uvicorn  (serves DATA on :8000)
+│   ├── .venv/          # isolated Python environment (never edit, never commit)
+│   ├── main.py         # the API — start reading here
 │   └── requirements.txt
-├── docs/             # one concept document per step
-│   └── 01-backend-basics.md
-└── README.md         # this file — also the step-by-step usage guide
+├── frontend/           # React + Vite               (serves the UI on :5173)
+│   ├── node_modules/   # installed JS packages (never edit, never commit)
+│   ├── index.html      # the single HTML page React renders into
+│   ├── package.json    # JS dependencies + scripts (npm's requirements.txt)
+│   └── src/
+│       ├── main.jsx    # entry point: mounts <App /> into index.html
+│       ├── App.jsx     # the todo UI — start reading here
+│       └── index.css   # styles (skim only)
+├── docs/               # one concept document per step
+└── README.md           # this file — also the step-by-step usage guide
 ```
 
 ## Roadmap (grows as we go)
 
 - [x] **Step 1** — Minimal FastAPI backend: routes, HTTP, JSON, uvicorn → `docs/01-backend-basics.md`
 - [x] **Step 2** — POST, request bodies, Pydantic models, CRUD todo API → `docs/02-post-and-pydantic.md`
-- [ ] **Step 3** — React frontend that calls the API (components, fetch, CORS)
+- [x] **Step 3** — React frontend calling the API: components, JSX, props, fetch, CORS → `docs/03-react-frontend.md`
 - [ ] **Step 4** — Frontend state & hooks (useState, useEffect)
 - [ ] **Step 5** — A real database (SQLite + SQLAlchemy)
 - [ ] Later — auth, project structure for scale, calling an LLM API, building an agent, an eval harness…
@@ -109,3 +116,51 @@ Invoke-RestMethod -Uri "http://127.0.0.1:8000/todos"
 
 When you can answer the 5 questions at the bottom of
 `docs/02-post-and-pydantic.md`, tell Claude you're ready for Step 3 (React).
+
+---
+
+## Step 3 — run the full stack (baby steps)
+
+You now need **two PowerShell windows** — one per server. This is normal:
+every fullstack developer works with multiple terminals.
+
+**Window 1 — backend (data, port 8000):**
+
+```powershell
+cd C:\MyFolders\Projects\Learning_Projects\fullstack-lab\backend
+.\.venv\Scripts\Activate.ps1
+uvicorn main:app --reload
+```
+
+**Window 2 — frontend (UI, port 5173):**
+
+```powershell
+cd C:\MyFolders\Projects\Learning_Projects\fullstack-lab\frontend
+npm run dev
+```
+
+Open `http://localhost:5173` in your browser. Then:
+
+1. Add a few todos, check some off, delete one. Watch it just… work.
+2. Open **DevTools** (press `F12`) → **Network** tab → add another todo.
+   You'll see the actual `POST /todos` request and the `GET /todos` after
+   it — click one and inspect the JSON. This is the same traffic you sent
+   manually from `/docs` in Step 2, now sent by your own JavaScript.
+3. Verify the data is really in the backend: open
+   `http://127.0.0.1:8000/todos` directly — same JSON the UI shows.
+4. **See HMR:** with both servers running, edit the `<h1>` text in
+   `frontend/src/App.jsx`, save — the browser updates instantly, and your
+   todos are still there (no reload; state survived).
+5. **See why the backend matters:** stop only the backend (`Ctrl+C` in
+   window 1), then click Add in the UI — the friendly error appears.
+   Restart uvicorn, add a todo again — recovery, no frontend restart needed.
+6. **See CORS fail on purpose (optional but recommended):** in
+   `backend/main.py`, change `5173` to `5174` in `allow_origins` (both
+   lines), save (uvicorn auto-reloads), refresh the UI → todos won't load.
+   Open the DevTools **Console** tab and read the CORS error message —
+   you'll meet it again in real life. **Change it back** and confirm
+   recovery.
+
+When you can answer the questions at the bottom of
+`docs/03-react-frontend.md`, tell Claude you're ready for Step 4
+(hooks & state, properly).
