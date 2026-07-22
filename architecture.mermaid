@@ -1,0 +1,114 @@
+%% CrediSight — Bank Statement Analyzer for Credit Assessment
+%% Full-system architecture (branch: CrediSight_FinanceApp)
+%%
+%% How to view:
+%%   - GitHub renders this automatically in the file preview.
+%%   - VS Code: "Markdown Preview Mermaid" / "Mermaid Editor" extensions.
+%%   - Web: paste into https://mermaid.live
+%%
+%% Two independent flows are colour-coded below:
+%%   ORANGE = Quick Scan  (stateless, one-shot, no DB, no LLM)
+%%   BLUE   = Customer / CAM pipeline (persistent, DB-backed, optional LLM)
+
+flowchart TB
+    %% ================= FRONTEND =================
+    subgraph FE["🖥️  Frontend — React 18 + Vite (dev :5173)"]
+        direction TB
+        APP["App.jsx<br/>react-router shell + /health poll"]
+        HOME["HomePage.jsx<br/>⚡ Quick Scan (drag-drop upload)"]
+        CUST["CustomersPage.jsx<br/>customer list / create"]
+        DETAIL["CustomerDetailPage.jsx<br/>accounts · statements · loans<br/>enrich · run analysis"]
+        REPORT["ReportPage.jsx<br/>CAM report dashboard (Recharts)"]
+        APIJS["api.js<br/>fetch wrapper → /api/*"]
+        APP --> HOME & CUST & DETAIL & REPORT
+        HOME & CUST & DETAIL & REPORT --> APIJS
+    end
+
+    PROXY{{"Vite dev proxy<br/>/api → 127.0.0.1:8000"}}
+    APIJS -->|HTTP JSON / multipart| PROXY
+
+    %% ================= BACKEND =================
+    subgraph BE["⚙️  Backend — FastAPI + Uvicorn (:8000)"]
+        direction TB
+        MAIN["main.py<br/>app factory · CORS · router mount<br/>create_all(engine)"]
+        CFG["config.py<br/>Settings (.env): DB URL, upload_dir,<br/>OPENAI_API_KEY, thresholds, FOIR cap"]
+
+        subgraph ROUTERS["Routers (REST API)"]
+            direction TB
+            R_QS["quickscan.py<br/>POST /api/quick-scan"]
+            R_CU["customers.py<br/>/api/customers · /accounts · /loans (CRUD)"]
+            R_ST["statements.py<br/>POST /accounts/&#123;id&#125;/statements (upload)<br/>GET .../transactions<br/>POST /customers/&#123;id&#125;/enrich"]
+            R_AN["analysis.py<br/>POST /customers/&#123;id&#125;/analyze<br/>GET /analyses/&#123;id&#125; · /health"]
+        end
+
+        subgraph SVC["Services (business logic)"]
+            direction TB
+            subgraph PARSE["parsing/  (layered, most-reliable-first)"]
+                direction TB
+                PDF["pdf_parser.py<br/>pdfplumber tables → text → regex"]
+                XL["excel_parser.py<br/>xlsx/xls/csv, per-sheet, encoding sniff"]
+                NORM["normalizer.py<br/>header detect · amount/date parse<br/>→ NormalizedTxn + parse status/notes"]
+                PDF --> NORM
+                XL --> NORM
+            end
+            CAT["categorization.py<br/>ordered regex rules → category,<br/>channel, counterparty"]
+            ANA["analysis.py  (pure fns on Txn dataclass)<br/>monthly · avg balance · income · EMI ·<br/>bounces · cash · patterns · red flags ·<br/>FOIR capacity · composite score"]
+            REP["report.py<br/>assembles CAM JSON + 100-pt score"]
+            LLM["llm.py  (OPTIONAL)<br/>classify_transactions · cam_narrative<br/>template_narrative fallback"]
+        end
+    end
+
+    MAIN -.mounts.-> ROUTERS
+    CFG -.settings.-> ROUTERS & SVC
+
+    %% ---- request routing ----
+    PROXY --> R_QS
+    PROXY --> R_CU
+    PROXY --> R_ST
+    PROXY --> R_AN
+
+    %% ================= QUICK SCAN FLOW (stateless) =================
+    R_QS -->|parse| PARSE
+    R_QS -->|categorize| CAT
+    R_QS -->|compute| ANA
+    R_QS -->|"compact report JSON (nothing stored)"| PROXY
+
+    %% ================= CUSTOMER / CAM FLOW (persistent) =================
+    R_ST -->|"1. save file (uuid)"| UP[["uploads/<br/>raw statement files"]]
+    R_ST -->|2. parse| PARSE
+    R_ST -->|3. rule-categorize| CAT
+    R_ST -->|4. persist txns| DB
+    R_ST -.->|enrich: uncategorized only| LLM
+
+    R_CU -->|CRUD| DB
+    R_AN -->|load Txns| DB
+    R_AN -->|build CAM| REP
+    REP --> ANA
+    REP -.->|narrative| LLM
+    R_AN -->|"persist Analysis snapshot (JSON)"| DB
+
+    CAT -.->|uncategorized| LLM
+
+    %% ================= DATA + EXTERNAL =================
+    DB[("SQLite via SQLAlchemy 2.x<br/>credisight.db")]
+    subgraph MODEL["Data model (1─* )"]
+        direction LR
+        M["Customer → Account → Statement → Transaction<br/>Customer → Loan (declared / detected)<br/>Customer → Analysis (immutable JSON snapshot)"]
+    end
+    DB --- MODEL
+
+    OPENAI{{"☁️ OpenAI API<br/>gpt-4o-mini (optional)<br/>degrades to rules-only"}}
+    LLM -->|only slim aggregates + narration snippets| OPENAI
+
+    %% ================= STYLES =================
+    classDef qs fill:#ffe6cc,stroke:#d79b00,color:#663d00;
+    classDef cam fill:#dae8fc,stroke:#6c8ebf,color:#1f3a5f;
+    classDef store fill:#d5e8d4,stroke:#82b366,color:#1e4620;
+    classDef ext fill:#f8cecc,stroke:#b85450,color:#5a1a17;
+    classDef fe fill:#e1d5e7,stroke:#9673a6,color:#3d2a4d;
+
+    class HOME,R_QS qs;
+    class CUST,DETAIL,REPORT,R_CU,R_ST,R_AN,REP cam;
+    class DB,UP,MODEL,M store;
+    class OPENAI ext;
+    class APP,APIJS,PROXY fe;
