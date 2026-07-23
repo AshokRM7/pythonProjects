@@ -29,13 +29,33 @@ def parse_pdf(path: str | Path) -> ParseResult:
     path = Path(path)
     tables: list[RawTable] = []
     text_lines: list[str] = []
+    PROBE_PAGES = 3
     try:
         with pdfplumber.open(path) as pdf:
-            for page_no, page in enumerate(pdf.pages, start=1):
-                for t in _extract_page_tables(page):
-                    tables.append(RawTable(rows=t, source=f"{path.name} p{page_no}"))
+            n_pages = len(pdf.pages)
+            # text extraction is cheap — always do every page
+            for page in pdf.pages:
                 txt = page.extract_text() or ""
                 text_lines.extend(txt.splitlines())
+            # table extraction is expensive: probe the first few pages, and only
+            # run the remaining pages if the probe actually yields transactions
+            # (large e-passbooks/statements often produce junk tables on every page).
+            for page_no, page in enumerate(pdf.pages[:PROBE_PAGES], start=1):
+                for t in _extract_page_tables(page):
+                    tables.append(RawTable(rows=t, source=f"{path.name} p{page_no}"))
+            probe_txns = 0
+            if tables:
+                probe_rows: list[list[str]] = []
+                for t in tables:
+                    probe_rows.extend(t.rows)
+                probe_txns = len(normalize_table(
+                    RawTable(rows=probe_rows, source=path.name)).transactions)
+            if probe_txns >= 3 and n_pages > PROBE_PAGES:
+                for page_no, page in enumerate(pdf.pages[PROBE_PAGES:], start=PROBE_PAGES + 1):
+                    for t in _extract_page_tables(page):
+                        tables.append(RawTable(rows=t, source=f"{path.name} p{page_no}"))
+            elif probe_txns < 3:
+                tables = tables if probe_txns > 0 else []
     except Exception as exc:  # encrypted / corrupt / image-only
         r = ParseResult(status="failed")
         r.notes.append(f"Could not open PDF {path.name}: {exc}")
@@ -99,20 +119,29 @@ def _extract_page_tables(page) -> list[list[list[str]]]:
 
 
 # ─────────────────────────── text-line parser ───────────────────────────
-# anchor: a line that starts with a date and ends with 1-4 amounts
-_ANCHOR_RE = re.compile(
-    r"^(?P<date>\d{1,2}[-/. ](?:\d{1,2}|[A-Za-z]{3})[-/. ]\d{2,4})\s*"
-    r"(?P<body>.*?)\s*"
-    r"(?P<nums>(?:[\d,]+\.\d{2}(?:\s*(?:Cr|Dr|CR|DR))?)(?:\s+[\d,]+\.\d{2}(?:\s*(?:Cr|Dr|CR|DR))?){0,3})\s*$"
+# anchor: a line that STARTS with a date (numeric or month-name form) and
+# contains at least one money amount somewhere after it.
+_DATE_START_RE = re.compile(
+    r"^(?P<date>"
+    r"\d{1,2}[-/. ](?:\d{1,2}|[A-Za-z]{3,9})[-/. ]\d{2,4}"   # 21-01-2026 / 21 Jan 2026
+    r"|[A-Za-z]{3,9}\s+\d{1,2},?\s+\d{4}"                     # Apr 02 2025 / April 2, 2025
+    r"|\d{4}-\d{2}-\d{2}"                                     # 2026-01-21
+    r")\b"
 )
-_NUM_TOKEN_RE = re.compile(r"[\d,]+\.\d{2}(?:\s*(?:Cr|Dr|CR|DR))?")
+# money token: 1,234.56 with optional INR/Rs prefix and Cr/Dr suffix
+_NUM_TOKEN_RE = re.compile(r"(?:(?:INR|Rs\.?)\s*)?[\d,]+\.\d{2}(?:\s*(?:Cr|Dr|CR|DR)\b)?")
 
-_OPENING_RE = re.compile(r"^opening\s+balance\b.*?([\d,]+\.\d{2})\s*$", re.IGNORECASE)
+_OPENING_RE = re.compile(
+    r"^opening\s+balance\b.*?((?:INR|Rs\.?)?\s*[\d,]+\.\d{2}(?:\s*(?:Cr|Dr|CR|DR))?)\s*$",
+    re.IGNORECASE)
 # page furniture / metadata lines that must never join a narration
 _META_RE = re.compile(
-    r"^(statement\s+(for|of)|account\s*(no|number|statement)|customer\s+id|branch\s+(code|name)|"
+    r"^(statement\s+(for|of)|account\s*(no|number|statement|activity|summary|details|holder)|"
+    r"customer\s+id|customer.s\s+address|branch\s+(code|name)|"
     r"ifsc|micr|phone|address|name\b|page\s+\d+|date\s+particulars|txn\s+date|"
-    r"opening\s+balance|closing\s+balance|total\b|grand\s+total|balance\s+(brought|carried)|"
+    r"date\s+transaction\s+details|for\s+period|account\s+currency|"
+    r"opening\s+balance|closing\s+balance|ending\s+balance|total\b|grand\s+total|"
+    r"balance\s+(brought|carried)|"
     r"b/f\b|c/f\b|this\s+is\s+a\s+(system|computer)|end\s+of\s+statement)", re.IGNORECASE)
 # trailer lines that belong to the PREVIOUS transaction (ref/time stamps)
 _TRAIL_RE = re.compile(r"^(chq[\s.:]|cheque\s*(no)?[\s.:]|ref[\s.:]|\d{2}:\d{2}(:\d{2})?$|utr[\s.:])", re.IGNORECASE)
@@ -145,7 +174,7 @@ def _parse_text_lines(lines: list[str], source: str) -> ParseResult:
             pending.clear()
             continue
 
-        m = _ANCHOR_RE.match(line)
+        m = _DATE_START_RE.match(line)
         if m is None:
             if _TRAIL_RE.match(line):
                 # ref/time trailer — attach to the transaction it belongs to
@@ -159,38 +188,51 @@ def _parse_text_lines(lines: list[str], source: str) -> ParseResult:
             continue
 
         d = parse_date(m.group("date"))
-        if d is None:
-            pending.append(line)
-            continue
-
-        nums = [parse_amount(tok) for tok in _NUM_TOKEN_RE.findall(m.group("nums"))]
+        rest = line[m.end():]
+        tokens = _NUM_TOKEN_RE.findall(rest)
+        nums = [parse_amount(tok) for tok in tokens]
         nums = [n for n in nums if n is not None]
-        if not nums:
+        if d is None or not nums:
             pending.append(line)
             continue
 
-        body = m.group("body").strip()
+        # body = the rest of the line minus money tokens and column-placeholder dashes
+        body = _NUM_TOKEN_RE.sub(" ", rest)
+        body = re.sub(r"\s-(?=\s|$)", " ", body)
+        body = re.sub(r"\s+", " ", body).strip(" -")
         desc = " ".join(pending + ([body] if body else [])).strip()[:800]
         pending.clear()
 
         balance: float | None = None
         debit = credit = 0.0
+        is_debit: bool | None = None
 
         if len(nums) >= 2:
-            balance = abs(nums[-1])
-            amount_tokens = nums[:-1]
-            # pick the transaction amount: single token, or the non-zero one
-            nonzero = [n for n in amount_tokens if abs(n) > 0.004]
-            amt = nonzero[0] if nonzero else amount_tokens[0]
+            balance = nums[-1]  # keep the sign: 'DR' balances (overdrawn/CC accounts) are negative
+            amount_tokens = [abs(n) for n in nums[:-1]]
+            amt = None
+            # balance arithmetic picks BOTH the right amount token and the direction
+            if prev_balance is not None:
+                for cand in amount_tokens:
+                    if abs((prev_balance - cand) - balance) <= 0.02:
+                        amt, is_debit = cand, True
+                        break
+                    if abs((prev_balance + cand) - balance) <= 0.02:
+                        amt, is_debit = cand, False
+                        break
+            if amt is None:
+                nonzero = [n for n in amount_tokens if n > 0.004]
+                amt = nonzero[0] if nonzero else amount_tokens[0]
         else:
             amt = nums[0]
 
-        is_debit = _resolve_direction(amt, desc, prev_balance, balance)
+        if is_debit is None:
+            is_debit = _resolve_direction(amt, desc, prev_balance, balance)
+        else:
+            balance_direction_hits += 1
         if is_debit is None:
             # last resort keyword guess
             is_debit = not _CREDIT_HINTS.search(desc)
-        elif balance is not None and prev_balance is not None:
-            balance_direction_hits += 1
 
         if is_debit:
             debit = abs(amt)

@@ -38,6 +38,48 @@ function monthlySvg(monthly) {
   </svg>`
 }
 
+function bounceSection(report) {
+  const bounce = report.bounce
+  const all = [...(bounce.cheque_bounces || []), ...(bounce.ecs_nach_bounces || [])]
+  const penalties = bounce.penalty_charges || []
+  const byMonth = {}
+  for (const t of all) {
+    const m = t.date.slice(0, 7)
+    byMonth[m] = byMonth[m] || { bounces: 0, amount: 0, penalty: 0 }
+    byMonth[m].bounces += 1
+    byMonth[m].amount += t.debit || t.credit || 0
+  }
+  for (const t of penalties) {
+    const m = t.date.slice(0, 7)
+    byMonth[m] = byMonth[m] || { bounces: 0, amount: 0, penalty: 0 }
+    byMonth[m].penalty += t.debit || 0
+  }
+  const months = Object.entries(byMonth).sort(([a], [b]) => a.localeCompare(b))
+
+  if (!all.length && !penalties.length) {
+    return `<div class="card"><h2>Bounce / return transactions — month-wise</h2>
+      <div class="okline">Clean record — no cheque/ECS/NACH returns in any month ✓</div></div>`
+  }
+  const monthRows = months.map(([m, v]) => `
+    <tr><td>${esc(monthLabel(m))}</td>
+      <td class="num neg">${v.bounces}</td>
+      <td class="num">${money(v.amount)}</td>
+      <td class="num">${money(v.penalty)}</td></tr>`).join('')
+  const txnRows = all.slice(0, 10).map((t) => `
+    <tr><td class="mut">${esc(t.date)}</td><td>${esc(t.description.slice(0, 90))}</td>
+    <td class="num">${money(t.debit || t.credit)}</td></tr>`).join('')
+
+  return `<div class="card"><h2>Bounce / return transactions — month-wise</h2>
+    <div class="tf" style="margin-bottom:8px">${bounce.bounce_count} bounce/return event(s) across
+      ${months.filter(([, v]) => v.bounces > 0).length} month(s) ·
+      penalty charges ${money(bounce.total_penalty_amount)} (${penalties.length} charge(s))</div>
+    <table><thead><tr><th>Month</th><th class="num">Bounces</th><th class="num">Amount</th><th class="num">Penalties</th></tr></thead>
+    <tbody>${monthRows}</tbody></table>
+    ${txnRows ? `<h2 style="margin-top:14px">Bounce transactions</h2>
+      <table><tbody>${txnRows}</tbody></table>` : ''}
+  </div>`
+}
+
 export function buildQuickReportHtml(report, fileNames) {
   const s = report.summary
   const flags = report.red_flags
@@ -51,13 +93,15 @@ export function buildQuickReportHtml(report, fileNames) {
         </div>`).join('')
     : '<div class="okline">No red flags detected ✓</div>'
 
+  const bouncesByMonth = report.bounce.bounces_by_month || {}
   const monthRows = report.monthly.map((m) => `
     <tr><td>${esc(monthLabel(m.month))}</td>
       <td class="num pos">${money(m.total_credit)}</td>
       <td class="num">${money(m.total_debit)}</td>
       <td class="num ${m.net_flow >= 0 ? 'pos' : 'neg'}">${money(m.net_flow)}</td>
       <td class="num">${money(m.avg_daily_balance)}</td>
-      <td class="num">${money(m.closing_balance)}</td></tr>`).join('')
+      <td class="num">${money(m.closing_balance)}</td>
+      <td class="num ${bouncesByMonth[m.month] ? 'neg' : ''}">${bouncesByMonth[m.month] || 0}</td></tr>`).join('')
 
   const txnRows = (rows, key) => rows.slice(0, 5).map((t) => `
     <tr><td class="mut">${esc(t.date)}</td><td>${esc(t.description.slice(0, 70))}</td>
@@ -107,11 +151,12 @@ export function buildQuickReportHtml(report, fileNames) {
   </div>
 
   <div class="card"><h2>Monthly credits vs debits</h2>${monthlySvg(report.monthly)}
-    <table style="margin-top:10px"><thead><tr><th>Month</th><th class="num">Credits</th><th class="num">Debits</th><th class="num">Net</th><th class="num">Avg daily bal</th><th class="num">Closing</th></tr></thead>
+    <table style="margin-top:10px"><thead><tr><th>Month</th><th class="num">Credits</th><th class="num">Debits</th><th class="num">Net</th><th class="num">Avg daily bal</th><th class="num">Closing</th><th class="num">Bounces</th></tr></thead>
     <tbody>${monthRows}</tbody></table></div>
 
-  <div class="card"><h2>Red flags (${flags.length})</h2>${flagRows}
-    <div class="tf" style="margin-top:6px">Bounces: ${report.bounce.bounce_count} · penalty charges ${money(report.bounce.total_penalty_amount)}</div></div>
+  ${bounceSection(report)}
+
+  <div class="card"><h2>Red flags (${flags.length})</h2>${flagRows}</div>
 
   <div class="card"><h2>Cash &amp; obligations snapshot</h2><table><tbody>
     <tr><td>Cash deposits</td><td class="num">${money(report.cash.cash_deposit_total)} (${report.cash.cash_deposit_pct_of_inflow}% of inflow)</td></tr>

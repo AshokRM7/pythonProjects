@@ -5,10 +5,17 @@ declare a loan -> run analysis -> print key results.
 
 Run:  python scripts/e2e_test.py
 """
+import os
 import sys
+import tempfile
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
+# use a throwaway database so test runs never touch the real credisight.db
+_tmp_db = Path(tempfile.gettempdir()) / "credisight_e2e_test.db"
+_tmp_db.unlink(missing_ok=True)
+os.environ["DATABASE_URL"] = f"sqlite:///{_tmp_db}"
 
 from fastapi.testclient import TestClient  # noqa: E402
 from app.main import app  # noqa: E402

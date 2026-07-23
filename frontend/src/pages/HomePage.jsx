@@ -222,6 +222,8 @@ function QuickReport({ report }) {
         </div>
       )}
 
+      <BounceCard bounce={report.bounce} monthly={monthly} />
+
       <div className="grid cols-2">
         <div className="card">
           <h3>Red flags ({flags.length})</h3>
@@ -233,9 +235,6 @@ function QuickReport({ report }) {
               <div className="msg">{f.message}</div>
             </div>
           ))}
-          <div className="muted small" style={{ marginTop: 8 }}>
-            Bounces: <b>{report.bounce.bounce_count}</b> · penalty charges {fmtMoney(report.bounce.total_penalty_amount)}
-          </div>
         </div>
         <div className="card">
           <h3>Cash &amp; obligations snapshot</h3>
@@ -266,6 +265,96 @@ function QuickReport({ report }) {
         report, create the customer under <Link to="/customers">Customers</Link> and upload statements there.
       </div>
     </>
+  )
+}
+
+/* ───────── bounce / return month-wise report ───────── */
+function BounceCard({ bounce, monthly }) {
+  const all = [...bounce.cheque_bounces, ...bounce.ecs_nach_bounces]
+  const penalties = bounce.penalty_charges || []
+
+  // group bounce + penalty transactions by month (YYYY-MM from the txn date)
+  const byMonth = {}
+  for (const t of all) {
+    const m = t.date.slice(0, 7)
+    byMonth[m] = byMonth[m] || { bounces: 0, amount: 0, penalty: 0, txns: [] }
+    byMonth[m].bounces += 1
+    byMonth[m].amount += t.debit || t.credit || 0
+    byMonth[m].txns.push(t)
+  }
+  for (const t of penalties) {
+    const m = t.date.slice(0, 7)
+    byMonth[m] = byMonth[m] || { bounces: 0, amount: 0, penalty: 0, txns: [] }
+    byMonth[m].penalty += t.debit || 0
+  }
+
+  // chart across ALL statement months so clean months visibly read as zero
+  const chartData = monthly.map((m) => ({
+    label: m.label,
+    bounces: byMonth[m.month]?.bounces || 0,
+  }))
+  const monthRows = Object.entries(byMonth).sort(([a], [b]) => a.localeCompare(b))
+
+  return (
+    <div className="card">
+      <h3>Bounce / return transactions — month-wise</h3>
+      <p className="card-sub">
+        <b style={{ color: bounce.bounce_count ? 'var(--critical)' : 'var(--good-text)' }}>
+          {bounce.bounce_count} bounce/return event(s)
+        </b>
+        {' '}across {monthRows.filter(([, v]) => v.bounces > 0).length} month(s) ·
+        penalty charges {fmtMoney(bounce.total_penalty_amount)} ({penalties.length} charge(s))
+      </p>
+
+      {bounce.bounce_count === 0 && penalties.length === 0 ? (
+        <div className="ok-note">Clean record — no cheque/ECS/NACH returns in any month. ✓</div>
+      ) : (
+        <div className="grid cols-2">
+          <div>
+            <ResponsiveContainer width="100%" height={180}>
+              <BarChart data={chartData}>
+                <CartesianGrid stroke={C.grid} vertical={false} />
+                <XAxis dataKey="label" tick={axisStyle} tickLine={false} axisLine={{ stroke: '#c3c2b7' }} />
+                <YAxis allowDecimals={false} tick={axisStyle} axisLine={false} tickLine={false} />
+                <Tooltip cursor={{ fill: 'rgba(11,11,11,0.04)' }} />
+                <Bar dataKey="bounces" name="Bounces" fill={C.red} radius={[4, 4, 0, 0]} maxBarSize={26} />
+              </BarChart>
+            </ResponsiveContainer>
+            <div className="muted small">Bounce count per statement month.</div>
+          </div>
+          <table className="data">
+            <thead>
+              <tr><th>Month</th><th className="num">Bounces</th><th className="num">Amount</th><th className="num">Penalties</th></tr>
+            </thead>
+            <tbody>
+              {monthRows.map(([m, v]) => (
+                <tr key={m}>
+                  <td style={{ fontWeight: 600 }}>{fmtMonth(m)}</td>
+                  <td className="num" style={{ color: v.bounces ? 'var(--critical)' : undefined, fontWeight: 600 }}>{v.bounces}</td>
+                  <td className="num">{fmtMoney(v.amount)}</td>
+                  <td className="num">{fmtMoney(v.penalty)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {all.length > 0 && (
+        <table className="data" style={{ marginTop: 12 }}>
+          <thead><tr><th>Date</th><th>Description</th><th className="num">Amount</th></tr></thead>
+          <tbody>
+            {all.slice(0, 10).map((t) => (
+              <tr key={`${t.id}-${t.date}`}>
+                <td className="muted" style={{ whiteSpace: 'nowrap' }}>{t.date}</td>
+                <td>{t.description.slice(0, 90)}</td>
+                <td className="num" style={{ fontWeight: 600 }}>{fmtMoney(t.debit || t.credit)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+    </div>
   )
 }
 

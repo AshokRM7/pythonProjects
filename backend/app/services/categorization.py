@@ -21,14 +21,14 @@ class Categorized:
 # (category, compiled pattern) — first match wins. Order matters:
 # bounce/penalty before generic loan; salary before generic transfer-in.
 _RULES: list[tuple[str, re.Pattern]] = [
-    ("cheque_bounce", re.compile(
-        r"chq\s*(rtn|return|bounce|dishonou?r)|cheque\s*(rtn|return|bounce|dishonou?r)|"
-        r"(rtn|return).*(chq|cheque)|inward\s*(chq|clg)\s*(rtn|return)|outward.*dishonou?r", re.I)),
     ("penalty_charge", re.compile(
         r"(rtn|return|bounce|dishonou?r|penal)[\s\-/]*(chg|chgs|charge|charges|fee)|"
         r"(chq|cheque|ach|ecs|nach|emi|mandate)[\s\-/]*(rtn|return)?[\s\-/]*(chg|chgs|charge|charges)|"
         r"min(imum)?\s*bal(ance)?\s*(chg|charge|fee|penalty)|non[-\s]*maint(enance)?\s*(chg|charge)|"
         r"late\s*payment\s*(fee|chg|charge)|overdue\s*(chg|charge)", re.I)),
+    ("cheque_bounce", re.compile(
+        r"chq\s*(rtn|return|bounce|dishonou?r)|cheque\s*(rtn|return|bounce|dishonou?r)|"
+        r"(rtn|return).*(chq|cheque)|inward\s*(chq|clg)\s*(rtn|return)|outward.*dishonou?r", re.I)),
     ("ecs_bounce", re.compile(
         r"(ach|ecs|nach|si|emi|mandate)[\s\-/]*(rtn|return|fail|bounce|dishonou?r|reject)|"
         r"(rtn|return|reject).*\b(ach|ecs|nach)\b|insufficient\s*funds|funds\s*insufficient", re.I)),

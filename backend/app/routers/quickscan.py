@@ -90,7 +90,7 @@ def quick_scan(files: list[UploadFile] = File(...)):
         "summary": summary,
         "monthly": monthly,
         "cash": cash,
-        "bounce": {k: bounce[k] for k in ("bounce_count", "total_penalty_amount", "bounces_by_month")},
+        "bounce": bounce,  # full detail: cheque/ECS lists, penalties, month-wise counts
         "red_flags": flags,
         "major_transactions": major,
         "income_brief": {
