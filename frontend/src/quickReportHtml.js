@@ -110,7 +110,7 @@ export function buildQuickReportHtml(report, fileNames) {
   return `<!DOCTYPE html>
 <html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Quick Scan Report — ${esc(s.period_start)} to ${esc(s.period_end)}</title>
+<title>Quick Scan Report — ${esc(fileNames.filter(Boolean).join(', ') || 'statement')} (${esc(s.period_start)} to ${esc(s.period_end)})</title>
 <style>
   body{font-family:system-ui,-apple-system,"Segoe UI",sans-serif;color:#0b0b0b;background:#f9f9f7;margin:0;padding:32px;font-size:14px;line-height:1.5}
   .wrap{max-width:880px;margin:0 auto}

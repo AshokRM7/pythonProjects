@@ -50,14 +50,36 @@ export default function HomePage() {
 
   const reset = () => { setFiles([]); setReport(null); setErr('') }
 
+  // report file name: <statement name>_<timestamp>_report — e.g.
+  // "canara_epassbook_2026-07-23_18-45-02_report.html"
+  const reportBaseName = () => {
+    const names = (report?.files || []).map((f) => f.filename).filter(Boolean)
+    let base = (names[0] || 'statement').replace(/\.[^.]+$/, '')          // strip extension
+    base = base.replace(/[\\/:*?"<>|]+/g, ' ').replace(/\s+/g, ' ').trim() // filesystem-safe
+    if (names.length > 1) base += `_and_${names.length - 1}_more`
+    const d = new Date()
+    const pad = (n) => String(n).padStart(2, '0')
+    const ts = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}_${pad(d.getHours())}-${pad(d.getMinutes())}-${pad(d.getSeconds())}`
+    return `${base}_${ts}_report`
+  }
+
   const downloadHtml = () => {
-    const html = buildQuickReportHtml(report, files.map((f) => f.name))
+    const html = buildQuickReportHtml(report, (report?.files || []).map((f) => f.filename))
     const blob = new Blob([html], { type: 'text/html;charset=utf-8' })
     const a = document.createElement('a')
     a.href = URL.createObjectURL(blob)
-    a.download = `quick-scan-report-${new Date().toISOString().slice(0, 10)}.html`
+    a.download = `${reportBaseName()}.html`
     a.click()
     URL.revokeObjectURL(a.href)
+  }
+
+  // browsers use the page title as the suggested "save as PDF" filename
+  const printReport = () => {
+    const original = document.title
+    document.title = reportBaseName()
+    const restore = () => { document.title = original; window.removeEventListener('afterprint', restore) }
+    window.addEventListener('afterprint', restore)
+    window.print()
   }
 
   return (
@@ -122,7 +144,7 @@ export default function HomePage() {
           <div className="qs-report-head">
             <h2>Quick scan report</h2>
             <div style={{ display: 'flex', gap: 10 }} className="no-print">
-              <button className="btn ghost" onClick={() => window.print()}>🖨 Print / save PDF</button>
+              <button className="btn ghost" onClick={printReport}>🖨 Print / save PDF</button>
               <button className="btn primary" onClick={downloadHtml}>⬇ Download report</button>
             </div>
           </div>
