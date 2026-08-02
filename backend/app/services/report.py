@@ -26,6 +26,7 @@ def build_report(customer: dict, txns: list[A.Txn], declared_loans: list[dict],
     patterns = A.pattern_analysis(txns)
     major = A.major_transactions(txns)
     unusual = A.unusual_transactions(txns, settings.high_value_txn_threshold)
+    disbursements = A.loan_disbursements(txns)
     flags = A.red_flags(txns, monthly, income, emi, bounce, cash, summary, settings)
     capacity = A.repayment_capacity(
         income, emi, declared_loans, summary, proposal.get("proposed_emi", 0.0), settings)
@@ -48,6 +49,7 @@ def build_report(customer: dict, txns: list[A.Txn], declared_loans: list[dict],
         "income": income,
         "emi": emi,
         "bounce": bounce,
+        "loan_disbursements": disbursements,
         "cash": cash,
         "patterns": patterns,
         "major_transactions": major,

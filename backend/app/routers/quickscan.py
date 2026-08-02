@@ -85,12 +85,16 @@ def quick_scan(files: list[UploadFile] = File(...)):
         step = len(series) // 300 + 1
         series = series[::step]
 
+    disbursements = A.loan_disbursements(txns)
+
     return {
         "files": file_reports,
         "summary": summary,
         "monthly": monthly,
         "cash": cash,
         "bounce": bounce,  # full detail: cheque/ECS lists, penalties, month-wise counts
+        "emi": emi,        # full detail: recurring patterns, flat debit list, month-wise outgo
+        "loan_disbursements": disbursements,
         "red_flags": flags,
         "major_transactions": major,
         "income_brief": {

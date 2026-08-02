@@ -38,20 +38,33 @@ function monthlySvg(monthly) {
   </svg>`
 }
 
+const KIND_LABEL = {
+  cheque: 'cheque return',
+  ecs_nach: 'ACH/ECS return',
+  inferred_from_charge: 'inferred from return charge',
+}
+
 function bounceSection(report) {
   const bounce = report.bounce
-  const all = [...(bounce.cheque_bounces || []), ...(bounce.ecs_nach_bounces || [])]
+  const all = bounce.bounce_events
+    || [...(bounce.cheque_bounces || []), ...(bounce.ecs_nach_bounces || [])].map((t) => ({ ...t, kind: 'cheque' }))
   const penalties = bounce.penalty_charges || []
+  const inferredCount = bounce.inferred_bounce_count
+    ?? all.filter((t) => t.kind === 'inferred_from_charge').length
+
   const byMonth = {}
   for (const t of all) {
     const m = t.date.slice(0, 7)
-    byMonth[m] = byMonth[m] || { bounces: 0, amount: 0, penalty: 0 }
+    byMonth[m] = byMonth[m] || { bounces: 0, amount: 0, hasExplicit: false, penalty: 0 }
     byMonth[m].bounces += 1
-    byMonth[m].amount += t.debit || t.credit || 0
+    if (t.kind !== 'inferred_from_charge') {
+      byMonth[m].amount += t.debit || t.credit || 0
+      byMonth[m].hasExplicit = true
+    }
   }
   for (const t of penalties) {
     const m = t.date.slice(0, 7)
-    byMonth[m] = byMonth[m] || { bounces: 0, amount: 0, penalty: 0 }
+    byMonth[m] = byMonth[m] || { bounces: 0, amount: 0, hasExplicit: false, penalty: 0 }
     byMonth[m].penalty += t.debit || 0
   }
   const months = Object.entries(byMonth).sort(([a], [b]) => a.localeCompare(b))
@@ -63,20 +76,74 @@ function bounceSection(report) {
   const monthRows = months.map(([m, v]) => `
     <tr><td>${esc(monthLabel(m))}</td>
       <td class="num neg">${v.bounces}</td>
-      <td class="num">${money(v.amount)}</td>
+      <td class="num">${v.hasExplicit ? money(v.amount) : '<span class="mut">—</span>'}</td>
       <td class="num">${money(v.penalty)}</td></tr>`).join('')
   const txnRows = all.slice(0, 10).map((t) => `
-    <tr><td class="mut">${esc(t.date)}</td><td>${esc(t.description.slice(0, 90))}</td>
+    <tr><td class="mut">${esc(t.date)}</td><td>${esc(t.description.slice(0, 80))}</td>
+    <td class="mut">${esc(KIND_LABEL[t.kind] || 'return')}</td>
     <td class="num">${money(t.debit || t.credit)}</td></tr>`).join('')
 
+  const inferredNote = inferredCount > 0
+    ? ` · ${inferredCount} event(s) inferred from return charges — this bank shows only the fee, not the returned instrument`
+    : ''
   return `<div class="card"><h2>Bounce / return transactions — month-wise</h2>
     <div class="tf" style="margin-bottom:8px">${bounce.bounce_count} bounce/return event(s) across
       ${months.filter(([, v]) => v.bounces > 0).length} month(s) ·
-      penalty charges ${money(bounce.total_penalty_amount)} (${penalties.length} charge(s))</div>
-    <table><thead><tr><th>Month</th><th class="num">Bounces</th><th class="num">Amount</th><th class="num">Penalties</th></tr></thead>
+      penalty charges ${money(bounce.total_penalty_amount)} (${penalties.length} charge(s))${inferredNote}</div>
+    <table><thead><tr><th>Month</th><th class="num">Bounces</th><th class="num">Returned amt</th><th class="num">Penalties</th></tr></thead>
     <tbody>${monthRows}</tbody></table>
-    ${txnRows ? `<h2 style="margin-top:14px">Bounce transactions</h2>
+    ${txnRows ? `<h2 style="margin-top:14px">Bounce events${all.length > 10 ? ` (first 10 of ${all.length})` : ''}</h2>
       <table><tbody>${txnRows}</tbody></table>` : ''}
+  </div>`
+}
+
+function emiSection(report) {
+  const emi = report.emi
+  if (!emi) return ''
+  const debits = emi.emi_debits || []
+  if (!debits.length) {
+    return `<div class="card"><h2>EMI / loan repayments — month-wise</h2>
+      <div class="okline">No EMI/loan-repayment debits detected in the narrations ✓</div></div>`
+  }
+  const monthRows = Object.entries(emi.by_month || {}).map(([m, v]) => `
+    <tr><td>${esc(monthLabel(m))}</td><td class="num">${v.count}</td><td class="num">${money(v.total)}</td></tr>`).join('')
+  const patternRows = (emi.detected_emis || []).slice(0, 8).map((e) => `
+    <tr><td>${esc(e.lender_hint)}</td><td class="num">${money(e.emi_amount)}</td>
+    <td class="num">${e.occurrences}×</td><td>${e.recurring ? 'recurring' : 'ad-hoc'}</td></tr>`).join('')
+  const debitRows = debits.slice(0, 15).map((t) => `
+    <tr><td class="mut">${esc(t.date)}</td><td>${esc(t.lender_hint)}</td>
+    <td class="mut">${esc(t.description.slice(0, 60))}</td>
+    <td class="num">${money(t.debit)}</td></tr>`).join('')
+  return `<div class="card"><h2>EMI / loan repayments — month-wise</h2>
+    <div class="tf" style="margin-bottom:8px">${debits.length} EMI/loan debit(s) totalling ${money(emi.total_emi_debits)} ·
+      estimated recurring outgo ${money(emi.estimated_monthly_emi_outgo)}/mo · ${(emi.detected_emis || []).length} lender pattern(s)</div>
+    <div class="cols">
+      <div><table><thead><tr><th>Month</th><th class="num">Debits</th><th class="num">EMI outgo</th></tr></thead>
+        <tbody>${monthRows}</tbody></table></div>
+      <div><table><thead><tr><th>Lender</th><th class="num">EMI</th><th class="num">Paid</th><th>Type</th></tr></thead>
+        <tbody>${patternRows}</tbody></table></div>
+    </div>
+    <h2 style="margin-top:14px">EMI debits${debits.length > 15 ? ` (first 15 of ${debits.length})` : ''}</h2>
+    <table><tbody>${debitRows}</tbody></table>
+  </div>`
+}
+
+function disbursementSection(report) {
+  const disb = report.loan_disbursements
+  if (!disb) return ''
+  if (!disb.count) {
+    return `<div class="card"><h2>New loan disbursements</h2>
+      <div class="okline">No loan disbursement credits detected during the period ✓</div></div>`
+  }
+  const rows = disb.events.slice(0, 10).map((e) => `
+    <tr><td class="mut">${esc(e.date)}</td><td>${esc(e.description.slice(0, 80))}</td>
+    <td class="mut">${esc(e.confidence)}</td><td class="num">${money(e.credit)}</td></tr>`).join('')
+  return `<div class="card"><h2>New loan disbursements</h2>
+    <div class="tf" style="margin-bottom:8px">${disb.count} disbursement credit(s) totalling ${money(disb.total_amount)}
+      during the period${disb.probable_count ? ` · ${disb.probable_count} inferred from lender-name + lump-sum pattern` : ''} —
+      new borrowing highlighted separately from trading/income credits.</div>
+    <table><thead><tr><th>Date</th><th>Narration</th><th>Detection</th><th class="num">Amount</th></tr></thead>
+    <tbody>${rows}</tbody></table>
   </div>`
 }
 
@@ -155,6 +222,10 @@ export function buildQuickReportHtml(report, fileNames) {
     <tbody>${monthRows}</tbody></table></div>
 
   ${bounceSection(report)}
+
+  ${emiSection(report)}
+
+  ${disbursementSection(report)}
 
   <div class="card"><h2>Red flags (${flags.length})</h2>${flagRows}</div>
 

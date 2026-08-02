@@ -49,6 +49,7 @@ export default function ReportPage() {
         <BounceCard bounce={r.bounce} />
         <CashCard cash={r.cash} />
       </div>
+      {r.loan_disbursements && <DisbursementsCard disb={r.loan_disbursements} />}
       <RedFlagsCard flags={r.red_flags} />
       <CapacityCard cap={r.capacity} proposal={r.proposal} />
       <PatternsCard patterns={r.patterns} />
@@ -240,25 +241,36 @@ function EmiCard({ emi, declared }) {
 }
 
 /* ───────── bounce ───────── */
+const BOUNCE_KIND_LABEL = {
+  cheque: 'cheque return',
+  ecs_nach: 'ACH/ECS return',
+  inferred_from_charge: 'inferred from return charge',
+}
+
 function BounceCard({ bounce }) {
-  const all = [...bounce.cheque_bounces, ...bounce.ecs_nach_bounces]
+  const all = bounce.bounce_events
+    || [...bounce.cheque_bounces, ...bounce.ecs_nach_bounces].map((t) => ({ ...t, kind: 'cheque' }))
+  const inferredCount = bounce.inferred_bounce_count
+    ?? all.filter((t) => t.kind === 'inferred_from_charge').length
   return (
     <div className="card">
       <h3>Bounces &amp; penalties</h3>
       <p className="card-sub">
         <b style={{ color: bounce.bounce_count ? 'var(--critical)' : 'var(--good-text)' }}>{bounce.bounce_count} bounce/return event(s)</b>
         {' '}· penalty charges {fmtMoney(bounce.total_penalty_amount)} ({bounce.penalty_charges.length} charge(s))
+        {inferredCount > 0 && <> · {inferredCount} inferred from return charges</>}
       </p>
       {all.length === 0 ? (
         <div className="empty">Clean record — no cheque/ECS/NACH returns found. ✓</div>
       ) : (
         <table className="data">
-          <thead><tr><th>Date</th><th>Description</th><th className="num">Amount</th></tr></thead>
+          <thead><tr><th>Date</th><th>Description</th><th>Type</th><th className="num">Amount</th></tr></thead>
           <tbody>
             {all.slice(0, 8).map((t) => (
               <tr key={t.id}>
                 <td className="muted" style={{ whiteSpace: 'nowrap' }}>{t.date}</td>
-                <td>{t.description}</td>
+                <td>{t.description.slice(0, 90)}</td>
+                <td><span className={`pill ${t.kind === 'inferred_from_charge' ? 'yellow' : 'red'}`}>{BOUNCE_KIND_LABEL[t.kind] || 'return'}</span></td>
                 <td className="num">{fmtMoney(t.debit || t.credit)}</td>
               </tr>
             ))}
@@ -319,6 +331,40 @@ function RedFlagsCard({ flags }) {
           </div>
         </div>
       ))}
+    </div>
+  )
+}
+
+/* ───────── loan disbursements ───────── */
+function DisbursementsCard({ disb }) {
+  return (
+    <div className="card">
+      <h3>New loan disbursements</h3>
+      <p className="card-sub">Lump-sum loan credits received during the statement period.</p>
+      {disb.count === 0 ? (
+        <div className="ok-note">No loan disbursement credits detected. ✓</div>
+      ) : (
+        <>
+          <p className="small" style={{ marginTop: 0 }}>
+            <b style={{ color: 'var(--critical)' }}>{disb.count} disbursement credit(s)</b> totalling{' '}
+            <b>{fmtMoney(disb.total_amount)}</b>
+            {disb.probable_count > 0 && <> · {disb.probable_count} inferred from lender-name + lump-sum pattern</>}
+          </p>
+          <table className="data">
+            <thead><tr><th>Date</th><th>Narration</th><th>Detection</th><th className="num">Amount</th></tr></thead>
+            <tbody>
+              {disb.events.slice(0, 10).map((e) => (
+                <tr key={`${e.id}-${e.date}`}>
+                  <td className="muted" style={{ whiteSpace: 'nowrap' }}>{e.date}</td>
+                  <td>{e.description.slice(0, 80)}</td>
+                  <td><span className={`pill ${e.confidence === 'explicit' ? 'red' : 'yellow'}`}>{e.confidence}</span></td>
+                  <td className="num" style={{ fontWeight: 600 }}>{fmtMoney(e.credit)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </>
+      )}
     </div>
   )
 }

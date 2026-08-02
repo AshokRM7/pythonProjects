@@ -220,6 +220,17 @@ def _desc_signature(desc: str) -> str:
     return s[:60]
 
 
+def _display_hint(counterparty: str, desc: str) -> str:
+    """Human-readable lender/source label: counterparty if known, else the
+    narration with long reference-number runs stripped."""
+    if counterparty:
+        return counterparty.title()[:40]
+    s = re.sub(r"\d{4,}", "", desc or "")
+    s = re.sub(r"[/\-]{2,}", "/", s)
+    s = re.sub(r"\s+", " ", s).strip(" /-")
+    return (s[:40] or "unknown").title()
+
+
 def _is_monthly_cadence(dates: list[date]) -> bool:
     if len(dates) < 2:
         return False
@@ -302,7 +313,7 @@ def emi_analysis(txns: list[Txn]) -> dict:
         dates = [t.txn_date for t in group]
         recurring = len(group) >= 2 and _is_monthly_cadence(dates)
         detected.append({
-            "lender_hint": group[0].counterparty or _desc_signature(group[0].description)[:50] or "unknown",
+            "lender_hint": _display_hint(group[0].counterparty, group[0].description),
             "emi_amount": _r(statistics.median(amounts)),
             "occurrences": len(group),
             "recurring": recurring,
@@ -315,25 +326,115 @@ def emi_analysis(txns: list[Txn]) -> dict:
     monthly_emi = sum(d["emi_amount"] for d in detected if d["recurring"] or d["occurrences"] >= 2)
     if monthly_emi == 0 and detected:
         monthly_emi = sum(d["emi_amount"] for d in detected)
+
+    by_month: dict[str, dict] = defaultdict(lambda: {"total": 0.0, "count": 0})
+    for t in emi_txns:
+        by_month[t.month]["total"] += t.debit
+        by_month[t.month]["count"] += 1
+
+    emi_debits = [{
+        **txn_brief(t),
+        "lender_hint": _display_hint(t.counterparty, t.description),
+    } for t in emi_txns]
+
     return {
         "detected_emis": detected,
         "estimated_monthly_emi_outgo": _r(monthly_emi),
         "total_emi_debits": _r(sum(t.debit for t in emi_txns)),
         "emi_txn_count": len(emi_txns),
+        "emi_debits": emi_debits,
+        "by_month": {k: {"total": _r(v["total"]), "count": v["count"]}
+                     for k, v in sorted(by_month.items())},
+    }
+
+
+# ------------------------------------------------------------------ loan disbursements
+_LENDER_NAME_RE = re.compile(
+    r"bajaj|hdb\s*fin|tvs\s*cred|chola|lichfl|fullerton|iifl|tata\s*cap|aditya\s*birla|"
+    r"muthoot|home\s*credit|dmi\s*fin|indiabulls|credit\s*saison|"
+    r"fin(ance|serv|corp)\b|nbfc|lending|\bloan\b", re.IGNORECASE)
+
+
+def loan_disbursements(txns: list[Txn]) -> dict:
+    """Detect new loan money credited into the account during the period.
+
+    - explicit: narration carries disbursement wording (category loan_credit)
+    - probable: large lump-sum credit (≥ ₹1L and ≥ 3x the median credit)
+      whose narration names a lender/NBFC but lacks explicit wording
+    """
+    explicit = [t for t in txns if t.category == "loan_credit" and t.credit > 0]
+    used = {t.id for t in explicit}
+
+    # inward credits worded as repayments/EMI are money OWED being returned,
+    # not new borrowing — exclude them from disbursement inference
+    _repayment_wording = re.compile(r"repay|\bemi\b|recovery|instal", re.IGNORECASE)
+    probable = [
+        t for t in txns
+        if t.credit >= 100000.0 and t.id not in used
+        and t.category in ("transfer_in", "transfer", "uncategorized")
+        and _LENDER_NAME_RE.search(t.description)
+        and not _repayment_wording.search(t.description)
+    ]
+
+    events = (
+        [{**txn_brief(t), "confidence": "explicit"} for t in explicit]
+        + [{**txn_brief(t), "confidence": "probable"} for t in probable]
+    )
+    events.sort(key=lambda e: e["date"])
+    by_month: dict[str, float] = defaultdict(float)
+    for e in events:
+        by_month[e["date"][:7]] += e["credit"]
+    return {
+        "count": len(events),
+        "explicit_count": len(explicit),
+        "probable_count": len(probable),
+        "total_amount": _r(sum(e["credit"] for e in events)),
+        "events": events,
+        "by_month": {k: _r(v) for k, v in sorted(by_month.items())},
     }
 
 
 # ------------------------------------------------------------------ bounces
+_RETURN_CHARGE_RE = re.compile(r"rtn|return|bounce|dishonou?r|reject", re.IGNORECASE)
+
+
 def bounce_analysis(txns: list[Txn]) -> dict:
-    bounces = [t for t in txns if t.category in BOUNCE_CATEGORIES]
+    """Bounce/return events, month-wise.
+
+    Some banks never print the returned instrument as its own transaction —
+    only the return CHARGE appears (e.g. "Inward Chq Return Charge"). A return
+    fee cannot exist without a bounce, so each return-related charge with no
+    explicit bounce transaction within ±3 days is counted as an inferred
+    bounce event (labeled as such so the analyst knows the source).
+    """
+    explicit = [t for t in txns if t.category in BOUNCE_CATEGORIES]
     penalties = [t for t in txns if t.category == "penalty_charge"]
+    return_charges = [t for t in penalties if _RETURN_CHARGE_RE.search(t.description)]
+
+    explicit_dates = [t.txn_date for t in explicit]
+    inferred = [
+        c for c in return_charges
+        if not any(abs((c.txn_date - d).days) <= 3 for d in explicit_dates)
+    ]
+
+    events = (
+        [{**txn_brief(t), "kind": "cheque" if t.category == "cheque_bounce" else "ecs_nach"}
+         for t in explicit]
+        + [{**txn_brief(t), "kind": "inferred_from_charge"} for t in inferred]
+    )
+    events.sort(key=lambda e: e["date"])
+
     by_month: dict[str, int] = defaultdict(int)
-    for t in bounces:
-        by_month[t.month] += 1
+    for e in events:
+        by_month[e["date"][:7]] += 1
+
     return {
-        "bounce_count": len(bounces),
-        "cheque_bounces": [txn_brief(t) for t in bounces if t.category == "cheque_bounce"],
-        "ecs_nach_bounces": [txn_brief(t) for t in bounces if t.category == "ecs_bounce"],
+        "bounce_count": len(events),
+        "explicit_bounce_count": len(explicit),
+        "inferred_bounce_count": len(inferred),
+        "bounce_events": events,
+        "cheque_bounces": [txn_brief(t) for t in explicit if t.category == "cheque_bounce"],
+        "ecs_nach_bounces": [txn_brief(t) for t in explicit if t.category == "ecs_bounce"],
         "penalty_charges": [txn_brief(t) for t in penalties],
         "total_penalty_amount": _r(sum(t.debit for t in penalties)),
         "bounces_by_month": dict(sorted(by_month.items())),
@@ -473,10 +574,12 @@ def red_flags(txns: list[Txn], monthly: list[dict], income: dict, emi: dict,
 
     if bounce["bounce_count"] > 0:
         sev = "high" if bounce["bounce_count"] >= 3 else "medium"
+        inferred = bounce.get("inferred_bounce_count", 0)
+        suffix = f", {inferred} inferred from return charges" if inferred else ""
         add(sev, "BOUNCES",
-            f"{bounce['bounce_count']} bounce/return transaction(s) found "
+            f"{bounce['bounce_count']} bounce/return event(s) found{suffix} "
             f"(₹{bounce['total_penalty_amount']:,.0f} in penalty charges).",
-            (bounce["cheque_bounces"] + bounce["ecs_nach_bounces"])[:5])
+            bounce.get("bounce_events", [])[:5])
 
     if summary.get("negative_balance_days", 0) > 0:
         add("high", "NEGATIVE_BALANCE",
@@ -527,6 +630,13 @@ def red_flags(txns: list[Txn], monthly: list[dict], income: dict, emi: dict,
         add("low", "FULL_DEPLETION",
             f"In {len(depleted)} month(s) the closing balance was under 5% of that month's inflow — "
             "little savings buffer.")
+
+    disb = loan_disbursements(txns)
+    if disb["count"] > 0:
+        add("medium", "NEW_LOAN_DISBURSED",
+            f"{disb['count']} loan disbursement credit(s) totalling ₹{disb['total_amount']:,.0f} "
+            "during the period — new borrowing that may explain balance jumps and adds obligations.",
+            disb["events"][:5])
 
     inflow = summary["total_inflow"] or 1.0
     outflow = summary["total_outflow"]

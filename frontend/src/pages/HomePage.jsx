@@ -246,6 +246,9 @@ function QuickReport({ report }) {
 
       <BounceCard bounce={report.bounce} monthly={monthly} />
 
+      {report.emi && <EmiQuickCard emi={report.emi} />}
+      {report.loan_disbursements && <DisbursementsCard disb={report.loan_disbursements} />}
+
       <div className="grid cols-2">
         <div className="card">
           <h3>Red flags ({flags.length})</h3>
@@ -291,22 +294,37 @@ function QuickReport({ report }) {
 }
 
 /* ───────── bounce / return month-wise report ───────── */
-function BounceCard({ bounce, monthly }) {
-  const all = [...bounce.cheque_bounces, ...bounce.ecs_nach_bounces]
-  const penalties = bounce.penalty_charges || []
+const KIND_LABEL = {
+  cheque: 'cheque return',
+  ecs_nach: 'ACH/ECS return',
+  inferred_from_charge: 'inferred from return charge',
+}
 
-  // group bounce + penalty transactions by month (YYYY-MM from the txn date)
+function BounceCard({ bounce, monthly }) {
+  // unified event list (older stored reports may lack bounce_events)
+  const all = bounce.bounce_events
+    || [...bounce.cheque_bounces, ...bounce.ecs_nach_bounces].map((t) => ({ ...t, kind: 'cheque' }))
+  const penalties = bounce.penalty_charges || []
+  const inferredCount = bounce.inferred_bounce_count
+    ?? all.filter((t) => t.kind === 'inferred_from_charge').length
+
+  // group bounce events + penalty charges by month (YYYY-MM from the txn date)
+  // "amount" = returned instrument value, known only for explicit bounces —
+  // for events inferred from fee lines the underlying amount is unknown.
   const byMonth = {}
   for (const t of all) {
     const m = t.date.slice(0, 7)
-    byMonth[m] = byMonth[m] || { bounces: 0, amount: 0, penalty: 0, txns: [] }
+    byMonth[m] = byMonth[m] || { bounces: 0, amount: 0, hasExplicit: false, penalty: 0, txns: [] }
     byMonth[m].bounces += 1
-    byMonth[m].amount += t.debit || t.credit || 0
+    if (t.kind !== 'inferred_from_charge') {
+      byMonth[m].amount += t.debit || t.credit || 0
+      byMonth[m].hasExplicit = true
+    }
     byMonth[m].txns.push(t)
   }
   for (const t of penalties) {
     const m = t.date.slice(0, 7)
-    byMonth[m] = byMonth[m] || { bounces: 0, amount: 0, penalty: 0, txns: [] }
+    byMonth[m] = byMonth[m] || { bounces: 0, amount: 0, hasExplicit: false, penalty: 0, txns: [] }
     byMonth[m].penalty += t.debit || 0
   }
 
@@ -326,6 +344,10 @@ function BounceCard({ bounce, monthly }) {
         </b>
         {' '}across {monthRows.filter(([, v]) => v.bounces > 0).length} month(s) ·
         penalty charges {fmtMoney(bounce.total_penalty_amount)} ({penalties.length} charge(s))
+        {inferredCount > 0 && (
+          <> · {inferredCount} event(s) inferred from return charges — this bank shows only the
+          fee, not the returned instrument itself</>
+        )}
       </p>
 
       {bounce.bounce_count === 0 && penalties.length === 0 ? (
@@ -346,14 +368,14 @@ function BounceCard({ bounce, monthly }) {
           </div>
           <table className="data">
             <thead>
-              <tr><th>Month</th><th className="num">Bounces</th><th className="num">Amount</th><th className="num">Penalties</th></tr>
+              <tr><th>Month</th><th className="num">Bounces</th><th className="num">Returned amt</th><th className="num">Penalties</th></tr>
             </thead>
             <tbody>
               {monthRows.map(([m, v]) => (
                 <tr key={m}>
                   <td style={{ fontWeight: 600 }}>{fmtMonth(m)}</td>
                   <td className="num" style={{ color: v.bounces ? 'var(--critical)' : undefined, fontWeight: 600 }}>{v.bounces}</td>
-                  <td className="num">{fmtMoney(v.amount)}</td>
+                  <td className="num">{v.hasExplicit ? fmtMoney(v.amount) : <span className="muted" title="Only the return fee is visible in the statement">—</span>}</td>
                   <td className="num">{fmtMoney(v.penalty)}</td>
                 </tr>
               ))}
@@ -364,17 +386,124 @@ function BounceCard({ bounce, monthly }) {
 
       {all.length > 0 && (
         <table className="data" style={{ marginTop: 12 }}>
-          <thead><tr><th>Date</th><th>Description</th><th className="num">Amount</th></tr></thead>
+          <thead><tr><th>Date</th><th>Description</th><th>Type</th><th className="num">Amount</th></tr></thead>
           <tbody>
             {all.slice(0, 10).map((t) => (
               <tr key={`${t.id}-${t.date}`}>
                 <td className="muted" style={{ whiteSpace: 'nowrap' }}>{t.date}</td>
-                <td>{t.description.slice(0, 90)}</td>
+                <td>{t.description.slice(0, 80)}</td>
+                <td><span className={`pill ${t.kind === 'inferred_from_charge' ? 'yellow' : 'red'}`}>{KIND_LABEL[t.kind] || 'return'}</span></td>
                 <td className="num" style={{ fontWeight: 600 }}>{fmtMoney(t.debit || t.credit)}</td>
               </tr>
             ))}
           </tbody>
         </table>
+      )}
+      {all.length > 10 && <div className="muted small" style={{ marginTop: 6 }}>Showing first 10 of {all.length} events.</div>}
+    </div>
+  )
+}
+
+/* ───────── EMI / loan repayments ───────── */
+function EmiQuickCard({ emi }) {
+  const months = Object.entries(emi.by_month || {}).map(([m, v]) => ({
+    label: fmtMonth(m), total: v.total, count: v.count,
+  }))
+  const debits = emi.emi_debits || []
+  const patterns = emi.detected_emis || []
+  return (
+    <div className="card">
+      <h3>EMI / loan repayments — month-wise</h3>
+      <p className="card-sub">
+        {debits.length === 0 ? 'No EMI/loan-repayment debits detected in the narrations.' : (
+          <>
+            <b>{debits.length} EMI/loan debit(s)</b> totalling {fmtMoney(emi.total_emi_debits)} ·
+            estimated recurring outgo <b>{fmtMoney(emi.estimated_monthly_emi_outgo)}/mo</b> ·
+            {' '}{patterns.length} lender pattern(s)
+          </>
+        )}
+      </p>
+      {debits.length > 0 && (
+        <>
+          <div className="grid cols-2">
+            <div>
+              <ResponsiveContainer width="100%" height={180}>
+                <BarChart data={months}>
+                  <CartesianGrid stroke={C.grid} vertical={false} />
+                  <XAxis dataKey="label" tick={axisStyle} tickLine={false} axisLine={{ stroke: '#c3c2b7' }} />
+                  <YAxis tick={axisStyle} tickFormatter={moneyTick} axisLine={false} tickLine={false} />
+                  <Tooltip formatter={(v) => fmtMoney(v)} cursor={{ fill: 'rgba(11,11,11,0.04)' }} />
+                  <Bar dataKey="total" name="EMI outgo" fill={C.blue} radius={[4, 4, 0, 0]} maxBarSize={26} />
+                </BarChart>
+              </ResponsiveContainer>
+              <div className="muted small">EMI/loan repayment outgo per month.</div>
+            </div>
+            <table className="data">
+              <thead><tr><th>Lender (from narration)</th><th className="num">EMI</th><th className="num">Paid</th><th>Recurring</th></tr></thead>
+              <tbody>
+                {patterns.slice(0, 8).map((e, i) => (
+                  <tr key={i}>
+                    <td style={{ textTransform: 'capitalize' }}>{e.lender_hint}</td>
+                    <td className="num" style={{ fontWeight: 600 }}>{fmtMoney(e.emi_amount)}</td>
+                    <td className="num muted">{e.occurrences}×</td>
+                    <td>{e.recurring ? <span className="pill green">yes</span> : <span className="pill gray">ad-hoc</span>}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <table className="data" style={{ marginTop: 12 }}>
+            <thead><tr><th>Date</th><th>Lender</th><th>Narration</th><th className="num">Amount</th></tr></thead>
+            <tbody>
+              {debits.slice(0, 12).map((t) => (
+                <tr key={`${t.id}-${t.date}`}>
+                  <td className="muted" style={{ whiteSpace: 'nowrap' }}>{t.date}</td>
+                  <td style={{ textTransform: 'capitalize', fontWeight: 600 }}>{t.lender_hint}</td>
+                  <td className="muted">{t.description.slice(0, 60)}</td>
+                  <td className="num" style={{ fontWeight: 600 }}>{fmtMoney(t.debit)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {debits.length > 12 && <div className="muted small" style={{ marginTop: 6 }}>Showing first 12 of {debits.length} EMI debits.</div>}
+        </>
+      )}
+    </div>
+  )
+}
+
+/* ───────── new loan disbursements ───────── */
+function DisbursementsCard({ disb }) {
+  return (
+    <div className="card">
+      <h3>New loan disbursements</h3>
+      <p className="card-sub">
+        Lump-sum loan credits received during the statement period — new borrowing is highlighted
+        separately so it isn't mistaken for trading/income credits.
+      </p>
+      {disb.count === 0 ? (
+        <div className="ok-note">No loan disbursement credits detected during the period. ✓</div>
+      ) : (
+        <>
+          <p className="small" style={{ marginTop: 0 }}>
+            <b style={{ color: 'var(--critical)' }}>{disb.count} disbursement credit(s)</b> totalling{' '}
+            <b>{fmtMoney(disb.total_amount)}</b>
+            {disb.probable_count > 0 && <> · {disb.probable_count} inferred from lender-name + lump-sum pattern</>}
+          </p>
+          <table className="data">
+            <thead><tr><th>Date</th><th>Narration</th><th>Detection</th><th className="num">Amount</th></tr></thead>
+            <tbody>
+              {disb.events.slice(0, 10).map((e) => (
+                <tr key={`${e.id}-${e.date}`}>
+                  <td className="muted" style={{ whiteSpace: 'nowrap' }}>{e.date}</td>
+                  <td>{e.description.slice(0, 80)}</td>
+                  <td><span className={`pill ${e.confidence === 'explicit' ? 'red' : 'yellow'}`}>{e.confidence}</span></td>
+                  <td className="num" style={{ fontWeight: 600 }}>{fmtMoney(e.credit)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </>
       )}
     </div>
   )
