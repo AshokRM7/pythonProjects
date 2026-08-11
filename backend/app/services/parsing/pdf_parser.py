@@ -87,11 +87,24 @@ def parse_pdf(path: str | Path) -> ParseResult:
     if table_result and n_table:
         return table_result
 
+    # Nothing readable as text — this is a scanned page or a statement whose
+    # text was flattened into vector outlines. Fall back to OCR.
+    from app.services.parsing.ocr import ocr_pdf, pdf_has_text_layer
+
+    if not pdf_has_text_layer(path):
+        ocr_result = ocr_pdf(path)
+        if ocr_result.transactions:
+            return ocr_result
+        r = table_result or text_result
+        r.status = "failed"
+        r.notes = ocr_result.notes or r.notes
+        return r
+
     r = table_result or text_result
     r.status = "failed"
     r.notes.append(
-        f"{path.name}: no transactions found. If this is a scanned/image PDF, "
-        "please upload a digital (text) statement or an Excel/CSV export."
+        f"{path.name}: no transactions found. The page text could not be matched to a "
+        "statement layout — please upload the Excel/CSV export of the same period."
     )
     return r
 

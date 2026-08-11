@@ -165,13 +165,21 @@ function QuickReport({ report }) {
     <>
       <div className="card" style={{ padding: '14px 22px' }}>
         {report.files.map((f) => (
-          <div key={f.filename} className="spread" style={{ padding: '4px 0' }}>
-            <span style={{ fontWeight: 600 }}>📄 {f.filename}</span>
-            <span>
-              <span className={`pill ${f.status === 'parsed' ? 'green' : f.status === 'partial' ? 'yellow' : 'red'}`}>
-                {f.status} · {f.txn_count} txns
+          <div key={f.filename} style={{ padding: '4px 0' }}>
+            <div className="spread">
+              <span style={{ fontWeight: 600 }}>📄 {f.filename}</span>
+              <span>
+                <span className={`pill ${f.status === 'parsed' ? 'green' : f.status === 'partial' ? 'yellow' : 'red'}`}>
+                  {f.status} · {f.txn_count} txns
+                </span>
               </span>
-            </span>
+            </div>
+            {(f.notes || []).map((n, i) => (
+              <div key={i} className={/do not reconcile|misread|skipped|could not/i.test(n) ? 'err' : 'muted small'}
+                   style={{ marginTop: 4 }}>
+                {/do not reconcile|misread/i.test(n) ? '⚠ ' : ''}{n}
+              </div>
+            ))}
           </div>
         ))}
         <div className="muted small" style={{ marginTop: 6 }}>

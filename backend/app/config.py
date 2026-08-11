@@ -25,6 +25,16 @@ class Settings(BaseSettings):
     openai_model: str = "gpt-4o-mini"
     llm_enabled_features: str = "classification,narrative"  # comma separated
 
+    # OCR fallback for PDFs with no text layer (scanned / outlined statements)
+    ocr_enabled: bool = True
+    ocr_engine: str = "auto"          # auto | tesseract | openai | off
+    ocr_dpi: int = 300
+    ocr_max_pages: int = 120          # safety cap per file
+    ocr_concurrency: int = 12         # parallel page reads for AI vision
+    ocr_repair_passes: int = 1        # re-read pages whose figures don't reconcile
+    # vision needs a strong model: mini-class models misread dense numeric columns
+    openai_vision_model: str = "gpt-4o"
+
     # Analysis thresholds
     high_value_txn_threshold: float = 100000.0  # absolute high-value alert
     cash_intensity_warn_ratio: float = 0.40     # cash txns vs total inflow

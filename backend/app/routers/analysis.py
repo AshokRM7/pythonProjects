@@ -97,8 +97,11 @@ def get_analysis(analysis_id: int, db: Session = Depends(get_db)):
 @router.get("/health")
 def health():
     settings = get_settings()
+    from app.services.parsing.ocr import ocr_available
     return {
         "status": "ok",
         "llm_configured": settings.llm_available,
         "llm_model": settings.openai_model if settings.llm_available else None,
+        "ocr": ocr_available(),
+        "ocr_vision_model": settings.openai_vision_model,
     }
